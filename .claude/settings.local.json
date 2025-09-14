@@ -4,7 +4,12 @@
       "Bash(pnpm install:*)",
       "Bash(pnpm run dev:*)",
       "Bash(curl:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx prisma init:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(pnpm run:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                String   @id @default(cuid())
+  name              String?
+  email             String?   @unique
+  emailVerified     DateTime?
+  image             String?
+  kakaoId           String?   @unique
+  walletAddress     String?   @unique
+  privateKeyHash    String?   // 암호화된 개인키
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  purchases Purchase[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model Ticket {
+  id            String @id @default(cuid())
+  name          String
+  description   String
+  price         String // ETH 단위 (BigInt는 문자열로 저장)
+  maxSupply     Int
+  currentSupply Int    @default(0)
+  imageUrl      String?
+  isActive      Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  purchases Purchase[]
+
+  @@map("tickets")
+}
+
+model Purchase {
+  id              String   @id @default(cuid())
+  userId          String
+  ticketId        String
+  transactionHash String   @unique
+  tokenId         String
+  purchaseDate    DateTime @default(now())
+  used            Boolean  @default(false)
+  usedAt          DateTime?
+
+  user   User   @relation(fields: [userId], references: [id])
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@map("purchases")
+}

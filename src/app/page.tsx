@@ -1,180 +1,330 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
+// 커스텀 인증 사용
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Box,
+  Stack,
+  Card,
+  CardContent,
+  Chip,
+  IconButton,
+  AppBar,
+  Toolbar,
+  Avatar,
+  Grid,
+  Divider,
+  CircularProgress,
+} from '@mui/material'
+import {
+  AccountBalanceWallet,
+  Logout,
+  ShoppingCart,
+  Receipt,
+  History,
+} from '@mui/icons-material'
 
-interface MintResponse {
-  success: boolean;
-  transactionHash?: string;
-  tokenId?: string;
-  to?: string;
-  blockNumber?: string;
-  error?: string;
+interface TicketData {
+  id: string
+  name: string
+  description: string
+  price: string
+  maxSupply: number
+  currentSupply: number
+  imageUrl?: string
+  isActive: boolean
 }
 
 interface BalanceData {
-  success: boolean;
-  address?: string;
-  ethBalance?: string;
-  nftBalance?: string;
-  totalSupply?: string;
-  error?: string;
-}
-
-interface TransactionData {
-  success: boolean;
-  transactions?: Array<{
-    transactionHash: string;
-    blockNumber: string;
-    from: string;
-    to: string;
-    tokenId: string;
-    type: 'mint' | 'transfer';
-  }>;
-  count?: number;
-  error?: string;
+  success: boolean
+  address?: string
+  ethBalance?: string
+  nftBalance?: string
+  totalSupply?: string
+  error?: string
 }
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<MintResponse | null>(null);
-  const [balance, setBalance] = useState<BalanceData | null>(null);
-  const [transactions, setTransactions] = useState<TransactionData | null>(null);
-
-  const fetchBalance = async () => {
-    try {
-      const response = await fetch('/api/balance');
-      const data: BalanceData = await response.json();
-      setBalance(data);
-    } catch (error) {
-      console.error('Balance fetch error:', error);
-    }
-  };
-
-  const fetchTransactions = async () => {
-    try {
-      const response = await fetch('/api/transactions');
-      const data: TransactionData = await response.json();
-      setTransactions(data);
-    } catch (error) {
-      console.error('Transactions fetch error:', error);
-    }
-  };
+  const router = useRouter()
+  const [session, setSession] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [tickets, setTickets] = useState<TicketData[]>([])
+  const [balance, setBalance] = useState<BalanceData | null>(null)
+  const [purchasing, setPurchasing] = useState<string | null>(null)
+  const [funding, setFunding] = useState(false)
 
   useEffect(() => {
-    fetchBalance();
-    fetchTransactions();
-  }, []);
+    // 세션 확인
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setSession({ user: data.user })
+        } else {
+          router.push('/login')
+        }
+      })
+  }, [router])
 
-  const handleMint = async () => {
-    setIsLoading(true);
-    setResult(null);
+  useEffect(() => {
+    if (session) {
+      fetchTickets()
+      fetchBalance()
+    }
+  }, [session])
+
+  const fetchTickets = async () => {
+    try {
+      const response = await fetch('/api/tickets')
+      const data = await response.json()
+      setTickets(data.tickets || [])
+    } catch (error) {
+      console.error('Error fetching tickets:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchBalance = async () => {
+    if (!session?.user?.walletAddress) return
 
     try {
-      const response = await fetch('/api/mint', {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/balance?address=${session.user.walletAddress}`)
+      const data = await response.json()
+      setBalance(data)
+    } catch (error) {
+      console.error('Error fetching balance:', error)
+    }
+  }
 
-      const data: MintResponse = await response.json();
-      setResult(data);
+  const handlePurchase = async (ticketId: string) => {
+    if (purchasing) return
+
+    setPurchasing(ticketId)
+
+    try {
+      const response = await fetch('/api/tickets/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticketId }),
+      })
+
+      const data = await response.json()
 
       if (data.success) {
-        fetchBalance();
-        fetchTransactions();
-      }
+        alert(`🎉 구매 성공!\n토큰 ID: ${data.purchase.tokenId}\n트랜잭션: ${data.purchase.transactionHash.slice(0, 10)}...`)
 
+        // 데이터 새로고침
+        fetchTickets()
+        fetchBalance()
+      } else {
+        alert(`❌ 구매 실패: ${data.error}`)
+      }
     } catch (error) {
-      setResult({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      console.error('Purchase error:', error)
+      alert('❌ 구매 중 오류가 발생했습니다.')
     } finally {
-      setIsLoading(false);
+      setPurchasing(null)
     }
-  };
+  }
+
+  const handleFundWallet = async () => {
+    if (funding) return
+
+    setFunding(true)
+
+    try {
+      const response = await fetch('/api/wallet/fund', {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        if (data.alreadyFunded) {
+          alert(`💰 이미 충분한 잔액이 있습니다!\n현재 잔액: ${data.balance} ETH`)
+        } else {
+          alert(`🎉 충전 완료!\n${data.amount} ETH가 지갑에 추가되었습니다!\n새 잔액: ${data.newBalance} ETH`)
+        }
+
+        // 잔액 새로고침
+        fetchBalance()
+      } else {
+        alert(`❌ 충전 실패: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Fund wallet error:', error)
+      alert('❌ 충전 중 오류가 발생했습니다.')
+    } finally {
+      setFunding(false)
+    }
+  }
+
+  if (loading && !session) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (!session) {
+    return null
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-center mb-8">🎫 티켓 NFT 테스트</h1>
+    <>
+      {/* 상단 앱바 */}
+      <AppBar position="sticky" elevation={1}>
+        <Toolbar>
+          <Box display="flex" alignItems="center" flexGrow={1}>
+            <Typography variant="h6" component="h1" fontWeight="bold">
+              🎫 티켓팅
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Avatar sx={{ width: 32, height: 32 }}>
+              {session.user?.name?.charAt(0)}
+            </Avatar>
+            <IconButton
+              color="inherit"
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' })
+                router.push('/login')
+              }}
+            >
+              <Logout />
+            </IconButton>
+          </Stack>
+        </Toolbar>
+      </AppBar>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 좌측: 구매 버튼 및 결과 */}
-          <div className="space-y-6">
-            <div className="text-center">
-              <button
-                onClick={handleMint}
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600
-                           text-white font-bold py-4 px-8 rounded-lg text-xl
-                           transition-colors duration-200"
-              >
-                {isLoading ? '발행 중...' : '🎫 티켓 구매하기'}
-              </button>
-            </div>
-
-            {result && (
-              <div className="p-6 rounded-lg bg-gray-800">
-                {result.success ? (
-                  <div className="space-y-2">
-                    <p className="text-green-400 font-bold">✅ 발행 성공!</p>
-                    <p><span className="text-gray-400">토큰 ID:</span> {result.tokenId}</p>
-                    <p><span className="text-gray-400">소유자:</span> {result.to?.slice(0, 6)}...{result.to?.slice(-4)}</p>
-                    <p><span className="text-gray-400">트랜잭션:</span> {result.transactionHash?.slice(0, 10)}...</p>
-                    <p><span className="text-gray-400">블록:</span> {result.blockNumber}</p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-red-400 font-bold">❌ 발행 실패</p>
-                    <p className="text-gray-300 mt-2">{result.error}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 잔액 정보 */}
-            {balance && balance.success && (
-              <div className="p-6 rounded-lg bg-gray-800">
-                <h3 className="text-xl font-bold mb-4">💰 지갑 정보</h3>
-                <div className="space-y-2 text-sm">
-                  <p><span className="text-gray-400">주소:</span> {balance.address?.slice(0, 6)}...{balance.address?.slice(-4)}</p>
-                  <p><span className="text-gray-400">ETH 잔액:</span> {balance.ethBalance} ETH</p>
-                  <p><span className="text-gray-400">보유 NFT:</span> {balance.nftBalance}개</p>
-                  <p><span className="text-gray-400">총 발행량:</span> {balance.totalSupply}개</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 우측: 거래 내역 */}
-          <div>
-            <div className="p-6 rounded-lg bg-gray-800">
-              <h3 className="text-xl font-bold mb-4">📋 거래 내역</h3>
-              {transactions && transactions.success && transactions.transactions ? (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {transactions.transactions.map((tx, index) => (
-                    <div key={index} className="p-3 rounded bg-gray-700 text-sm">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          tx.type === 'mint' ? 'bg-green-600' : 'bg-blue-600'
-                        }`}>
-                          {tx.type === 'mint' ? 'MINT' : 'TRANSFER'}
-                        </span>
-                        <span className="text-gray-400">#{tx.tokenId}</span>
-                      </div>
-                      <p><span className="text-gray-400">From:</span> {tx.from.slice(0, 6)}...{tx.from.slice(-4)}</p>
-                      <p><span className="text-gray-400">To:</span> {tx.to.slice(0, 6)}...{tx.to.slice(-4)}</p>
-                      <p><span className="text-gray-400">Block:</span> {tx.blockNumber}</p>
-                      <p><span className="text-gray-400">TX:</span> {tx.transactionHash.slice(0, 10)}...</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-400">거래 내역이 없습니다.</p>
+      <Container maxWidth="md" sx={{ py: 2 }}>
+        {/* 사용자 지갑 정보 */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <AccountBalanceWallet color="primary" />
+              <Box flexGrow={1}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  내 지갑
+                </Typography>
+                <Typography variant="body2" fontFamily="monospace">
+                  {session.user?.walletAddress?.slice(0, 6)}...{session.user?.walletAddress?.slice(-4)}
+                </Typography>
+              </Box>
+              {balance && (
+                <Box textAlign="right">
+                  <Typography variant="h6" color="primary.main">
+                    {balance.ethBalance} ETH
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    NFT: {balance.nftBalance}개
+                  </Typography>
+                  {parseFloat(balance.ethBalance) < 0.1 && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      onClick={handleFundWallet}
+                      disabled={funding}
+                      sx={{ mt: 0.5, fontSize: '0.7rem' }}
+                    >
+                      {funding ? '충전 중...' : '💰 충전'}
+                    </Button>
+                  )}
+                </Box>
               )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+            </Stack>
+          </CardContent>
+        </Card>
+
+        {/* 티켓 목록 */}
+        <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mb: 2 }}>
+          🎪 이용 가능한 티켓
+        </Typography>
+
+        {loading ? (
+          <Box display="flex" justifyContent="center" py={4}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Stack spacing={2}>
+            {tickets.map((ticket) => (
+              <Card key={ticket.id} elevation={2}>
+                <CardContent>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={1}>
+                      <Typography variant="h4">
+                        {ticket.name.includes('일반') ? '🎪' :
+                         ticket.name.includes('VIP') ? '⭐' : '🎯'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={7}>
+                      <Typography variant="h6" fontWeight="bold">
+                        {ticket.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {ticket.description}
+                      </Typography>
+                      <Chip
+                        label={`${ticket.currentSupply}/${ticket.maxSupply} 판매됨`}
+                        size="small"
+                        color={ticket.currentSupply >= ticket.maxSupply ? "error" : "default"}
+                      />
+                    </Grid>
+                    <Grid item xs={4} textAlign="right">
+                      <Typography variant="h6" color="primary.main" fontWeight="bold">
+                        {parseFloat(ticket.price) / 1e18} ETH
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={ticket.currentSupply >= ticket.maxSupply || purchasing === ticket.id}
+                        startIcon={purchasing === ticket.id ? <CircularProgress size={16} /> : <ShoppingCart />}
+                        onClick={() => handlePurchase(ticket.id)}
+                        sx={{ mt: 1 }}
+                      >
+                        {purchasing === ticket.id ? '구매 중...' : '구매'}
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        )}
+
+        {/* 하단 네비게이션 */}
+        <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, p: 2, bgcolor: 'background.paper' }}>
+          <Stack direction="row" spacing={1}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<Receipt />}
+              onClick={() => router.push('/my-tickets')}
+            >
+              내 티켓
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<History />}
+              onClick={() => router.push('/transactions')}
+            >
+              거래 내역
+            </Button>
+          </Stack>
+        </Box>
+      </Container>
+    </>
+  )
 }
