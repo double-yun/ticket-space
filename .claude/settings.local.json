@@ -9,7 +9,11 @@
       "Bash(npx prisma init:*)",
       "Bash(npx prisma migrate dev:*)",
       "Bash(pnpm run:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs -r kill -9)",
+      "Bash(PORT=3000 pnpm run dev)",
+      "Bash(pnpm remove:*)"
     ],
     "deny": [],
     "ask": []

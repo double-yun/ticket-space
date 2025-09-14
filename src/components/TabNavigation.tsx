@@ -1,0 +1,51 @@
+'use client'
+
+import { useRouter, usePathname } from 'next/navigation'
+
+export default function TabNavigation() {
+  const router = useRouter()
+  const pathname = usePathname()
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <div className="flex">
+        <button
+          onClick={() => router.push('/')}
+          className={`flex-1 flex flex-col items-center py-3 ${
+            pathname === '/' ? 'text-blue-600' : 'text-gray-500'
+          }`}
+        >
+          <span className="text-lg">🏠</span>
+          <span className="text-xs mt-1">홈</span>
+        </button>
+        <button
+          onClick={() => router.push('/search')}
+          className={`flex-1 flex flex-col items-center py-3 ${
+            pathname === '/search' ? 'text-blue-600' : 'text-gray-500'
+          }`}
+        >
+          <span className="text-lg">🔍</span>
+          <span className="text-xs mt-1">검색</span>
+        </button>
+        <button
+          onClick={() => router.push('/my-tickets')}
+          className={`flex-1 flex flex-col items-center py-3 ${
+            pathname === '/my-tickets' ? 'text-blue-600' : 'text-gray-500'
+          }`}
+        >
+          <span className="text-lg">🎫</span>
+          <span className="text-xs mt-1">내 티켓</span>
+        </button>
+        <button
+          onClick={() => router.push('/profile')}
+          className={`flex-1 flex flex-col items-center py-3 ${
+            pathname === '/profile' ? 'text-blue-600' : 'text-gray-500'
+          }`}
+        >
+          <span className="text-lg">👤</span>
+          <span className="text-xs mt-1">프로필</span>
+        </button>
+      </div>
+    </div>
+  )
+}

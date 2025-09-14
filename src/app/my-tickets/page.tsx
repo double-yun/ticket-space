@@ -1,35 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Box,
-  Stack,
-  Chip,
-  IconButton,
-  AppBar,
-  Toolbar,
-  Avatar,
-  CircularProgress,
-  Button,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material'
-import {
-  ArrowBack,
-  ConfirmationNumber,
-  AccessTime,
-  CheckCircle,
-  Cancel,
-  QrCode,
-} from '@mui/icons-material'
 
 interface Purchase {
   id: string
@@ -52,12 +24,11 @@ export default function MyTicketsPage() {
   const [session, setSession] = useState<any>(null)
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
-  const [qrDialogOpen, setQrDialogOpen] = useState(false)
+  const [qrPopupOpen, setQrPopupOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<Purchase | null>(null)
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
 
   useEffect(() => {
-    // 세션 확인
     fetch('/api/auth/session')
       .then(res => res.json())
       .then(data => {
@@ -88,7 +59,6 @@ export default function MyTicketsPage() {
   const handleShowQR = async (purchase: Purchase) => {
     setSelectedTicket(purchase)
 
-    // QR 코드 생성
     try {
       const QRCode = (await import('qrcode')).default
 
@@ -110,7 +80,7 @@ export default function MyTicketsPage() {
       })
 
       setQrCodeDataURL(qrDataURL)
-      setQrDialogOpen(true)
+      setQrPopupOpen(true)
     } catch (error) {
       console.error('QR 코드 생성 실패:', error)
       alert('QR 코드 생성에 실패했습니다.')
@@ -118,187 +88,179 @@ export default function MyTicketsPage() {
   }
 
   const handleCloseQR = () => {
-    setQrDialogOpen(false)
+    setQrPopupOpen(false)
     setSelectedTicket(null)
     setQrCodeDataURL('')
   }
 
-
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
+      <div className="bg-gray-50 min-h-screen flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     )
   }
 
   return (
-    <>
-      <AppBar position="sticky" elevation={1}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => router.back()}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h6" component="h1" fontWeight="bold">
-            내 티켓
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <div className="bg-gray-50 min-h-screen">
+      {/* 상단바 */}
+      <div className="bg-white border-b border-gray-200 px-4 py-3">
+        <h1 className="text-xl font-bold text-center">내 티켓</h1>
+      </div>
 
-      <Container maxWidth="md" sx={{ py: 2 }}>
+      <div className="pb-20 px-4 pt-6">
         {purchases.length === 0 ? (
-          <Box textAlign="center" py={8}>
-            <ConfirmationNumber sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              구매한 티켓이 없습니다
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              홈에서 티켓을 구매해보세요!
-            </Typography>
-            <Button variant="contained" onClick={() => router.push('/')}>
+          <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
+            <span className="text-6xl opacity-30 block mb-4">🎫</span>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">구매한 티켓이 없습니다</h2>
+            <p className="text-gray-600 mb-6">홈에서 티켓을 구매해보세요!</p>
+            <button
+              onClick={() => router.push('/')}
+              className="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold"
+            >
               홈으로 가기
-            </Button>
-          </Box>
+            </button>
+          </div>
         ) : (
-          <Stack spacing={2}>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              보유 티켓 ({purchases.length}개)
-            </Typography>
-
-            {purchases.map((purchase) => (
-              <Card key={purchase.id} elevation={2}>
-                <CardContent>
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={1}>
-                      <Typography variant="h4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">보유 티켓 ({purchases.length}개)</h2>
+            <div className="space-y-3">
+              {purchases.map((purchase) => (
+                <div key={purchase.id} className="bg-white rounded-xl p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                      purchase.used ? 'bg-gray-200' : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                    }`}>
+                      <span className={`text-xl ${purchase.used ? 'text-gray-600' : 'text-white'}`}>
                         {purchase.ticket.name.includes('일반') ? '🎪' :
                          purchase.ticket.name.includes('VIP') ? '⭐' : '🎯'}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={7}>
-                      <Typography variant="h6" fontWeight="bold">
-                        {purchase.ticket.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        {purchase.ticket.description}
-                      </Typography>
-                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                        <Chip
-                          icon={<ConfirmationNumber />}
-                          label={`토큰 #${purchase.tokenId}`}
-                          size="small"
-                          variant="outlined"
-                        />
-                        <Chip
-                          icon={purchase.used ? <CheckCircle /> : <AccessTime />}
-                          label={purchase.used ? '사용완료' : '미사용'}
-                          size="small"
-                          color={purchase.used ? 'success' : 'primary'}
-                        />
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary">
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-800 mb-1">{purchase.ticket.name}</h3>
+                      <p className="text-sm text-gray-600 mb-2">{purchase.ticket.description}</p>
+
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-xs font-medium">
+                          토큰 #{purchase.tokenId}
+                        </span>
+                        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                          purchase.used
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {purchase.used ? '사용완료' : '미사용'}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-gray-500">
                         구매일: {new Date(purchase.purchaseDate).toLocaleString('ko-KR')}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={4} textAlign="right">
-                      <Typography variant="h6" color="primary.main" fontWeight="bold">
-                        {parseFloat(purchase.ticket.price) / 1e18} ETH
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" display="block">
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 items-end">
+                      <p className="text-lg font-bold text-blue-600">
+                        {(parseFloat(purchase.ticket.price) / 1e18).toFixed(3)} ETH
+                      </p>
+                      <p className="text-xs text-gray-500">
                         {purchase.transactionHash.slice(0, 6)}...{purchase.transactionHash.slice(-4)}
-                      </Typography>
+                      </p>
                       {!purchase.used && (
-                        <Stack spacing={1}>
-                          <Button
-                            variant="contained"
-                            size="small"
-                            fullWidth
-                            startIcon={<QrCode />}
+                        <div className="flex flex-col gap-1">
+                          <button
+                            className="flex items-center justify-center gap-1 bg-blue-500 text-white px-2 py-1 rounded-lg text-xs font-semibold"
                             onClick={() => handleShowQR(purchase)}
-                            sx={{ mt: 1 }}
                           >
-                            QR 보기
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            fullWidth
+                            <span className="text-xs">📱</span>
+                            <span>QR</span>
+                          </button>
+                          <button
+                            className="flex items-center justify-center gap-1 border border-gray-300 text-gray-600 px-2 py-1 rounded-lg text-xs"
                             onClick={() => {
                               navigator.clipboard.writeText(purchase.transactionHash)
-                              alert('트랜잭션 해시가 복사되었습니다!')
+                              alert('복사됨!')
                             }}
                           >
-                            TX 복사
-                          </Button>
-                        </Stack>
+                            <span className="text-xs">📋</span>
+                            <span>TX</span>
+                          </button>
+                        </div>
                       )}
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            ))}
-          </Stack>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
+      </div>
 
-        {/* QR 코드 다이얼로그 */}
-        <Dialog open={qrDialogOpen} onClose={handleCloseQR} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
-            🎫 티켓 QR 코드
-          </DialogTitle>
-          <DialogContent sx={{ textAlign: 'center', pb: 2 }}>
+      {/* QR 코드 팝업 */}
+      {qrPopupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-2xl">
             {selectedTicket && (
-              <Stack spacing={2} alignItems="center">
-                <Typography variant="h6" fontWeight="bold">
-                  {selectedTicket.ticket.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  토큰 ID: #{selectedTicket.tokenId}
-                </Typography>
+              <div className="p-8 text-center">
+                {/* 헤더 */}
+                <div className="mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl text-white">🎫</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">티켓 QR 코드</h2>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedTicket.ticket.name}</h3>
+                  <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
+                </div>
 
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: 'white',
-                    borderRadius: 2,
-                    boxShadow: 2,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
+                {/* QR 코드 */}
+                <div className="bg-gray-50 p-6 rounded-2xl mb-6">
                   {qrCodeDataURL ? (
                     <img
                       src={qrCodeDataURL}
                       alt="티켓 QR 코드"
-                      style={{
-                        maxWidth: '100%',
-                        height: 'auto',
-                        borderRadius: '8px',
-                      }}
+                      className="w-48 h-48 mx-auto rounded-xl shadow-sm"
                     />
                   ) : (
-                    <CircularProgress />
+                    <div className="w-48 h-48 flex items-center justify-center mx-auto">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
                   )}
-                </Box>
+                </div>
 
-                <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-                  이 QR 코드를 입장 시 스캔해주세요
-                </Typography>
-              </Stack>
+                <p className="text-sm text-gray-600 mb-6">입장 시 이 QR 코드를 스캔해주세요</p>
+
+                {/* 닫기 버튼 */}
+                <button
+                  onClick={handleCloseQR}
+                  className="w-full bg-blue-500 text-white rounded-2xl py-3 font-semibold"
+                >
+                  닫기
+                </button>
+              </div>
             )}
-          </DialogContent>
-          <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-            <Button onClick={handleCloseQR} variant="outlined" size="large">
-              닫기
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
-    </>
+          </div>
+        </div>
+      )}
+
+      {/* 하단 네비게이션 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+        <div className="flex">
+          <button onClick={() => router.push('/')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
+            <span className="text-lg">🏠</span>
+            <span className="text-xs mt-1">홈</span>
+          </button>
+          <button onClick={() => router.push('/search')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
+            <span className="text-lg">🔍</span>
+            <span className="text-xs mt-1">검색</span>
+          </button>
+          <button onClick={() => router.push('/my-tickets')} className="flex-1 flex flex-col items-center py-3 text-blue-600">
+            <span className="text-lg">🎫</span>
+            <span className="text-xs mt-1">내 티켓</span>
+          </button>
+          <button onClick={() => router.push('/profile')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
+            <span className="text-lg">👤</span>
+            <span className="text-xs mt-1">프로필</span>
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
