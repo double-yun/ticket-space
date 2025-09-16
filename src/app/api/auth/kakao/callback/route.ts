@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         grant_type: 'authorization_code',
         client_id: '654df22880e0fd9f308a63c1d8eeb8f3',
         client_secret: 'g3PNFSPpAxwqaDLXoQmCFyHC8pHNbEAh',
-        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/kakao/callback`,
+        redirect_uri: `http://localhost:3000/api/auth/kakao/callback`,
         code,
       }),
     })
