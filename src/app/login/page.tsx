@@ -1,12 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 
 export default function LoginPage() {
   const router = useRouter()
+  const [isNative, setIsNative] = useState(false)
+  const [kakaoAppAvailable, setKakaoAppAvailable] = useState(false)
 
   useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform())
+
     // 이미 로그인되어 있으면 홈으로 리다이렉트
     fetch('/api/auth/session')
       .then(res => res.json())
@@ -15,9 +21,57 @@ export default function LoginPage() {
           router.push('/')
         }
       })
+
+    // 네이티브 환경에서 카카오톡 앱 설치 여부 확인
+    if (Capacitor.isNativePlatform()) {
+      checkKakaoAppAvailable()
+    }
   }, [router])
 
-  const handleKakaoLogin = () => {
+  const checkKakaoAppAvailable = async () => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // 카카오톡 앱 URL 스킴으로 앱 설치 여부 확인
+        const canOpen = await App.canOpenUrl({ url: 'kakaotalk://login' })
+        setKakaoAppAvailable(canOpen.value)
+      }
+    } catch (error) {
+      console.log('카카오톡 앱 확인 실패:', error)
+      setKakaoAppAvailable(false)
+    }
+  }
+
+  const handleKakaoLogin = async () => {
+    // 네이티브 환경이고 카카오톡 앱이 설치되어 있으면 앱으로 로그인 시도
+    if (isNative && kakaoAppAvailable) {
+      try {
+        await handleKakaoAppLogin()
+      } catch (error) {
+        console.error('카카오톡 앱 로그인 실패:', error)
+        // 앱 로그인 실패 시 웹 로그인으로 fallback
+        handleWebKakaoLogin()
+      }
+    } else {
+      // 웹 환경이거나 카카오톡 앱이 없으면 웹 로그인
+      handleWebKakaoLogin()
+    }
+  }
+
+  const handleKakaoAppLogin = async () => {
+    // 카카오톡 앱으로 로그인 URL 생성
+    const kakaoAppUrl = 'kakaotalk://login?' +
+      new URLSearchParams({
+        client_id: '654df22880e0fd9f308a63c1d8eeb8f3',
+        redirect_uri: 'com.ticketing.app://oauth',
+        response_type: 'code',
+        scope: 'profile_nickname account_email',
+      }).toString()
+
+    // 카카오톡 앱 열기
+    await App.openUrl({ url: kakaoAppUrl })
+  }
+
+  const handleWebKakaoLogin = () => {
     const kakaoAuthUrl = 'https://kauth.kakao.com/oauth/authorize?' +
       new URLSearchParams({
         client_id: '654df22880e0fd9f308a63c1d8eeb8f3',
@@ -53,7 +107,14 @@ export default function LoginPage() {
           >
             <div className="flex items-center justify-center gap-3">
               <span className="text-xl">💬</span>
-              카카오로 시작하기
+              <div className="flex flex-col items-center">
+                <span>카카오로 시작하기</span>
+                {isNative && (
+                  <span className="text-xs font-normal opacity-75">
+                    {kakaoAppAvailable ? '카카오톡 앱으로 로그인' : '웹 로그인'}
+                  </span>
+                )}
+              </div>
             </div>
           </button>
         </div>

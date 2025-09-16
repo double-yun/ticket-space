@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     // 개발 중에는 로컬 서버 사용
-    url: 'http://192.168.200.139:3002',  // Next.js dev server
+    url: 'http://192.168.200.139:3001',  // Next.js dev server
     cleartext: true
   },
   plugins: {
