@@ -1,6 +1,5 @@
 'use client'
 
-import { App } from 'konsta/react'
 import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,9 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="ios">
-        <App theme="ios" safeAreas>
           {children}
-        </App>
       </body>
     </html>
   );
