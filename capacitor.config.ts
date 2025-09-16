@@ -6,8 +6,8 @@ const config: CapacitorConfig = {
   webDir: '.next',
   server: {
     androidScheme: 'https',
-    // 개발 중에는 로컬 서버 사용
-    url: 'http://10.0.2.2:3000',  // Android emulator localhost
+    // 개발 중에는 로컬 서버 사용 (Android, iOS 공통)
+    url: 'http://192.168.200.139:3000',  // 실제 네트워크 IP
     cleartext: true
   },
   plugins: {
