@@ -13,7 +13,14 @@
       "Bash(lsof:*)",
       "Bash(xargs -r kill -9)",
       "Bash(PORT=3000 pnpm run dev)",
-      "Bash(pnpm remove:*)"
+      "Bash(pnpm remove:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/setup-contracts.sh:*)"
     ],
     "deny": [],
     "ask": []
