@@ -17,6 +17,7 @@ model User {
   emailVerified     DateTime?
   image             String?
   kakaoId           String?   @unique
+  phoneNumber       String?   @unique
   walletAddress     String?   @unique
   privateKeyHash    String?   // 암호화된 개인키
   createdAt         DateTime @default(now())

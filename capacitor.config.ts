@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.ticketing.app',
+  appId: 'com.yun.ticketing.app',
   appName: '티켓팅',
   webDir: '.next',
   server: {
