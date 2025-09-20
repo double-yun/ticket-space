@@ -6,6 +6,7 @@ import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
 import PhoneVerification from '@/components/PhoneVerification'
 import AccountCreationForm from '@/components/AccountCreationForm'
+import KakaoLogin from '@/components/KakaoLogin'
 
 // Cordova appAvailability 플러그인 선언
 declare var appAvailability: any
@@ -13,7 +14,6 @@ declare var appAvailability: any
 export default function LoginPage() {
   const router = useRouter()
   const [isNative, setIsNative] = useState(false)
-  const [kakaoAppAvailable, setKakaoAppAvailable] = useState(false)
   const [showPhoneVerification, setShowPhoneVerification] = useState(false)
   const [kakaoUserInfo, setKakaoUserInfo] = useState<any>(null)
   const [showAccountCreation, setShowAccountCreation] = useState(false)
@@ -30,47 +30,12 @@ export default function LoginPage() {
         }
       })
 
-    // 네이티브 환경에서 카카오톡 앱 설치 여부 확인
+    // 네이티브 환경에서 앱 URL 리스너 설정 (콜백 처리용)
     if (Capacitor.isNativePlatform()) {
-      checkKakaoAppAvailable()
       setupAppUrlListener()
     }
   }, [router])
 
-  const checkKakaoAppAvailable = async () => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        // appAvailability 플러그인이 로드될 때까지 잠깐 기다림
-        setTimeout(() => {
-          if (typeof appAvailability !== 'undefined') {
-            const scheme = Capacitor.getPlatform() === 'android'
-              ? 'com.kakao.talk'  // 안드로이드 패키지명
-              : 'kakaolink://'    // iOS URL 스킴
-
-            appAvailability.check(
-              scheme,
-              () => {
-                console.log('카카오톡 설치됨')
-                setKakaoAppAvailable(true)
-              },
-              () => {
-                console.log('카카오톡 없음')
-                setKakaoAppAvailable(false)
-              }
-            )
-          } else {
-            console.log('appAvailability 플러그인 로드 안됨, 기본값으로 설정')
-            setKakaoAppAvailable(true)
-          }
-        }, 1000)
-      } catch (error) {
-        console.log('카카오톡 앱 확인 중 에러:', error)
-        setKakaoAppAvailable(true)
-      }
-    } else {
-      setKakaoAppAvailable(false)
-    }
-  }
 
   const setupAppUrlListener = () => {
     if (Capacitor.isNativePlatform()) {
@@ -152,52 +117,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleKakaoLogin = async () => {
-    // 네이티브 환경에서만 로그인 허용
-    if (!isNative) {
-      alert('모바일 앱에서만 사용 가능합니다.')
-      return
-    }
-
-    // 카카오톡 앱이 설치되어 있지 않으면 차단
-    if (!kakaoAppAvailable) {
-      alert('카카오톡 앱이 설치되어 있지 않습니다. 카카오톡 앱을 설치한 후 다시 시도해주세요.')
-      return
-    }
-
-    try {
-      await handleKakaoAppLogin()
-    } catch (error) {
-      console.error('카카오톡 앱 로그인 실패:', error)
-      alert('카카오톡 로그인에 실패했습니다. 다시 시도해주세요.')
-    }
-  }
-
-  const handleKakaoAppLogin = async () => {
-    // 카카오톡 앱으로 로그인 URL 생성
-    const kakaoAppUrl = 'kakaotalk://login?' +
-      new URLSearchParams({
-        client_id: '654df22880e0fd9f308a63c1d8eeb8f3',
-        redirect_uri: 'com.ticketing.app://oauth',
-        response_type: 'code',
-        scope: 'profile_nickname account_email',
-      }).toString()
-
-    // 카카오톡 앱 열기
-    await App.openUrl({ url: kakaoAppUrl })
-  }
-
-  const handleWebKakaoLogin = () => {
-    const kakaoAuthUrl = 'https://kauth.kakao.com/oauth/authorize?' +
-      new URLSearchParams({
-        client_id: '654df22880e0fd9f308a63c1d8eeb8f3',
-        redirect_uri: `${window.location.origin}/api/auth/kakao/callback`,
-        response_type: 'code',
-        scope: 'profile_nickname account_email',
-      }).toString()
-
-    window.location.href = kakaoAuthUrl
-  }
 
   const handlePhoneVerificationSuccess = async (phoneNumber: string) => {
     if (kakaoUserInfo) {
@@ -316,22 +235,7 @@ export default function LoginPage() {
 
         {/* 카카오 로그인 버튼 */}
         <div className="w-full max-w-sm mb-8">
-          <button
-            onClick={handleKakaoLogin}
-            className="w-full bg-yellow-400 text-black font-semibold text-lg py-4 rounded-xl shadow-lg hover:bg-yellow-300 transition-all duration-200"
-          >
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-xl">💬</span>
-              <div className="flex flex-col items-center">
-                <span>카카오톡으로 시작하기</span>
-                {isNative && (
-                  <span className="text-xs font-normal opacity-75">
-                    {kakaoAppAvailable ? '카카오톡 앱 필수' : '카카오톡 앱을 설치해주세요'}
-                  </span>
-                )}
-              </div>
-            </div>
-          </button>
+          <KakaoLogin />
         </div>
 
         {/* 안내 문구 */}

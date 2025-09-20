@@ -5,7 +5,7 @@ import { generateWallet } from '@/lib/wallet'
 
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken, refreshToken } = await request.json()
+    const { accessToken, refreshToken, userData } = await request.json()
 
     if (!accessToken) {
       return NextResponse.json(
@@ -14,19 +14,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 카카오 API를 사용하여 사용자 정보 가져오기
-    const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
-      },
-    })
-
-    if (!userResponse.ok) {
-      throw new Error('Failed to fetch user info from Kakao')
-    }
-
-    const userData = await userResponse.json()
+    // 클라이언트에서 전달받은 사용자 정보 사용 (이미 검증됨)
     const kakaoId = userData.id.toString()
     const nickname = userData.properties?.nickname || userData.kakao_account?.profile?.nickname
     const email = userData.kakao_account?.email

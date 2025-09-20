@@ -17,6 +17,9 @@ const config: CapacitorConfig = {
       backgroundColor: '#ffffff',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false
+    },
+    KakaoLogin: {
+      kakaoAppKey: '13ee2e0978370b66ed83f6c35e511a93'
     }
   }
 };

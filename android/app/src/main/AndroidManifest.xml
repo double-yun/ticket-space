@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Kakao Talk 앱 호출을 위한 queries (Android 11+) -->
+    <queries>
+        <package android:name="com.kakao.talk" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -12,7 +17,7 @@
         <!-- Kakao Login -->
         <meta-data
             android:name="com.kakao.sdk.AppKey"
-            android:value="654df22880e0fd9f308a63c1d8eeb8f3" />
+            android:value="@string/kakao_app_key" />
 
 
         <activity
@@ -33,9 +38,21 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.ticketing.app" android:host="oauth" />
+                <data android:scheme="@string/kakao_scheme" android:host="oauth" />
             </intent-filter>
 
+        </activity>
+
+        <!-- Kakao SDK를 위한 AuthCodeHandlerActivity -->
+        <activity
+            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:host="oauth" android:scheme="@string/kakao_scheme" />
+            </intent-filter>
         </activity>
 
         <provider

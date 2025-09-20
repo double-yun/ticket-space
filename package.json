@@ -25,6 +25,7 @@
     "@mui/material": "^7.3.2",
     "@prisma/client": "^6.16.1",
     "@types/qrcode": "^1.5.5",
+    "capacitor-kakao-login-plugin": "^3.0.0",
     "cordova-plugin-appavailability": "^0.4.2",
     "ethers": "^6.13.2",
     "firebase": "^12.2.1",

@@ -6,16 +6,20 @@ export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies()
     const sessionToken = cookieStore.get('session_token')?.value
+    const appSession = cookieStore.get('session')?.value
 
+    // NextAuth 세션 삭제
     if (sessionToken) {
-      // 세션 삭제
       await prisma.session.deleteMany({
         where: { sessionToken },
       })
     }
 
     const response = NextResponse.json({ success: true })
+
+    // 모든 세션 쿠키 삭제
     response.cookies.delete('session_token')
+    response.cookies.delete('session')
 
     return response
   } catch (error) {

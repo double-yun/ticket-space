@@ -10,7 +10,7 @@ export const authOptions: NextAuthOptions = {
       id: "kakao",
       name: "Kakao",
       type: "oauth",
-      clientId: "654df22880e0fd9f308a63c1d8eeb8f3",
+      clientId: "13ee2e0978370b66ed83f6c35e511a93",
       clientSecret: "g3PNFSPpAxwqaDLXoQmCFyHC8pHNbEAh",
       authorization: {
         url: "https://kauth.kakao.com/oauth/authorize",

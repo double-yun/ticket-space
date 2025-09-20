@@ -4,4 +4,6 @@
     <string name="title_activity_main">티켓팅</string>
     <string name="package_name">com.ticketing.app</string>
     <string name="custom_url_scheme">com.ticketing.app</string>
+    <string name="kakao_app_key">13ee2e0978370b66ed83f6c35e511a93</string>
+    <string name="kakao_scheme">kakao13ee2e0978370b66ed83f6c35e511a93</string>
 </resources>
