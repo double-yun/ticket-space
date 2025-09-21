@@ -19,7 +19,7 @@ const config: CapacitorConfig = {
       showSpinner: false
     },
     KakaoLogin: {
-      kakaoAppKey: '13ee2e0978370b66ed83f6c35e511a93'
+      kakaoAppKey: '9276367f0f032290567277690d083805'
     }
   }
 };

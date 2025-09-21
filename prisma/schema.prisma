@@ -18,6 +18,9 @@ model User {
   image             String?
   kakaoId           String?   @unique
   phoneNumber       String?   @unique
+  phoneVerified     Boolean? @default(false)
+  birthDate         String?  // YYYY-MM-DD 형식
+  gender            String?  // 'M', 'F', 또는 null
   walletAddress     String?   @unique
   privateKeyHash    String?   // 암호화된 개인키
   createdAt         DateTime @default(now())

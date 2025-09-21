@@ -18,7 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             KakaoSDK.initSDK(appKey: kakaoAppKey)
         } else {
             // Info.plist에서 찾지 못한 경우 직접 설정
-            KakaoSDK.initSDK(appKey: "13ee2e0978370b66ed83f6c35e511a93")
+            KakaoSDK.initSDK(appKey: "9276367f0f032290567277690d083805")
         }
 
         return true

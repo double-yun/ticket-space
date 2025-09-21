@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
-        client_id: '13ee2e0978370b66ed83f6c35e511a93',
+        client_id: '9276367f0f032290567277690d083805',
         redirect_uri: 'com.ticketing.app://oauth',
         code: code,
       }),

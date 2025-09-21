@@ -5,11 +5,27 @@ import { useRouter } from 'next/navigation'
 export default function ProfilePage() {
   const router = useRouter()
 
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        router.push('/login')
+      } else {
+        console.error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
   const menuItems = [
     { icon: '⚙️', label: '설정', action: () => console.log('설정') },
     { icon: '🔔', label: '알림', action: () => console.log('알림') },
     { icon: '❓', label: '고객센터', action: () => console.log('고객센터') },
-    { icon: '🚪', label: '로그아웃', action: () => router.push('/login'), danger: true },
+    { icon: '🚪', label: '로그아웃', action: handleLogout, danger: true },
   ]
 
   return (

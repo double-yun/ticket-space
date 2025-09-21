@@ -100,17 +100,25 @@ export default function Home() {
   }
 
   const handlePurchase = async (ticketId: string) => {
+    if (!session?.user?.walletAddress) {
+      alert('지갑 주소가 없습니다.')
+      return
+    }
+
     if (purchasing) return
+
     setPurchasing(ticketId)
     try {
-      const response = await fetch('/api/tickets/purchase', {
+      const response = await fetch('/api/purchase-ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticketId }),
+        body: JSON.stringify({ ticketId })
       })
+
       const data = await response.json()
+
       if (data.success) {
-        alert(`🎉 구매 성공!\nToken ID: ${data.purchase.tokenId}\n트랜잭션: ${data.purchase.transactionHash.slice(0, 10)}...`)
+        alert('🎉 티켓 구매 성공!')
         fetchTickets()
         fetchBalance()
       } else {
