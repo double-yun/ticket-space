@@ -1,7 +1,6 @@
 'use client'
 
 import './globals.css'
-import PortoneProvider from '@/components/PortoneProvider'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,9 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="ios">
-        <PortoneProvider>
           {children}
-        </PortoneProvider>
       </body>
     </html>
   );
