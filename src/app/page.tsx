@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Settings } from '@mui/icons-material'
+import PayButton from '@/components/PayButton'
 import 'swiper/css'
 
 interface TicketData {
@@ -259,27 +260,7 @@ export default function Home() {
                     <p className="text-lg font-bold text-blue-600 mb-2">
                       {(parseFloat(ticket.price) / 1e18).toFixed(3)} ETH
                     </p>
-                    <button
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center space-x-1 ${
-                        ticket.currentSupply >= ticket.maxSupply || purchasing === ticket.id
-                          ? 'bg-gray-200 text-gray-400'
-                          : 'bg-blue-500 text-white active:bg-blue-600'
-                      }`}
-                      disabled={ticket.currentSupply >= ticket.maxSupply || purchasing === ticket.id}
-                      onClick={() => handlePurchase(ticket.id)}
-                    >
-                      {purchasing === ticket.id ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-blue-300 border-t-transparent rounded-full animate-spin" />
-                          <span>구매 중</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-sm">🛒</span>
-                          <span>구매</span>
-                        </>
-                      )}
-                    </button>
+                    <PayButton />
                   </div>
                 </div>
               </div>

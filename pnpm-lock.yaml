@@ -41,6 +41,9 @@ importers:
       '@mui/material':
         specifier: ^7.3.2
         version: 7.3.2(@emotion/react@11.14.0(@types/react@19.1.13)(react@19.1.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.1.13)(react@19.1.0))(@types/react@19.1.13)(react@19.1.0))(@types/react@19.1.13)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@portone/browser-sdk':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@prisma/client':
         specifier: ^6.16.1
         version: 6.16.1(prisma@6.16.1(typescript@5.9.2))(typescript@5.9.2)
@@ -1088,6 +1091,9 @@ packages:
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
+
+  '@portone/browser-sdk@0.1.0':
+    resolution: {integrity: sha512-4LO5XXqAohbXQbjHXjsJD8YCwNv/6RVkBXhWw+Icf5Hogx1RyRuVJ9Qfa4hr72j+oZCbUCBiaLpPUBVf+Weu1Q==}
 
   '@prisma/client@6.16.1':
     resolution: {integrity: sha512-QaBCOY29lLAxEFFJgBPyW3WInCW52fJeQTmWx/h6YsP5u0bwuqP51aP0uhqFvhK9DaZPwvai/M4tSDYLVE9vRg==}
@@ -4434,6 +4440,8 @@ snapshots:
   '@panva/hkdf@1.2.1': {}
 
   '@popperjs/core@2.11.8': {}
+
+  '@portone/browser-sdk@0.1.0': {}
 
   '@prisma/client@6.16.1(prisma@6.16.1(typescript@5.9.2))(typescript@5.9.2)':
     optionalDependencies:
