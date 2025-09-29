@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getContractAddress, getPublicClient } from '@/lib/blockchain';
-
-const contractAbi = [{"type":"function","name":"balanceOf","inputs":[{"name":"owner","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"totalSupply","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"}];
+import { ticketAbi } from '@/lib/ticket-abi';
 
 const publicClient = getPublicClient();
 
@@ -21,13 +20,13 @@ export async function GET(request: NextRequest) {
       publicClient.getBalance({ address: address as `0x${string}` }),
       publicClient.readContract({
         address: contractAddress as `0x${string}`,
-        abi: contractAbi,
+        abi: ticketAbi,
         functionName: 'balanceOf',
         args: [address as `0x${string}`],
       }),
       publicClient.readContract({
         address: contractAddress as `0x${string}`,
-        abi: contractAbi,
+        abi: ticketAbi,
         functionName: 'totalSupply',
       }),
     ]);

@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const router = useRouter()
+  const [demoLoading, setDemoLoading] = useState<string | null>(null)
 
   useEffect(() => {
     // 이미 로그인되어 있으면 홈으로 리다이렉트
@@ -27,6 +28,36 @@ export default function LoginPage() {
       }).toString()
 
     window.location.href = kakaoAuthUrl
+  }
+
+  const demoUsers = [
+    { variant: 'demo1', label: '데모 사용자 1' },
+    { variant: 'demo2', label: '데모 사용자 2' },
+    { variant: 'demo3', label: '데모 사용자 3' },
+  ]
+
+  const handleDemoLogin = async (variant: string, label: string) => {
+    if (demoLoading) return
+    setDemoLoading(variant)
+    try {
+      const response = await fetch('/api/auth/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variant, name: label }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || '로그인에 실패했습니다.')
+      }
+
+      router.push('/')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '로그인 중 문제가 발생했습니다.'
+      alert(message)
+    } finally {
+      setDemoLoading(null)
+    }
   }
 
   return (
@@ -56,6 +87,27 @@ export default function LoginPage() {
               카카오로 시작하기
             </div>
           </button>
+        </div>
+
+        {/* 임시 데모 로그인 */}
+        <div className="w-full max-w-sm mb-10">
+          <div className="bg-white/70 border border-dashed border-gray-200 rounded-2xl p-4 shadow-sm">
+            <p className="text-sm text-gray-600 mb-3">
+              카카오 로그인을 사용할 수 없다면 아래 데모 계정으로 임시 접속할 수 있습니다.
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {demoUsers.map((demo) => (
+                <button
+                  key={demo.variant}
+                  onClick={() => handleDemoLogin(demo.variant, demo.label)}
+                  className="w-full bg-gray-900 text-white font-medium py-2.5 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  disabled={demoLoading !== null}
+                >
+                  {demoLoading === demo.variant ? '로그인 중...' : `${demo.label}로 접속`}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* 안내 문구 */}

@@ -39,7 +39,8 @@ export async function identifyContract(address: string): Promise<ContractName | 
                   stateMutability: 'view'
                 }],
                 functionName: sig.split('(')[0],
-                args: sig.includes('address') ? ['0x0000000000000000000000000000000000000000'] : []
+                // Use a non-zero address to avoid ERC-721 balanceOf zero-address reverts.
+                args: sig.includes('address') ? ['0x0000000000000000000000000000000000000001'] : []
               })
               return true
             }
@@ -67,19 +68,33 @@ export async function discoverContractByType(contractType: ContractName): Promis
 
   try {
     const latestBlock = await client.getBlockNumber()
-    const blocksToCheck = 20 // 더 많은 블록 확인
 
-    for (let i = 0; i < blocksToCheck; i++) {
-      const blockNumber = latestBlock - BigInt(i)
+    const maxLookbackEnv = process.env.CONTRACT_DISCOVERY_BLOCKS
+    let maxLookback: bigint | null = null
 
+    if (maxLookbackEnv) {
+      try {
+        const parsed = BigInt(maxLookbackEnv)
+        if (parsed >= 0n) {
+          maxLookback = parsed
+        }
+      } catch (error) {
+        console.warn('Invalid CONTRACT_DISCOVERY_BLOCKS value, ignoring:', maxLookbackEnv, error)
+      }
+    }
+
+    let blockNumber = latestBlock
+    let blocksScanned = 0n
+
+    while (blockNumber >= 0n) {
       try {
         const block = await client.getBlock({
           blockNumber,
-          includeTransactions: true
+          includeTransactions: true,
         })
 
         for (const tx of block.transactions) {
-          if (typeof tx === 'object' && tx.to === null) { // 컨트랙트 생성 트랜잭션
+          if (typeof tx === 'object' && tx.to === null) {
             const receipt = await client.getTransactionReceipt({ hash: tx.hash })
 
             if (receipt.contractAddress) {
@@ -93,6 +108,17 @@ export async function discoverContractByType(contractType: ContractName): Promis
         }
       } catch (error) {
         console.warn(`Failed to check block ${blockNumber}:`, error)
+      }
+
+      if (blockNumber === 0n) {
+        break
+      }
+
+      blockNumber -= 1n
+      blocksScanned += 1n
+
+      if (maxLookback !== null && blocksScanned >= maxLookback) {
+        break
       }
     }
 

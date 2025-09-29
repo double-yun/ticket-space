@@ -4,8 +4,7 @@ import { cookies } from 'next/headers'
 import { decodeEventLog, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
-
-const contractAbi = [{"type":"function","name":"balanceOf","inputs":[{"name":"owner","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"balances","inputs":[{"name":"owner","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"function","name":"mint","inputs":[{"name":"to","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"nonpayable"},{"type":"function","name":"ownerOf","inputs":[{"name":"tokenId","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"owners","inputs":[{"name":"","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"type":"function","name":"totalSupply","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"type":"event","name":"Transfer","inputs":[{"name":"from","type":"address","indexed":true,"internalType":"address"},{"name":"to","type":"address","indexed":true,"internalType":"address"},{"name":"tokenId","type":"uint256","indexed":true,"internalType":"uint256"}],"anonymous":false}]
+import { ticketAbi } from '@/lib/ticket-abi'
 
 // contractAddress는 함수 내에서 동적으로 가져옴
 
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
     const { request: contractRequest } = await publicClient.simulateContract({
       account: serverAccount,
       address: contractAddress,
-      abi: contractAbi,
+      abi: ticketAbi,
       functionName: 'mint',
       args: [user.walletAddress as `0x${string}`],
     })
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     // 이벤트 로그에서 토큰 ID 추출
     const decodedLog = decodeEventLog({
-      abi: contractAbi,
+      abi: ticketAbi,
       data: receipt.logs[0].data,
       topics: receipt.logs[0].topics,
     })
