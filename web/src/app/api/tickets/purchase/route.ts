@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
-import { decodeEventLog, parseEther } from 'viem'
+import { decodeEventLog, encodeFunctionData, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
+import { getChainId, getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
+import { getAlchemySmartAccountClient, isAlchemySmartWalletEnabled } from '@/lib/alchemy-smart-wallet'
 import { ticketAbi } from '@/lib/ticket-abi'
+
+const SEPOLIA_CHAIN_ID = 11155111
 
 // contractAddress는 함수 내에서 동적으로 가져옴
 
@@ -54,6 +57,7 @@ export async function POST(request: NextRequest) {
 
     // 사용자 지갑 잔액 확인
     const publicClient = getPublicClient()
+    const chainId = getChainId()
 
     const userBalance = await publicClient.getBalance({
       address: user.walletAddress as `0x${string}`,
@@ -69,23 +73,41 @@ export async function POST(request: NextRequest) {
 
     // 사용자 지갑에서 서버로 결제 (실제로는 사용자가 직접 트랜잭션 서명해야 함)
     // MVP에서는 서버가 사용자 대신 결제
-    // 서버 지갑으로 NFT 발행
-    const serverPrivateKey = process.env.PRIVATE_KEY as `0x${string}` || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
-    const serverAccount = privateKeyToAccount(serverPrivateKey)
-
-    const walletClient = getWalletClient(serverAccount)
-
-    // NFT 발행 (사용자 지갑 주소로)
-    const { request: contractRequest } = await publicClient.simulateContract({
-      account: serverAccount,
-      address: contractAddress,
+    const encodedMintData = encodeFunctionData({
       abi: ticketAbi,
       functionName: 'mint',
       args: [user.walletAddress as `0x${string}`],
     })
 
-    const hash = await walletClient.writeContract(contractRequest)
-    const receipt = await publicClient.waitForTransactionReceipt({ hash })
+    let receipt
+
+    if (chainId === SEPOLIA_CHAIN_ID && isAlchemySmartWalletEnabled()) {
+      const smartAccountClient = await getAlchemySmartAccountClient()
+      const { hash: userOpHash } = await smartAccountClient.sendUserOperation({
+        uo: {
+          target: contractAddress as `0x${string}`,
+          data: encodedMintData,
+        },
+      })
+
+      const onChainHash = await smartAccountClient.waitForUserOperationTransaction({ hash: userOpHash })
+      receipt = await publicClient.waitForTransactionReceipt({ hash: onChainHash })
+    } else {
+      const serverPrivateKey = (process.env.PRIVATE_KEY as `0x${string}`) || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+      const serverAccount = privateKeyToAccount(serverPrivateKey)
+      const walletClient = getWalletClient(serverAccount)
+
+      const { request: contractRequest } = await publicClient.simulateContract({
+        account: serverAccount,
+        address: contractAddress as `0x${string}`,
+        abi: ticketAbi,
+        functionName: 'mint',
+        args: [user.walletAddress as `0x${string}`],
+      })
+
+      const hash = await walletClient.writeContract(contractRequest)
+      receipt = await publicClient.waitForTransactionReceipt({ hash })
+    }
 
     // 이벤트 로그에서 토큰 ID 추출
     const decodedLog = decodeEventLog({

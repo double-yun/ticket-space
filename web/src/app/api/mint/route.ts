@@ -1,49 +1,62 @@
 import { NextResponse } from 'next/server';
-import { decodeEventLog } from 'viem';
+import { decodeEventLog, encodeFunctionData } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain';
+import { getChainId, getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain';
+import { getAlchemySmartAccountClient, isAlchemySmartWalletEnabled } from '@/lib/alchemy-smart-wallet';
 import { ticketAbi } from '@/lib/ticket-abi';
 
 // contractAddress는 함수 내에서 동적으로 가져옴
 
-// The private key of the deployer account from Anvil
-// Make sure to use environment variables in a real application
-const privateKey = process.env.ANVIL_PRIVATE_KEY as `0x${string}` || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const account = privateKeyToAccount(privateKey);
-
-// The address to mint the NFT to (Anvil's second account)
-const toAddress = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
-
-// Create a wallet client to send transactions
-const walletClient = getWalletClient(account);
-
-// Create a public client to read from the blockchain
-const publicClient = getPublicClient();
+// Sepolia는 Alchemy 스마트 월렛을 사용하고, 로컬(31337)은 Anvil 계정을 사용합니다.
+const SEPOLIA_CHAIN_ID = 11155111;
 
 export async function POST() {
   try {
-    // 동적으로 컨트랙트 주소 가져오기
+    const publicClient = getPublicClient();
+    const chainId = getChainId();
     const contractAddress = await getContractAddress();
-    const { request } = await publicClient.simulateContract({
-      account,
-      address: contractAddress,
+    const toAddress = (process.env.MINT_TARGET_ADDRESS as `0x${string}`) ?? '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+
+    const encodedMintData = encodeFunctionData({
       abi: ticketAbi,
       functionName: 'mint',
       args: [toAddress],
     });
 
-    const hash = await walletClient.writeContract(request);
+    let receipt;
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (chainId === SEPOLIA_CHAIN_ID && isAlchemySmartWalletEnabled()) {
+      const smartAccountClient = await getAlchemySmartAccountClient();
+      const { hash: userOpHash } = await smartAccountClient.sendUserOperation({
+        uo: {
+          target: contractAddress as `0x${string}`,
+          data: encodedMintData,
+        },
+      });
 
-    const transferLog = receipt.logs.find(
-        (log: any) => log.eventName === 'Transfer'
-    );
+      const onChainHash = await smartAccountClient.waitForUserOperationTransaction({ hash: userOpHash });
+      receipt = await publicClient.waitForTransactionReceipt({ hash: onChainHash });
+    } else {
+      const privateKey = (process.env.ANVIL_PRIVATE_KEY as `0x${string}`) || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+      const account = privateKeyToAccount(privateKey);
+      const walletClient = getWalletClient(account);
+
+      const { request } = await publicClient.simulateContract({
+        account,
+        address: contractAddress as `0x${string}`,
+        abi: ticketAbi,
+        functionName: 'mint',
+        args: [toAddress],
+      });
+
+      const hash = await walletClient.writeContract(request);
+      receipt = await publicClient.waitForTransactionReceipt({ hash });
+    }
 
     const decodedLog = decodeEventLog({
-        abi: ticketAbi,
-        data: receipt.logs[0].data,
-        topics: receipt.logs[0].topics,
+      abi: ticketAbi,
+      data: receipt.logs[0].data,
+      topics: receipt.logs[0].topics,
     });
 
     const tokenId = (decodedLog.args as unknown as { tokenId: bigint }).tokenId;

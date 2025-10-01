@@ -20,7 +20,11 @@
       "Bash(docker-compose restart:*)",
       "Bash(docker-compose:*)",
       "Bash(chmod:*)",
-      "Bash(./scripts/setup-contracts.sh:*)"
+      "Bash(./scripts/setup-contracts.sh:*)",
+      "Bash(forge build:*)",
+      "Read(//tmp/claude/**)",
+      "Bash(docker:*)",
+      "Bash(cast send:*)"
     ],
     "deny": [],
     "ask": []

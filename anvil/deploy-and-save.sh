@@ -1,21 +1,37 @@
 #!/bin/bash
 
-# Deploy contract and save address
-echo "Deploying Ticket contract..."
-DEPLOY_OUTPUT=$(forge create --broadcast --unlocked --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 /workspace/contracts/src/Ticket.sol:Ticket 2>&1)
+echo "🚀 Deploying Ticket contract..."
 
-# Extract contract address
-CONTRACT_ADDRESS=$(echo "$DEPLOY_OUTPUT" | grep "Deployed to:" | awk '{print $3}')
+# Change to contracts directory
+cd /workspace/contracts
 
-if [ -n "$CONTRACT_ADDRESS" ]; then
-    echo "Contract deployed to: $CONTRACT_ADDRESS"
+# Deploy contract
+forge create \
+  --rpc-url http://localhost:8545 \
+  --unlocked \
+  --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 \
+  src/Ticket.sol:TicketSBT \
+  --constructor-args "EventTicket" "TKT" "https://api.example.com/metadata/" \
+  --broadcast \
+  > ../deploy-output.txt 2>&1
 
-    # Save to deployments file
-    echo "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" > /workspace/deployments.env
-    echo "DEPLOYED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /workspace/deployments.env
+# Get contract address
+CONTRACT_ADDRESS=$(grep "Deployed to:" ../deploy-output.txt | cut -d' ' -f3)
 
-    echo "Contract address saved to deployments.env"
-else
-    echo "Failed to extract contract address"
+if [ -z "$CONTRACT_ADDRESS" ]; then
+    echo "❌ Deploy failed!"
+    cat ../deploy-output.txt
     exit 1
 fi
+
+# Show results
+echo "✅ Contract deployed!"
+echo "📍 Address: $CONTRACT_ADDRESS"
+
+# Save to file (in workspace root)
+echo "$CONTRACT_ADDRESS" > ../contract-address.txt
+echo "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" > ../.env.contract
+
+echo "💾 Address saved to:"
+echo "  - contract-address.txt (just the address)"
+echo "  - .env.contract (for environment variables)"

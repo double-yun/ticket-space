@@ -11,6 +11,17 @@
         }
       }
     },
+    "11155111": {
+      "name": "Sepolia Testnet",
+      "rpcUrl": null,
+      "contracts": {
+        "Ticket": {
+          "address": null,
+          "deployedAt": null,
+          "autoDiscover": false
+        }
+      }
+    },
     "1": {
       "name": "Ethereum Mainnet",
       "rpcUrl": "https://ethereum.publicnode.com",
@@ -23,5 +34,5 @@
       }
     }
   },
-  "defaultNetwork": "31337"
+  "defaultNetwork": "11155111"
 }

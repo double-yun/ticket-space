@@ -4,7 +4,8 @@ services:
       context: .
       dockerfile: web/Dockerfile
       target: dev
-    command: pnpm exec next dev --hostname 0.0.0.0 --port 3000
+    command: >-
+      sh -c "pnpm run db:studio & pnpm exec next dev --hostname 0.0.0.0 --port 3000"
     ports:
       - "3000:3000"
       - "5555:5555"
@@ -24,13 +25,11 @@ services:
     build:
       context: ./anvil
       dockerfile: Dockerfile
-    command: >-
-      --host 0.0.0.0 --port 8545 --chain-id 31337
-      --state /data/anvil-state.json --state-interval 5
     ports:
       - "8545:8545"
     volumes:
       - ./anvil/contracts:/workspace/contracts
+      - ./anvil:/workspace
       - anvil-data:/data
 volumes:
   pnpm-store:

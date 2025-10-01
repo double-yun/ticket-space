@@ -7,8 +7,8 @@ import "../src/Ticket.sol";
 contract Deploy is Script {
     function run() external {
         vm.startBroadcast();
-        Ticket ticket = new Ticket();
-        console2.log("Ticket contract deployed at:", address(ticket));
+        TicketSBT ticket = new TicketSBT("EventTicket", "TKT", "https://api.example.com/metadata/");
+        console2.log("TicketSBT contract deployed at:", address(ticket));
         vm.stopBroadcast();
     }
 }
