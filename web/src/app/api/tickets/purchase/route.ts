@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { decodeEventLog, encodeFunctionData, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { getChainId, getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
-import { getAlchemySmartAccountClient, isAlchemySmartWalletEnabled } from '@/lib/alchemy-smart-wallet'
+import { getAlchemySmartAccountClient, getSmartAccountAddress, isAlchemySmartWalletEnabled } from '@/lib/alchemy-smart-wallet'
 import { ticketAbi } from '@/lib/ticket-abi'
 
 const SEPOLIA_CHAIN_ID = 11155111
@@ -71,8 +71,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // 사용자 지갑에서 서버로 결제 (실제로는 사용자가 직접 트랜잭션 서명해야 함)
-    // MVP에서는 서버가 사용자 대신 결제
+    // Mint 호출을 위한 데이터만 준비 (실제 결제는 아래에서 사용자 지갑으로 처리)
     const encodedMintData = encodeFunctionData({
       abi: ticketAbi,
       functionName: 'mint',
@@ -80,8 +79,70 @@ export async function POST(request: NextRequest) {
     })
 
     let receipt
+    let paymentReceipt
 
-    if (chainId === SEPOLIA_CHAIN_ID && isAlchemySmartWalletEnabled()) {
+    let contractOwner: `0x${string}`
+    try {
+      contractOwner = await publicClient.readContract({
+        address: contractAddress as `0x${string}`,
+        abi: ticketAbi,
+        functionName: 'owner',
+      }) as `0x${string}`
+    } catch (error) {
+      console.error('Failed to read ticket contract owner.', error)
+      return NextResponse.json(
+        { error: '티켓 컨트랙트의 소유자 정보를 확인할 수 없습니다. 배포 주소와 RPC 설정을 점검해주세요.' },
+        { status: 500 },
+      )
+    }
+
+    const shouldAttemptSmartWallet = chainId === SEPOLIA_CHAIN_ID && isAlchemySmartWalletEnabled()
+    let useSmartWallet = false
+
+    if (shouldAttemptSmartWallet) {
+      try {
+        const smartAccountAddress = await getSmartAccountAddress()
+
+        if (smartAccountAddress && contractOwner.toLowerCase() === smartAccountAddress.toLowerCase()) {
+          useSmartWallet = true
+        } else {
+          console.warn(
+            `Smart wallet ${smartAccountAddress ?? 'unknown'} is not the contract owner ${contractOwner}. Falling back to server wallet for mint.`,
+          )
+        }
+      } catch (error) {
+        console.warn('Failed to verify smart wallet ownership. Falling back to server wallet.', error)
+      }
+    }
+
+    const userPrivateKey = user.privateKeyHash as `0x${string}`
+    const userAccount = privateKeyToAccount(userPrivateKey)
+
+    if (userAccount.address.toLowerCase() !== (user.walletAddress as string).toLowerCase()) {
+      console.error(
+        `Stored wallet ${user.walletAddress} does not match derived account address ${userAccount.address}.`
+      )
+      return NextResponse.json({ error: '지갑 정보가 일치하지 않습니다. 관리자에게 문의해주세요.' }, { status: 500 })
+    }
+
+    const userWalletClient = getWalletClient(userAccount)
+
+    try {
+      const paymentHash = await userWalletClient.sendTransaction({
+        to: contractOwner,
+        value: ticketPrice,
+      })
+
+      paymentReceipt = await publicClient.waitForTransactionReceipt({ hash: paymentHash })
+    } catch (error) {
+      console.error('Failed to transfer ticket price from user wallet.', error)
+      return NextResponse.json(
+        { error: '티켓 금액 전송에 실패했습니다. 잔액과 가스 비용을 확인해주세요.' },
+        { status: 500 },
+      )
+    }
+
+    if (useSmartWallet) {
       const smartAccountClient = await getAlchemySmartAccountClient()
       const { hash: userOpHash } = await smartAccountClient.sendUserOperation({
         uo: {
@@ -96,6 +157,18 @@ export async function POST(request: NextRequest) {
       const serverPrivateKey = (process.env.PRIVATE_KEY as `0x${string}`) || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
       const serverAccount = privateKeyToAccount(serverPrivateKey)
       const walletClient = getWalletClient(serverAccount)
+
+      if (contractOwner.toLowerCase() !== serverAccount.address.toLowerCase()) {
+        console.error(
+          `Server wallet ${serverAccount.address} is not the ticket contract owner ${contractOwner}. Cannot execute mint.`,
+        )
+        return NextResponse.json(
+          {
+            error: '서버 지갑이 티켓 컨트랙트의 소유자가 아닙니다. PRIVATE_KEY 환경변수를 컨트랙트 소유자 키로 설정하거나 소유권을 이전해주세요.',
+          },
+          { status: 500 },
+        )
+      }
 
       const { request: contractRequest } = await publicClient.simulateContract({
         account: serverAccount,
@@ -147,6 +220,12 @@ export async function POST(request: NextRequest) {
         blockNumber: receipt.blockNumber.toString(),
         ticket: ticket,
       },
+      payment: paymentReceipt
+        ? {
+            transactionHash: paymentReceipt.transactionHash,
+            blockNumber: paymentReceipt.blockNumber.toString(),
+          }
+        : undefined,
     })
 
   } catch (error) {
