@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+/web/.next/
 /out/
 
 # production
@@ -39,5 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!web/next-env.d.ts
+web/node_modules
 
 /generated/prisma
+
+/web/.pnpm-store

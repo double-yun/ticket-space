@@ -1,0 +1,26 @@
+{
+  "../node_modules/.pnpm/@capacitor+app@7.1.0_@capacitor+core@7.4.3/node_modules/@capacitor/app/dist/esm/index.js -> ./web": {
+    "id": "../node_modules/.pnpm/@capacitor+app@7.1.0_@capacitor+core@7.4.3/node_modules/@capacitor/app/dist/esm/index.js -> ./web",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_capacitor_app_7_1_0__capacitor_core_7_4_3_node_modules_c-cb2ba7.js"
+    ]
+  },
+  "../node_modules/.pnpm/@capacitor+browser@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/browser/dist/esm/index.js -> ./web": {
+    "id": "../node_modules/.pnpm/@capacitor+browser@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/browser/dist/esm/index.js -> ./web",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_capacitor_browser_7_0_2__capacitor_core_7_4_3_node_modul-8c21aa.js"
+    ]
+  },
+  "../node_modules/.pnpm/capacitor-kakao-login-plugin@3.0.0_@capacitor+core@7.4.3/node_modules/capacitor-kakao-login-plugin/dist/esm/index.js -> ./web": {
+    "id": "../node_modules/.pnpm/capacitor-kakao-login-plugin@3.0.0_@capacitor+core@7.4.3/node_modules/capacitor-kakao-login-plugin/dist/esm/index.js -> ./web",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_capacitor-kakao-login-plugin_3_0_0__capacitor_core_7_4_3-c40ce0.js"
+    ]
+  },
+  "components/KakaoLogin.tsx -> next-auth/react": {
+    "id": "components/KakaoLogin.tsx -> next-auth/react",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_next-auth_4_24_11_next_15_5_2_react-dom_19_1_0_react_19_-f52e64.js"
+    ]
+  }
+}
