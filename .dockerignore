@@ -1,13 +1,8 @@
 node_modules
+pnpm-lock.yaml
 .next
-web/node_modules
-web/.next
+Dockerfile
 .git
-.gitmodules
-npm-debug.log
-pnpm-debug.log
-yarn-error.log
-.DS_Store
+.gitignore
 .env*
-anvil/contracts/artifacts
-anvil/contracts/cache
+**/.DS_Store

@@ -9,12 +9,13 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+.pnpm-store/
 
 # testing
 /coverage
 
 # next.js
-/web/.next/
+/.next/
 /out/
 
 # production
@@ -39,11 +40,38 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-!web/next-env.d.ts
-web/node_modules
 
 /generated/prisma
 
-/web/.pnpm-store
-
+# local assistant workspace artifacts
 /.claude
+
+# legacy web workspace artifacts
+/web/.pnpm-store
+/web/.next/
+/web/node_modules
+
+# IDE
+.idea/
+*.iml
+
+# Android
+android/build/
+android/.gradle/
+android/app/build/
+android/.cxx/
+
+# iOS
+ios/Pods/
+ios/build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
