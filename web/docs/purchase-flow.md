@@ -10,7 +10,7 @@
   - `/api/wallet/fund` — 사용자 지갑으로 ETH 충전 트랜잭션 전송
   - `/api/balance`, `/api/transactions` — RPC **read** 호출로 상태 조회
 - **`lib/blockchain.ts`**: `CHAIN_ID` 환경 변수에 따라 자동으로 활성 체인을 결정하고, `ALCHEMY_RPC_URL`·`ALCHEMY_API_KEY`를 바탕으로 Sepolia RPC 엔드포인트를 생성합니다.
-- **`lib/alchemy-smart-wallet.ts`**: Sepolia 환경에서 Alchemy의 Light Account(스마트 월렛)를 초기화하고 User Operation을 전송합니다.
+- **`lib/blockchain/alchemy-smart-wallet.ts`**: Sepolia 환경에서 Alchemy의 Light Account(스마트 월렛)를 초기화하고 User Operation을 전송합니다.
 - **Sepolia 네트워크**: 실제 트랜잭션이 커밋되는 테스트넷. Alchemy RPC가 Sepolia 노드에 대한 프록시 역할을 합니다.
 
 ## 환경 변수와 네트워크 결정
@@ -18,7 +18,7 @@
 `lib/blockchain.ts`는 다음 순서로 네트워크와 RPC를 정합니다.
 
 1. `CHAIN_ID` 또는 `NEXT_PUBLIC_CHAIN_ID` → `config/contracts.json`의 `defaultNetwork` 순서로 체인 ID를 읽습니다.
-2. `CHAIN_ID=11155111`이면 Sepolia, `CHAIN_ID=31337`이면 Anvil 로컬 체인을 사용합니다.
+2. 지원되는 체인 ID는 `11155111`(Sepolia) 또는 `1`(Ethereum Mainnet)입니다. 다른 값이 설정되면 기본 네트워크로 되돌아갑니다.
 3. Sepolia 선택 시 `RPC_URL` → `ALCHEMY_RPC_URL` → `ALCHEMY_API_KEY` 순으로 RPC 엔드포인트를 확보합니다. API 키만 주어졌다면 `https://eth-sepolia.g.alchemy.com/v2/<API_KEY>` 형태로 URL을 조합합니다.
 4. 모든 API 라우트는 `getPublicClient()`와 `getWalletClient()`가 반환하는 viem 클라이언트를 사용하므로, `.env.local`에 등록된 RPC 정보만 바꿔 줘도 전체 백엔드 동작이 Sepolia로 전환됩니다.
 
@@ -31,7 +31,7 @@ sequenceDiagram
     participant API as Next API (`/api/tickets/purchase`)
     participant DB as Prisma DB
     participant ChainResolver as `lib/blockchain.ts`
-    participant SmartWallet as `lib/alchemy-smart-wallet.ts`
+    participant SmartWallet as `lib/blockchain/alchemy-smart-wallet.ts`
     participant Sepolia as Sepolia (via Alchemy RPC)
 
     User->>Frontend: "구매" 버튼 클릭
@@ -48,7 +48,7 @@ sequenceDiagram
         SmartWallet->>Sepolia: sendUserOperation(mint to user)
         SmartWallet->>Sepolia: waitForUserOperationTransaction()
         Sepolia-->>API: 트랜잭션 영수증
-    else 로컬 Anvil 또는 스마트 월렛 비활성화
+    else 스마트 월렛 비활성화
         API->>ChainResolver: getWalletClient(serverAccount)
         API->>Sepolia: simulateContract(mint)
         API->>Sepolia: writeContract(mint)
@@ -68,7 +68,7 @@ sequenceDiagram
 4. **잔액 확인**: viem `publicClient.getBalance`로 사용자 지갑의 ETH 잔액을 확인합니다. 이 호출은 RPC **read**이므로 가스 비용이 들지 않습니다(Alchemy 요금제의 API 호출 한도만 차감).
 5. **User Operation 또는 EOAgas**:
    - **Sepolia + 스마트 월렛 활성화**: `createLightAccountAlchemyClient`로 초기화된 계정이 `sendUserOperation`을 호출해 TicketSBT 컨트랙트의 `mint(address)`를 실행합니다. User Operation은 Sepolia에 포함될 때 가스가 발생하며, 기본적으로 스마트 월렛 소유자의 ETH 또는 설정된 Gas Manager 정책이 비용을 부담합니다.
-   - **로컬/백업 경로**: Anvil 또는 스마트 월렛 구성이 비활성화될 경우 서버가 보유한 프라이빗 키(`PRIVATE_KEY` 또는 Anvil 기본 키)로 `writeContract`를 호출합니다.
+   - **백업 경로**: 스마트 월렛 구성이 비활성화되거나 실패하면 서버가 보유한 프라이빗 키(`PRIVATE_KEY`)로 `writeContract`를 호출합니다.
 6. **이벤트 파싱 & 저장**: 트랜잭션 영수증에서 첫 로그(`Transfer` 이벤트)의 `tokenId`를 파싱한 뒤, DB에 구매 기록을 저장하고 티켓 재고를 1 감소시킵니다.
 7. **응답 반환**: 트랜잭션 해시, Token ID, 블록 정보를 프론트에 응답하면, 프론트가 사용자에게 성공 알림을 보여주고 잔액/보유 NFT를 다시 로드합니다.
 
@@ -82,7 +82,7 @@ sequenceDiagram
 
 - `/api/wallet/fund`는 사용자 잔액이 일정 수준 이하(0.5 ETH 기준)일 때 1 ETH를 전송합니다.
 - Sepolia 환경에서는 스마트 월렛이 `sendUserOperation`으로 사용자 지갑에 ETH를 전송합니다.
-- 로컬 Anvil에서는 서버가 보유한 프라이빗 키로 `walletClient.sendTransaction`을 호출합니다.
+- 스마트 월렛이 비활성화되면 서버가 보유한 프라이빗 키(`PRIVATE_KEY`)로 `walletClient.sendTransaction`을 호출합니다.
 - 충전 트랜잭션 역시 Sepolia에 포함되므로 가스 비용이 발생합니다.
 
 ## 비용 발생 지점 정리

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { generateWallet } from '@/lib/wallet'
+import { generateWallet } from '@/lib/users/wallet'
 
 type DemoRequestBody = {
   variant?: string

@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "./prisma"
-import { generateWallet } from "./wallet"
+import { prisma } from "../prisma"
+import { generateWallet } from "../users/wallet"
 
 const kakaoClientId = process.env.KAKAO_CLIENT_ID
 const kakaoClientSecret = process.env.KAKAO_CLIENT_SECRET

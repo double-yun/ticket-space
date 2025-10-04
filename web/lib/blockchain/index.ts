@@ -1,37 +1,58 @@
 import { createPublicClient, createWalletClient, http, type Chain } from 'viem'
-import { anvil, sepolia } from 'viem/chains'
+import { mainnet, sepolia } from 'viem/chains'
 import type { Account } from 'viem'
 import { discoverContractByType } from './contract-registry'
-import contractsConfig from '../config/contracts.json'
+import contractsConfig from '../../config/contracts.json'
 
-type SupportedChainId = 31337 | 11155111
+const SEPOLIA_CHAIN_ID = 11155111 as const
+const MAINNET_CHAIN_ID = 1 as const
 
-const DEFAULT_LOCAL_RPC_URL = 'http://127.0.0.1:8545'
-const DEFAULT_LOCAL_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
+type SupportedChainId = typeof SEPOLIA_CHAIN_ID | typeof MAINNET_CHAIN_ID
 
 const chainsById: Record<SupportedChainId, Chain> = {
-  31337: anvil,
-  11155111: sepolia,
+  [SEPOLIA_CHAIN_ID]: sepolia,
+  [MAINNET_CHAIN_ID]: mainnet,
 }
 
 let cachedTicketAddress: string | null = null
 
+function isSupportedChainId(chainId: number): chainId is SupportedChainId {
+  return chainId === SEPOLIA_CHAIN_ID || chainId === MAINNET_CHAIN_ID
+}
+
+function resolveDefaultChainId(): SupportedChainId {
+  const configuredDefault = contractsConfig.defaultNetwork
+  if (configuredDefault) {
+    const parsed = Number(configuredDefault)
+    if (isSupportedChainId(parsed)) {
+      return parsed
+    }
+    console.warn(`Unsupported defaultNetwork "${configuredDefault}" in contracts.json. Falling back to ${SEPOLIA_CHAIN_ID}.`)
+  }
+
+  return SEPOLIA_CHAIN_ID
+}
+
 function resolveChainId(): SupportedChainId {
-  const envChainId = process.env.CHAIN_ID ?? process.env.NEXT_PUBLIC_CHAIN_ID ?? contractsConfig.defaultNetwork
+  const envChainId = process.env.CHAIN_ID ?? process.env.NEXT_PUBLIC_CHAIN_ID
 
   if (envChainId) {
     const parsed = Number(envChainId)
-    if (parsed === 31337 || parsed === 11155111) {
+    if (isSupportedChainId(parsed)) {
       return parsed
     }
-    console.warn(`Unsupported CHAIN_ID "${envChainId}" provided. Falling back to Anvil (31337).`)
+    console.warn(`Unsupported CHAIN_ID "${envChainId}" provided. Falling back to default network configuration.`)
   }
 
-  return 31337
+  return resolveDefaultChainId()
 }
 
 const chainId = resolveChainId()
-const activeChain = chainsById[chainId] ?? anvil
+const activeChain = chainsById[chainId]
+
+if (!activeChain) {
+  throw new Error(`Unsupported chainId ${chainId} resolved at runtime.`)
+}
 
 const networkConfig = contractsConfig.networks?.[chainId.toString()]
 
@@ -42,7 +63,7 @@ function resolveRpcUrl(): string {
     return explicitRpcUrl
   }
 
-  if (chainId === 11155111) {
+  if (chainId === SEPOLIA_CHAIN_ID) {
     const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL ?? process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL
     if (alchemyRpcUrl) {
       return alchemyRpcUrl
@@ -56,10 +77,6 @@ function resolveRpcUrl(): string {
 
   if (networkConfig?.rpcUrl) {
     return networkConfig.rpcUrl
-  }
-
-  if (chainId === 31337) {
-    return process.env.ANVIL_RPC_URL ?? DEFAULT_LOCAL_RPC_URL
   }
 
   const defaultEndpoint = activeChain.rpcUrls.default.http[0]
@@ -114,7 +131,7 @@ export async function getContractAddress(): Promise<string> {
     return cachedTicketAddress
   }
 
-  const shouldAutoDiscover = Boolean(networkConfig?.contracts?.Ticket?.autoDiscover) || chainId === 31337
+  const shouldAutoDiscover = Boolean(networkConfig?.contracts?.Ticket?.autoDiscover)
 
   if (shouldAutoDiscover) {
     console.log('Auto-discovering Ticket contract...')
@@ -125,12 +142,6 @@ export async function getContractAddress(): Promise<string> {
       console.log(`Ticket contract discovered at: ${discoveredAddress}`)
       return cachedTicketAddress
     }
-  }
-
-  if (chainId === 31337) {
-    console.warn('Using fallback contract address:', DEFAULT_LOCAL_CONTRACT_ADDRESS)
-    cachedTicketAddress = DEFAULT_LOCAL_CONTRACT_ADDRESS
-    return cachedTicketAddress
   }
 
   throw new Error('Contract address not configured. Please deploy the contract or set the CONTRACT_ADDRESS environment variable.')

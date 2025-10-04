@@ -45,3 +45,5 @@ web/node_modules
 /generated/prisma
 
 /web/.pnpm-store
+
+/.claude

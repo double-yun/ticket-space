@@ -1,4 +1,4 @@
-import { getPublicClient } from './blockchain'
+import { getPublicClient } from './index'
 
 // 컨트랙트별 고유 식별자 (함수 시그니처 조합)
 const CONTRACT_SIGNATURES = {

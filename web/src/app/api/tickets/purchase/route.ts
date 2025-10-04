@@ -4,8 +4,8 @@ import { cookies } from 'next/headers'
 import { decodeEventLog, encodeFunctionData, parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { getChainId, getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
-import { getAlchemySmartAccountClient, getSmartAccountAddress, isAlchemySmartWalletEnabled } from '@/lib/alchemy-smart-wallet'
-import { ticketAbi } from '@/lib/ticket-abi'
+import { getAlchemySmartAccountClient, getSmartAccountAddress, isAlchemySmartWalletEnabled } from '@/lib/blockchain/alchemy-smart-wallet'
+import { ticketAbi } from '@/lib/blockchain/ticket-abi'
 
 const SEPOLIA_CHAIN_ID = 11155111
 
@@ -154,7 +154,12 @@ export async function POST(request: NextRequest) {
       const onChainHash = await smartAccountClient.waitForUserOperationTransaction({ hash: userOpHash })
       receipt = await publicClient.waitForTransactionReceipt({ hash: onChainHash })
     } else {
-      const serverPrivateKey = (process.env.PRIVATE_KEY as `0x${string}`) || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+      const serverPrivateKey = process.env.PRIVATE_KEY as `0x${string}` | undefined
+
+      if (!serverPrivateKey) {
+        throw new Error('Set PRIVATE_KEY to execute mint transactions when the Alchemy smart wallet is disabled.')
+      }
+
       const serverAccount = privateKeyToAccount(serverPrivateKey)
       const walletClient = getWalletClient(serverAccount)
 

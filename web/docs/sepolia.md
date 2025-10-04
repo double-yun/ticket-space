@@ -1,6 +1,6 @@
 # Alchemy Sepolia 연결 가이드
 
-이 문서는 Ticketing System 웹 애플리케이션을 Anvil 로컬 네트워크 대신 Alchemy가 제공하는 Sepolia 테스트넷과 스마트 월렛으로 동작시키는 방법을 정리합니다.
+이 문서는 Ticketing System 웹 애플리케이션을 Alchemy가 제공하는 Sepolia 테스트넷과 스마트 월렛으로 동작시키는 방법을 정리합니다.
 
 ## 1. 필수 환경 변수
 
@@ -13,7 +13,8 @@
 | `RPC_URL` *(선택, `NEXT_PUBLIC_RPC_URL` 포함)* | Alchemy 외 다른 RPC를 강제로 쓰고 싶을 때 명시합니다. 지정하면 Alchemy 관련 설정보다 우선합니다. |
 | `SMART_WALLET_OWNER_PRIVATE_KEY` | Alchemy 스마트 월렛의 오너 서명자 프라이빗 키(0x-prefix). 이 키에 충분한 Sepolia ETH가 있어야 합니다. |
 | `CONTRACT_ADDRESS` *(또는 `NEXT_PUBLIC_CONTRACT_ADDRESS`)* | Sepolia에 배포된 Ticket 컨트랙트 주소. 자동 탐지는 비활성화되어 있으므로 반드시 지정해야 합니다. |
-| `MINT_TARGET_ADDRESS` *(선택)* | `/api/mint` 테스트 엔드포인트에서 NFT를 부여할 대상 주소. 기본값은 예시 계정이므로 실제 계정을 지정하는 것이 좋습니다. |
+| `MINT_TARGET_ADDRESS` | `/api/mint` 테스트 엔드포인트에서 NFT를 부여할 대상 주소. 필수 값입니다. |
+| `PRIVATE_KEY` | 스마트 월렛을 사용하지 않을 때 서버 측에서 트랜잭션을 서명하기 위한 프라이빗 키. 스마트 월렛 구성에 실패하면 이 키가 사용됩니다. |
 | `ALCHEMY_GAS_POLICY_ID` *(선택)* | Alchemy Gas Manager를 사용할 경우 정책 ID를 설정합니다. 설정하지 않으면 스마트 월렛이 자체 ETH로 가스를 지불합니다. |
 
 `.env.local` 예시는 아래와 같습니다. 환경 변수를 Next.js 클라이언트에서도 사용하려면 동일한 값에 `NEXT_PUBLIC_` 접두어를 붙여 추가하세요.
@@ -28,8 +29,6 @@ MINT_TARGET_ADDRESS=0xrecipientaddress
 # ALCHEMY_GAS_POLICY_ID=gas-policy-id
 # RPC_URL=https://eth-sepolia.g.alchemy.com/v2/your-alchemy-api-key
 ```
-
-> 참고: 기존 `ANVIL_RPC_URL`, `ANVIL_PRIVATE_KEY`, `PRIVATE_KEY`는 로컬 개발 전용으로 유지되며, `CHAIN_ID`가 31337일 때만 사용됩니다.
 
 ## 2. 컨피그 파일 확인
 
@@ -57,7 +56,7 @@ MINT_TARGET_ADDRESS=0xrecipientaddress
 ## 3. 스마트 월렛 동작 방식
 
 - 서버 사이드 API(`/api/wallet/fund`, `/api/tickets/purchase`, `/api/mint`)는 Chain ID가 11155111일 때 Alchemy Light Account 클라이언트를 통해 트랜잭션을 전송합니다.
-- 로컬 네트워크(Chain ID 31337)에서는 기존과 동일하게 Anvil 계정으로 트랜잭션을 실행합니다.
+- 스마트 월렛이 비활성화되어 있거나 오류가 발생하면 `PRIVATE_KEY`로 지정한 계정이 대신 트랜잭션을 서명합니다.
 - 스마트 월렛은 최초 트랜잭션 시 자동으로 배포되며, Gas Manager를 설정하지 않았다면 충분한 Sepolia ETH가 필요합니다.
 
 ## 4. 체크리스트
@@ -73,4 +72,4 @@ MINT_TARGET_ADDRESS=0xrecipientaddress
 - **트랜잭션 불발**: Alchemy 대시보드 프로젝트가 Sepolia를 지원하도록 구성되었는지, API 키/엔드포인트가 올바른지 확인합니다.
 - **Gas Manager 실패**: 정책에 등록된 컨트랙트 주소, 지갑 주소가 정확한지 확인하고 정책이 활성화되어 있는지 점검하세요.
 
-필요 시 기존 `../anvil.md` 문서를 참고하여 로컬 개발 환경과 병행 설정할 수 있습니다.
+컨트랙트 배포 및 ABI 업데이트는 루트 `scripts/deploy-contract.sh`를 실행하거나 `contracts/README.md`의 가이드를 참고하세요.

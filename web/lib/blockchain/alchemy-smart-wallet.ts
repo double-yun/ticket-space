@@ -1,7 +1,6 @@
-import { createLightAccountAlchemyClient } from '@alchemy/aa-alchemy'
+import { createLightAccountAlchemyClient, type AlchemySmartAccountClient } from '@alchemy/aa-alchemy'
 import { LocalAccountSigner, type SmartAccountSigner } from '@alchemy/aa-core'
-import { type AlchemySmartAccountClient } from '@alchemy/aa-alchemy'
-import { getChain, getChainId } from './blockchain'
+import { getChain, getChainId } from './index'
 
 const SEPOLIA_CHAIN_ID = 11155111
 

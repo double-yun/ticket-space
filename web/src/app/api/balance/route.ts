@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getContractAddress, getPublicClient } from '@/lib/blockchain';
-import { ticketAbi } from '@/lib/ticket-abi';
+import { ticketAbi } from '@/lib/blockchain/ticket-abi';
 
 const publicClient = getPublicClient();
 

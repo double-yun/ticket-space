@@ -1,16 +1,5 @@
 {
   "networks": {
-    "31337": {
-      "name": "Anvil Local",
-      "rpcUrl": "http://localhost:8545",
-      "contracts": {
-        "Ticket": {
-          "address": null,
-          "deployedAt": null,
-          "autoDiscover": true
-        }
-      }
-    },
     "11155111": {
       "name": "Sepolia Testnet",
       "rpcUrl": null,

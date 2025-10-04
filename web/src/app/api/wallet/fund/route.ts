@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { getChainId, getPublicClient, getWalletClient } from '@/lib/blockchain'
-import { getAlchemySmartAccountClient, isAlchemySmartWalletEnabled } from '@/lib/alchemy-smart-wallet'
+import { getAlchemySmartAccountClient, isAlchemySmartWalletEnabled } from '@/lib/blockchain/alchemy-smart-wallet'
 
 const SEPOLIA_CHAIN_ID = 11155111
 
@@ -71,7 +71,12 @@ export async function POST(request: NextRequest) {
       transactionHash = receipt.transactionHash
       blockNumber = receipt.blockNumber.toString()
     } else {
-      const serverPrivateKey = (process.env.PRIVATE_KEY as `0x${string}`) || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+      const serverPrivateKey = process.env.PRIVATE_KEY as `0x${string}` | undefined
+
+      if (!serverPrivateKey) {
+        throw new Error('Set PRIVATE_KEY to fund wallets when the Alchemy smart wallet is disabled.')
+      }
+
       const serverAccount = privateKeyToAccount(serverPrivateKey)
       const walletClient = getWalletClient(serverAccount)
 
