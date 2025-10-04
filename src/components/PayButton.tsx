@@ -1,92 +1,55 @@
-'use client';
-import * as PortOne from '@portone/browser-sdk/v2';
-import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
+'use client'
 
-export default function PayButton() {
-  async function onClick() {
-    // UUID v4 생성 함수 (브라우저 호환성 향상)
-    const generateUUID = () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    };
+import { useState } from 'react'
 
-    const paymentId = `payment-${generateUUID()}`;
-    const isCapacitorApp = Capacitor.isNativePlatform();
+interface PayButtonProps {
+  ticketId: string
+  disabled?: boolean
+  onSuccess?: () => void
+}
 
-    if (isCapacitorApp) {
-      // Capacitor 앱 환경에서는 InAppBrowser로 결제 페이지 열기
-      const paymentUrl = new URL('/payment', location.origin);
-      paymentUrl.searchParams.set('paymentId', paymentId);
-      paymentUrl.searchParams.set('storeId', 'store-c9209e03-9213-49bb-99bc-904ae521bb56');
-      paymentUrl.searchParams.set('channelKey', 'channel-key-87cd1fa3-c29c-4125-be0a-b4fb02f993bc');
-      paymentUrl.searchParams.set('orderName', '예시 상품');
-      paymentUrl.searchParams.set('totalAmount', '1000');
-      paymentUrl.searchParams.set('from_app', 'true'); // 앱에서 열렸음을 표시
+export default function PayButton({ ticketId, disabled, onSuccess }: PayButtonProps) {
+  const [processing, setProcessing] = useState(false)
 
-      // Browser 이벤트 리스너 추가
-      const finishedListener = await Browser.addListener('browserFinished', () => {
-        console.log('Browser closed');
-        // 브라우저가 닫혔을 때 처리할 로직
-        window.location.reload(); // 앱 페이지 새로고침
-        finishedListener.remove(); // 리스너 제거
-      });
+  const handleClick = async () => {
+    if (processing || disabled) return
 
-      const pageLoadedListener = await Browser.addListener('browserPageLoaded', () => {
-        console.log('Page loaded in browser');
-        // 특정 URL 패턴을 감지하여 브라우저 닫기
-        // 이 부분은 실제로는 작동하지 않을 수 있음
-      });
+    setProcessing(true)
 
-      // InAppBrowser로 결제 페이지 열기
-      await Browser.open({
-        url: paymentUrl.toString(),
-        presentationStyle: 'fullscreen',
-        windowName: '_blank',
-        toolbarColor: '#ffffff',
-        showReloadButton: false,
-        showArrow: true // iOS에서 'Done' 버튼 표시
-      });
+    try {
+      const response = await fetch('/api/tickets/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId }),
+      })
 
-      await pageLoadedListener.remove();
+      const data = await response.json().catch(() => ({}))
 
-      // 브라우저가 닫힌 후의 처리는 앱에서 수행
-      return;
+      if (!response.ok || !data.success) {
+        const message = data?.error ?? '티켓 결제에 실패했습니다.'
+        alert(`❌ ${message}`)
+        return
+      }
+
+      alert('🎉 티켓 결제 및 발급이 완료되었습니다!')
+      onSuccess?.()
+    } catch (error) {
+      console.error('Ticket purchase failed.', error)
+      alert('❌ 결제를 처리하는 중 오류가 발생했습니다.')
+    } finally {
+      setProcessing(false)
     }
-
-    // 웹 환경에서는 기존 방식으로 결제 진행
-    const resp = await PortOne.requestPayment({
-      // 콘솔에서 복사한 값들(클라이언트 노출 가능한 값만 NEXT_PUBLIC_* 로 전달)
-      storeId: 'store-c9209e03-9213-49bb-99bc-904ae521bb56',
-      channelKey: 'channel-key-87cd1fa3-c29c-4125-be0a-b4fb02f993bc',
-
-      paymentId,                  // 고객사 고유 결제 ID(중복 금지)
-      orderName: '예시 상품',
-      totalAmount: 1000,
-      currency: 'CURRENCY_KRW',
-      payMethod: 'CARD',
-
-      // 모바일 환경 대비: redirect 방식 사용 권장
-      redirectUrl: `${location.origin}/payment-redirect`,
-    });
-
-    // PC/팝업 방식 등 리디렉션 없이 결과를 받는 경우에만 resp 사용
-    // 오류 시 resp.code/resp.message 제공
-    if (resp && resp.code !== undefined) {
-      alert(resp.message || '결제가 취소되었습니다.');
-      return;
-    }
-
-    // 성공 가정: 서버 검증 호출 (아래 4) 참고)
-    await fetch('/api/payment/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentId }),
-    });
   }
 
-  return <button onClick={onClick}>결제하기</button>;
+  return (
+    <button
+      onClick={handleClick}
+      disabled={disabled || processing}
+      className={`bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+        disabled || processing ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'
+      }`}
+    >
+      {processing ? '결제 중...' : '결제하기'}
+    </button>
+  )
 }

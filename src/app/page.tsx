@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Settings } from '@mui/icons-material'
 import PayButton from '@/components/PayButton'
+import * as PortOne from '@portone/browser-sdk/v2'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import 'swiper/css'
 interface SessionUser {
   id: string
@@ -62,7 +65,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [tickets, setTickets] = useState<TicketData[]>([])
   const [balance, setBalance] = useState<BalanceData | null>(null)
-  const [purchasing, setPurchasing] = useState<string | null>(null)
   const [funding, setFunding] = useState(false)
 
   useEffect(() => {
@@ -108,56 +110,97 @@ export default function Home() {
     }
   }
 
-  const handlePurchase = async (ticketId: string) => {
-    if (!sessionUser?.walletAddress) {
-      alert('지갑 주소가 없습니다.')
-      return
-    }
-
-    if (purchasing) return
-
-    setPurchasing(ticketId)
-    try {
-      const response = await fetch('/api/purchase-ticket', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticketId })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        alert('🎉 티켓 구매 성공!')
-        fetchTickets()
-        fetchBalance()
-      } else {
-        alert(`❌ 구매 실패: ${data.error}`)
-      }
-    } catch (error) {
-      alert('❌ 구매 중 오류가 발생했습니다.')
-    } finally {
-      setPurchasing(null)
-    }
-  }
-
   const handleFundWallet = async () => {
     if (funding) return
+
     setFunding(true)
+
+    const generateUUID = () =>
+      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = (Math.random() * 16) | 0
+        const v = c === 'x' ? r : (r & 0x3) | 0x8
+        return v.toString(16)
+      })
+
+    const paymentId = `payment-${generateUUID()}`
+    const storeId = 'store-c9209e03-9213-49bb-99bc-904ae521bb56'
+    const channelKey = 'channel-key-87cd1fa3-c29c-4125-be0a-b4fb02f993bc'
+    const orderName = '지갑 충전'
+    const totalAmount = '1000'
+
     try {
-      const response = await fetch('/api/wallet/fund', { method: 'POST' })
-      const data = await response.json()
-      if (data.success) {
-        if (data.alreadyFunded) {
-          alert(`💰 이미 충분한 잔액이 있습니다!\n현재 잔액: ${data.balance} ETH`)
-        } else {
-          alert(`🎉 충전 완료!\n${data.amount} ETH가 지갑에 추가되었습니다!\n새 잔액: ${data.newBalance} ETH`)
+      const isCapacitorApp = Capacitor.isNativePlatform()
+
+      if (isCapacitorApp) {
+        const paymentUrl = new URL('/payment', window.location.origin)
+        paymentUrl.searchParams.set('paymentId', paymentId)
+        paymentUrl.searchParams.set('storeId', storeId)
+        paymentUrl.searchParams.set('channelKey', channelKey)
+        paymentUrl.searchParams.set('orderName', orderName)
+        paymentUrl.searchParams.set('totalAmount', totalAmount)
+        paymentUrl.searchParams.set('from_app', 'true')
+
+        const finishedListener = await Browser.addListener('browserFinished', async () => {
+          try {
+            await fetch('/api/payment/complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId }),
+            })
+          } catch (error) {
+            console.error('Payment verification failed after browser close.', error)
+          } finally {
+            fetchBalance()
+          }
+        })
+
+        const pageLoadedListener = await Browser.addListener('browserPageLoaded', event => {
+          console.debug('Payment page loaded:', event.url)
+        })
+
+        try {
+          await Browser.open({
+            url: paymentUrl.toString(),
+            presentationStyle: 'fullscreen',
+            windowName: '_blank',
+            toolbarColor: '#ffffff',
+            showReloadButton: false,
+            showArrow: true,
+          })
+        } finally {
+          await pageLoadedListener.remove()
+          await finishedListener.remove()
         }
-        fetchBalance()
-      } else {
-        alert(`❌ 충전 실패: ${data.error}`)
+
+        return
       }
+
+      const resp = await PortOne.requestPayment({
+        storeId,
+        channelKey,
+        paymentId,
+        orderName,
+        totalAmount: Number(totalAmount),
+        currency: 'CURRENCY_KRW',
+        payMethod: 'CARD',
+        redirectUrl: `${window.location.origin}/payment-redirect`,
+      })
+
+      if (resp && resp.code !== undefined) {
+        alert(resp.message || '결제가 취소되었습니다.')
+        return
+      }
+
+      await fetch('/api/payment/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      })
+
+      fetchBalance()
     } catch (error) {
-      alert('❌ 충전 중 오류가 발생했습니다.')
+      console.error('Wallet funding payment failed.', error)
+      alert('❌ 결제 연동 중 오류가 발생했습니다.')
     } finally {
       setFunding(false)
     }
@@ -205,7 +248,7 @@ export default function Home() {
                     onClick={handleFundWallet}
                     disabled={funding}
                   >
-                    {funding ? '충전 중...' : '💰 충전'}
+                    {funding ? '결제 연결 중...' : '💰 충전'}
                   </button>
                 )}
               </div>
@@ -268,7 +311,14 @@ export default function Home() {
                     <p className="text-lg font-bold text-blue-600 mb-2">
                       {(parseFloat(ticket.price) / 1e18).toFixed(3)} ETH
                     </p>
-                    <PayButton />
+                    <PayButton
+                      ticketId={ticket.id}
+                      disabled={ticket.currentSupply >= ticket.maxSupply}
+                      onSuccess={() => {
+                        fetchTickets()
+                        fetchBalance()
+                      }}
+                    />
                   </div>
                 </div>
               </div>
