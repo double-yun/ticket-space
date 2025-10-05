@@ -7,7 +7,6 @@ type PrivyWalletAccount = {
   id?: string | null
   wallet_id?: string | null
   walletClientType?: string | null
-  connectorType?: string | null
 }
 
 type PrivyLinkedAccount = PrivyWalletAccount & {
@@ -27,33 +26,47 @@ type PrivyUser = {
   wallet?: PrivyWalletAccount
 }
 
-function isPrivyEmbeddedWallet(account: PrivyWalletAccount | null | undefined) {
-  if (!account?.address) {
-    return false
+function findPrivySmartWallet(user: PrivyUser) {
+  const linkedAccounts = user.linkedAccounts ?? []
+
+  const smartWallet = linkedAccounts.find(
+    (account) => account.type === 'smart_wallet' && account.address
+  )
+  if (smartWallet) {
+    return smartWallet
   }
 
-  if (account.walletClientType && account.walletClientType !== 'privy') {
-    return false
+  const legacySmartWallet = linkedAccounts.find(
+    (account) =>
+      account.type === 'wallet' && account.address && account.walletClientType === 'privy'
+  )
+  if (legacySmartWallet) {
+    return legacySmartWallet
   }
 
-  if (account.connectorType && account.connectorType !== 'embedded') {
-    return false
-  }
-
-  return true
-}
-
-function findEmbeddedWallet(user: PrivyUser) {
-  const linkedAccount = user.linkedAccounts?.find((account) => account.type === 'wallet' && isPrivyEmbeddedWallet(account))
-  if (linkedAccount?.address) {
-    return linkedAccount
-  }
-
-  if (isPrivyEmbeddedWallet(user.wallet)) {
+  if (user.wallet?.type === 'smart_wallet' && user.wallet.address) {
     return user.wallet
   }
 
   return null
+}
+
+function findEmbeddedWallet(user: PrivyUser) {
+  return (
+    user.linkedAccounts?.find((account) => account.type === 'wallet' && account.address) ?? null
+  )
+}
+
+function toWalletResponse(account: PrivyWalletAccount): PrivyWalletResponse {
+  if (!account.address) {
+    throw new Error('Privy wallet account is missing an address.')
+  }
+
+  return {
+    address: account.address,
+    id: account.id ?? undefined,
+    wallet_id: account.wallet_id ?? undefined,
+  }
 }
 
 async function ensurePrivyUser(externalId: string): Promise<PrivyUser> {
@@ -63,6 +76,7 @@ async function ensurePrivyUser(externalId: string): Promise<PrivyUser> {
     importUser?: (params: {
       linkedAccounts: Array<{ type: 'custom_auth'; customUserId: string }>
       createEthereumWallet?: boolean
+      createEthereumSmartWallet?: boolean
     }) => Promise<PrivyUser>
   }
 
@@ -85,17 +99,14 @@ async function ensurePrivyUser(externalId: string): Promise<PrivyUser> {
       },
     ],
     createEthereumWallet: true,
+    createEthereumSmartWallet: true,
   })
 }
 
-async function ensurePrivyWallet(user: PrivyUser): Promise<PrivyWalletResponse> {
-  const embeddedWallet = findEmbeddedWallet(user)
-  if (embeddedWallet && embeddedWallet.address) {
-    return {
-      address: embeddedWallet.address,
-      id: embeddedWallet.id ?? undefined,
-      wallet_id: embeddedWallet.wallet_id ?? undefined,
-    }
+async function ensurePrivySmartWallet(user: PrivyUser): Promise<PrivyWalletResponse> {
+  const existingSmartWallet = findPrivySmartWallet(user)
+  if (existingSmartWallet) {
+    return toWalletResponse(existingSmartWallet)
   }
 
   const client = getPrivyClient()
@@ -115,23 +126,26 @@ async function ensurePrivyWallet(user: PrivyUser): Promise<PrivyWalletResponse> 
   const updatedUser = await privyClient.createWallets({
     userId: user.id,
     createEthereumWallet: true,
+    createEthereumSmartWallet: true,
   })
 
-  const wallet = findEmbeddedWallet(updatedUser)
-  if (!wallet?.address) {
-    throw new Error('Privy wallet creation did not return an embedded wallet address.')
+  const smartWallet = findPrivySmartWallet(updatedUser)
+  if (smartWallet) {
+    return toWalletResponse(smartWallet)
   }
 
-  return {
-    address: wallet.address,
-    id: wallet.id ?? undefined,
-    wallet_id: wallet.wallet_id ?? undefined,
+  const embeddedWallet = findEmbeddedWallet(updatedUser)
+  if (embeddedWallet) {
+    console.warn('⚠️ Using Embedded Wallet instead of Smart Wallet. Please enable Smart Wallets in Privy Dashboard.')
+    return toWalletResponse(embeddedWallet)
   }
+
+  throw new Error('Privy wallet creation did not return any wallet address. Please check Privy Dashboard configuration.')
 }
 
 export async function generateWallet(externalId: string) {
   const user = await ensurePrivyUser(externalId)
-  const wallet = await ensurePrivyWallet(user)
+  const wallet = await ensurePrivySmartWallet(user)
 
   return {
     walletAddress: wallet.address,
