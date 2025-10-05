@@ -2,12 +2,12 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth'
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBMHx2gEnOtigCEYHxyxUyT2TnSwrbwjus",
-  authDomain: "graduation-project-c432b.firebaseapp.com",
-  projectId: "graduation-project-c432b",
-  storageBucket: "graduation-project-c432b.firebasestorage.app",
-  messagingSenderId: "217800211014",
-  appId: "1:217800211014:web:ebf98f770754180778e847",
+  apiKey: "AIzaSyAzXYbwyRgRX4fnRU477fFpG6Sm1_2XCbY",
+  authDomain: "graduation-project-bc4df.firebaseapp.com",
+  projectId: "graduation-project-bc4df",
+  storageBucket: "graduation-project-bc4df.firebasestorage.app",
+  messagingSenderId: "886439395629",
+  appId: "1:886439395629:web:c9a90c8ee71bac85c513a4",
   measurementId: "G-H4ZDD7WKQ4"
 }
 
@@ -17,7 +17,7 @@ export const auth = getAuth(app)
 // reCAPTCHA 설정
 export const setupRecaptcha = (containerId: string): RecaptchaVerifier => {
   return new RecaptchaVerifier(auth, containerId, {
-    size: 'normal',
+    size: 'invisible',
     callback: () => {
       // reCAPTCHA 완료
     },
