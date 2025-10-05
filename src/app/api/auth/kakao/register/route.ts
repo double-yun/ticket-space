@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 새 사용자 생성 - 지갑과 함께
-    const { walletAddress, privateKey } = generateWallet()
+    const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`kakao:${kakaoId}`)
 
     const user = await prisma.user.create({
       data: {
@@ -94,7 +94,8 @@ export async function POST(request: NextRequest) {
         birthDate: birthDate || null,
         gender: gender || null,
         walletAddress,
-        privateKeyHash: privateKey, // 실제 서비스에서는 암호화해서 저장
+        privyUserId,
+        ...(privyWalletId ? { privyWalletId } : {}),
         phoneVerified: true,
       }
     })

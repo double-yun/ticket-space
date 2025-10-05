@@ -22,7 +22,8 @@ model User {
   birthDate         String?  // YYYY-MM-DD 형식
   gender            String?  // 'M', 'F', 또는 null
   walletAddress     String?   @unique
-  privateKeyHash    String?   // 암호화된 개인키
+  privyUserId       String?   @unique
+  privyWalletId     String?   @unique
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

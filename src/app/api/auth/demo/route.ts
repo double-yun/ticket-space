@@ -26,22 +26,24 @@ export async function POST(request: NextRequest) {
     let user = await prisma.user.findUnique({ where: { email } })
 
     if (!user) {
-      const { walletAddress, privateKey } = generateWallet()
+      const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`demo:${variant}`)
       user = await prisma.user.create({
         data: {
           email,
           name: displayName,
           walletAddress,
-          privateKeyHash: privateKey,
+          privyUserId,
+          ...(privyWalletId ? { privyWalletId } : {}),
         },
       })
     } else if (!user.walletAddress) {
-      const { walletAddress, privateKey } = generateWallet()
+      const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`demo:${variant}`)
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
           walletAddress,
-          privateKeyHash: privateKey,
+          privyUserId,
+          ...(privyWalletId ? { privyWalletId } : {}),
           name: user.name ?? displayName,
         },
       })

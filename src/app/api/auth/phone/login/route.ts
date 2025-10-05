@@ -22,14 +22,15 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // 새 사용자 생성
-      const { walletAddress, privateKey } = generateWallet()
+      const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`phone:${phoneNumber}`)
 
       user = await prisma.user.create({
         data: {
           phoneNumber,
           name: `사용자_${phoneNumber.slice(-4)}`, // 전화번호 끝 4자리로 임시 이름
           walletAddress,
-          privateKeyHash: privateKey, // 실제 서비스에서는 암호화 필요
+          privyUserId,
+          ...(privyWalletId ? { privyWalletId } : {}),
         }
       })
     }

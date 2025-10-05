@@ -18,10 +18,6 @@ import { ticketAbi } from '@/lib/blockchain/ticket-abi'
 
 const SEPOLIA_CHAIN_ID = 11155111
 
-function formatEth(wei: bigint) {
-  return (Number(wei) / 1e18).toFixed(4)
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { ticketId } = await request.json()
@@ -62,27 +58,14 @@ export async function POST(request: NextRequest) {
 
     const user = session.user
 
-    if (!user.walletAddress || !user.privateKeyHash) {
+    if (!user.walletAddress) {
       return NextResponse.json({ error: '사용자 지갑 정보를 찾을 수 없습니다.' }, { status: 400 })
     }
 
     const publicClient = getPublicClient()
     const chainId = getChainId()
 
-    const userBalance = await publicClient.getBalance({
-      address: user.walletAddress as `0x${string}`,
-    })
-
     const ticketPrice = BigInt(ticket.price)
-
-    if (userBalance < ticketPrice) {
-      return NextResponse.json(
-        {
-          error: `잔액이 부족합니다. 필요: ${formatEth(ticketPrice)} ETH, 보유: ${formatEth(userBalance)} ETH`,
-        },
-        { status: 400 },
-      )
-    }
 
     const encodedMintData = encodeFunctionData({
       abi: ticketAbi,
@@ -123,36 +106,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const userPrivateKey = user.privateKeyHash as `0x${string}`
-    const userAccount = privateKeyToAccount(userPrivateKey)
-
-    if (userAccount.address.toLowerCase() !== (user.walletAddress as string).toLowerCase()) {
-      console.error(
-        `Stored wallet ${user.walletAddress} does not match derived account address ${userAccount.address}.`,
-      )
-      return NextResponse.json(
-        { error: '지갑 정보가 일치하지 않습니다. 관리자에게 문의해주세요.' },
-        { status: 500 },
-      )
-    }
-
-    const userWalletClient = getWalletClient(userAccount)
-
     let paymentReceipt:
       | { transactionHash: `0x${string}`; blockNumber: bigint }
       | undefined
 
+    const defaultPrivateKey =
+      (process.env.PRIVATE_KEY as `0x${string}` | undefined) ??
+      ('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as `0x${string}`)
+
+    const serverAccount = privateKeyToAccount(defaultPrivateKey)
+    const serverWalletClient = getWalletClient(serverAccount)
+
     try {
-      const paymentHash = await userWalletClient.sendTransaction({
+      const paymentHash = await serverWalletClient.sendTransaction({
         to: contractOwner,
         value: ticketPrice,
       })
 
       paymentReceipt = await publicClient.waitForTransactionReceipt({ hash: paymentHash })
     } catch (error) {
-      console.error('Failed to transfer ticket price from user wallet.', error)
+      console.error('Server wallet failed to transfer ticket price on behalf of user.', error)
       return NextResponse.json(
-        { error: '티켓 금액 전송에 실패했습니다. 잔액과 가스 비용을 확인해주세요.' },
+        { error: '서버 지갑에서 결제에 실패했습니다. 관리자에게 문의해주세요.' },
         { status: 500 },
       )
     }
