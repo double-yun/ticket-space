@@ -26,6 +26,7 @@ export default function MyTicketsPage() {
   const [qrPopupOpen, setQrPopupOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<Purchase | null>(null)
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
+  const [timeLeft, setTimeLeft] = useState(15)
 
   useEffect(() => {
     fetch('/api/auth/session')
@@ -54,9 +55,7 @@ export default function MyTicketsPage() {
     }
   }
 
-  const handleShowQR = async (purchase: Purchase) => {
-    setSelectedTicket(purchase)
-
+  const generateQRCode = async (purchase: Purchase) => {
     try {
       const QRCode = (await import('qrcode')).default
 
@@ -65,7 +64,8 @@ export default function MyTicketsPage() {
         ticketName: purchase.ticket.name,
         transactionHash: purchase.transactionHash,
         purchaseDate: purchase.purchaseDate,
-        used: purchase.used
+        used: purchase.used,
+        timestamp: Date.now() // 매번 새로운 타임스탬프로 QR 코드 변경
       }
 
       const qrDataURL = await QRCode.toDataURL(JSON.stringify(ticketData), {
@@ -78,17 +78,74 @@ export default function MyTicketsPage() {
       })
 
       setQrCodeDataURL(qrDataURL)
-      setQrPopupOpen(true)
     } catch (error) {
       console.error('QR 코드 생성 실패:', error)
       alert('QR 코드 생성에 실패했습니다.')
     }
   }
 
+  const handleShowQR = async (purchase: Purchase) => {
+    setSelectedTicket(purchase)
+    setTimeLeft(15)
+    await generateQRCode(purchase)
+    setQrPopupOpen(true)
+    startPollingTicketStatus(purchase.id)
+  }
+
+  // 티켓 상태 폴링 (스캔 완료 감지)
+  const startPollingTicketStatus = (purchaseId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/purchases')
+        const data = await response.json()
+
+        if (data.success) {
+          const updatedPurchase = data.purchases.find((p: Purchase) => p.id === purchaseId)
+
+          if (updatedPurchase && updatedPurchase.used) {
+            // 티켓이 사용됨으로 변경되면 팝업 닫고 목록 새로고침
+            handleCloseQR()
+            fetchPurchases()
+            clearInterval(pollInterval)
+          }
+        }
+      } catch (error) {
+        console.error('티켓 상태 확인 실패:', error)
+      }
+    }, 2000) // 2초마다 확인
+
+    // QR 팝업이 닫힐 때를 위한 타이머 ID 저장
+    ;(window as any).ticketStatusPollInterval = pollInterval
+  }
+
+  // QR 코드 자동 재생성 (15초마다)
+  useEffect(() => {
+    if (!qrPopupOpen || !selectedTicket) return
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          generateQRCode(selectedTicket)
+          return 15
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [qrPopupOpen, selectedTicket])
+
   const handleCloseQR = () => {
     setQrPopupOpen(false)
     setSelectedTicket(null)
     setQrCodeDataURL('')
+    setTimeLeft(15)
+
+    // 폴링 중단
+    if ((window as any).ticketStatusPollInterval) {
+      clearInterval((window as any).ticketStatusPollInterval)
+      ;(window as any).ticketStatusPollInterval = null
+    }
   }
 
   if (loading) {
@@ -209,7 +266,7 @@ export default function MyTicketsPage() {
                 </div>
 
                 {/* QR 코드 */}
-                <div className="bg-gray-50 p-6 rounded-2xl mb-6">
+                <div className="bg-gray-50 p-6 rounded-2xl mb-4">
                   {qrCodeDataURL ? (
                     <img
                       src={qrCodeDataURL}
@@ -223,7 +280,22 @@ export default function MyTicketsPage() {
                   )}
                 </div>
 
+                {/* 타이머 및 프로그레스 바 */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="text-sm text-gray-600">다음 갱신까지</span>
+                    <span className="text-lg font-bold text-blue-600">{timeLeft}초</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 transition-all duration-1000 ease-linear"
+                      style={{ width: `${(timeLeft / 15) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+
                 <p className="text-sm text-gray-600 mb-6">입장 시 이 QR 코드를 스캔해주세요</p>
+                <p className="text-xs text-gray-500 mb-6">🔒 복제 방지를 위해 15초마다 자동 갱신됩니다</p>
 
                 {/* 닫기 버튼 */}
                 <button
