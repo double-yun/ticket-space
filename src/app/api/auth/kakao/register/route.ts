@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { generateWallet } from '@/lib/wallet'
 import { createSessionForUser } from '@/lib/users/service'
+import { clearPendingKakaoData } from '@/lib/auth/kakao-pending'
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,6 +111,9 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 30,
       path: '/',
     })
+
+    // Pending 데이터 정리
+    await clearPendingKakaoData()
 
     return NextResponse.json({
       success: true,

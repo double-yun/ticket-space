@@ -140,7 +140,7 @@ function LoginPageContent() {
 
         // 전화번호가 있는 경우 기존 계정 확인
         if (phoneNumber) {
-          const userCheckResponse = await fetch('/api/auth/kakao/check-user', {
+          const userCheckResponse = await fetch('/api/auth/kakao/check', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ function LoginPageContent() {
     if (kakaoUserInfo) {
       // 카카오 로그인 플로우: 인증된 전화번호로 기존 계정 확인
       try {
-        const userCheckResponse = await fetch('/api/auth/kakao/check-user', {
+        const userCheckResponse = await fetch('/api/auth/kakao/check', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

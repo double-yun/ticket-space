@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 
 // Capacitor 카카오 로그인 플러그인 직접 import
 import { KakaoLoginPlugin as KakaoPlugin } from 'capacitor-kakao-login-plugin'
-import type { KakaoProfile, PendingKakaoUserData } from '@/types/kakao'
+import type { KakaoProfile } from '@/types/kakao'
 
 type KakaoAuthResult = {
   accessToken: string
@@ -24,10 +24,6 @@ export interface KakaoLoginInterface {
 
 // 플러그인 사용
 const KakaoLoginNative = KakaoPlugin as KakaoLoginInterface
-
-type StoredPendingUser = PendingKakaoUserData & {
-  requiresInfoStep: boolean
-}
 
 export default function KakaoLogin() {
   const [isLoading, setIsLoading] = useState(false)
@@ -49,14 +45,7 @@ export default function KakaoLogin() {
     try {
       const normalizedPhone = normalizePhoneNumber(userData.kakao_account?.phone_number || '')
 
-      const basePendingData: PendingKakaoUserData = {
-        kakaoData: userData,
-        accessToken,
-        refreshToken: refreshToken ?? undefined,
-        kakaoPhoneNumber: normalizedPhone || undefined,
-      }
-
-      const checkUserResponse = await fetch('/api/auth/kakao/check-user', {
+      const checkUserResponse = await fetch('/api/auth/kakao/check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,21 +60,51 @@ export default function KakaoLogin() {
       }
 
       const checkResult = await checkUserResponse.json()
-
       const isExistingUser = Boolean(checkResult.exists)
-      const requiresInfoStep = !isExistingUser || !normalizedPhone
 
-      const storedData: StoredPendingUser = {
-        ...basePendingData,
-        isExistingUser,
-        requiresInfoStep,
+      if (isExistingUser) {
+        // 기존 사용자: 즉시 로그인
+        const loginResponse = await fetch('/api/auth/kakao/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            accessToken,
+            refreshToken,
+            userData,
+          }),
+        })
+
+        if (!loginResponse.ok) {
+          throw new Error('로그인 처리에 실패했습니다.')
+        }
+
+        // 로그인 성공 - 홈으로 이동
+        router.push('/')
+      } else {
+        // 신규 사용자: 서버에 임시 데이터 저장 후 정보 입력 페이지로 이동
+        const pendingData = {
+          kakaoData: userData,
+          accessToken,
+          refreshToken: refreshToken ?? undefined,
+          kakaoPhoneNumber: normalizedPhone || undefined,
+        }
+
+        const setPendingResponse = await fetch('/api/auth/kakao/pending', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(pendingData),
+        })
+
+        if (!setPendingResponse.ok) {
+          throw new Error('임시 데이터 저장에 실패했습니다.')
+        }
+
+        router.push('/login/info')
       }
-
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('kakaoPendingUser', JSON.stringify(storedData))
-      }
-
-      router.push(requiresInfoStep ? '/login/info' : '/login/verify')
     } catch (error) {
       console.error('카카오 사용자 처리 실패:', error)
       if (error instanceof Error) {
@@ -96,31 +115,6 @@ export default function KakaoLogin() {
     }
   }, [normalizePhoneNumber, router])
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    const stored = sessionStorage.getItem('kakaoAuthData')
-    if (!stored) {
-      return
-    }
-
-    sessionStorage.removeItem('kakaoAuthData')
-
-    try {
-      const parsed: KakaoAuthResult = JSON.parse(stored)
-      setIsLoading(true)
-      processKakaoAuthResult(parsed)
-        .catch((error) => {
-          console.error('저장된 카카오 로그인 정보 처리 실패:', error)
-        })
-        .finally(() => setIsLoading(false))
-    } catch (error) {
-      console.error('저장된 카카오 로그인 정보를 파싱하지 못했습니다:', error)
-      alert('로그인 정보 처리 중 오류가 발생했습니다. 다시 시도해주세요.')
-    }
-  }, [processKakaoAuthResult])
 
   const handleKakaoLogin = async () => {
     setIsLoading(true)
@@ -174,18 +168,13 @@ export default function KakaoLogin() {
           throw new Error('NEXT_PUBLIC_KAKAO_CLIENT_ID가 설정되어 있지 않습니다.')
         }
 
-        const redirectUri = process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI
-        if (!redirectUri) {
-          throw new Error('NEXT_PUBLIC_KAKAO_REDIRECT_URI가 설정되어 있지 않습니다.')
-        }
+        const redirectUri = `${window.location.origin}/api/auth/kakao/callback`
 
         const authorizeUrl = new URL('https://kauth.kakao.com/oauth/authorize')
         authorizeUrl.searchParams.set('client_id', clientId)
         authorizeUrl.searchParams.set('redirect_uri', redirectUri)
         authorizeUrl.searchParams.set('response_type', 'code')
         authorizeUrl.searchParams.set('scope', 'profile_nickname account_email')
-
-        sessionStorage.setItem('kakaoLoginRedirect', window.location.href)
 
         window.location.href = authorizeUrl.toString()
       }

@@ -1,13 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Alert, Box, Button, Card, CardContent, TextField, Typography } from '@mui/material'
-import type { PendingKakaoUserData } from '@/types/kakao'
-
-type StoredPendingUser = PendingKakaoUserData & {
-  requiresInfoStep: boolean
-}
+import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
 
 type UserInfoForm = {
   name: string
@@ -24,7 +20,7 @@ const normalizePhoneNumber = (phoneNumber: string) => {
 
 export default function KakaoAdditionalInfoPage() {
   const router = useRouter()
-  const [pendingUser, setPendingUser] = useState<StoredPendingUser | null>(null)
+  const [pendingData, setPendingData] = useState<PendingKakaoData | null>(null)
   const [userInfo, setUserInfo] = useState<UserInfoForm>({
     name: '',
     email: '',
@@ -33,52 +29,38 @@ export default function KakaoAdditionalInfoPage() {
     gender: '',
   })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
+    const fetchPendingData = async () => {
+      try {
+        const response = await fetch('/api/auth/kakao/pending')
 
-    const storedPending = sessionStorage.getItem('kakaoPendingUser')
-    if (!storedPending) {
-      router.replace('/login')
-      return
-    }
+        if (!response.ok) {
+          router.replace('/login')
+          return
+        }
 
-    try {
-      const parsed: StoredPendingUser = JSON.parse(storedPending)
+        const data: PendingKakaoData = await response.json()
+        setPendingData(data)
 
-      if (!parsed.requiresInfoStep) {
-        router.replace('/login/verify')
-        return
+        setUserInfo({
+          name: data.kakaoData.properties?.nickname || data.kakaoData.kakao_account?.profile?.nickname || '',
+          email: data.kakaoData.kakao_account?.email || '',
+          phoneNumber: data.kakaoPhoneNumber || '',
+          birthDate: '',
+          gender: '',
+        })
+      } catch (error) {
+        console.error('Failed to fetch pending kakao data:', error)
+        router.replace('/login')
+      } finally {
+        setLoading(false)
       }
-
-      setPendingUser(parsed)
-
-      const storedUserInfo = sessionStorage.getItem('kakaoUserInfo')
-      if (storedUserInfo) {
-        const parsedInfo = JSON.parse(storedUserInfo) as UserInfoForm
-        setUserInfo(parsedInfo)
-        return
-      }
-
-      setUserInfo({
-        name: parsed.kakaoData.properties?.nickname || parsed.kakaoData.kakao_account?.profile?.nickname || '',
-        email: parsed.kakaoData.kakao_account?.email || '',
-        phoneNumber: parsed.kakaoPhoneNumber || '',
-        birthDate: '',
-        gender: '',
-      })
-    } catch (parseError) {
-      console.error('카카오 임시 로그인 데이터를 불러오지 못했습니다:', parseError)
-      sessionStorage.removeItem('kakaoPendingUser')
-      router.replace('/login')
     }
+
+    fetchPendingData()
   }, [router])
-
-  const isExistingUserWithoutPhone = useMemo(() => {
-    return Boolean(pendingUser?.isExistingUser && !pendingUser?.kakaoPhoneNumber)
-  }, [pendingUser])
 
   const handleSubmit = () => {
     if (!userInfo.name.trim()) {
@@ -93,53 +75,42 @@ export default function KakaoAdditionalInfoPage() {
 
     setError('')
 
-    if (typeof window !== 'undefined') {
-      const normalizedPhone = normalizePhoneNumber(userInfo.phoneNumber)
-      const updatedInfo: UserInfoForm = {
-        ...userInfo,
-        phoneNumber: normalizedPhone,
-      }
-
-      sessionStorage.setItem('kakaoUserInfo', JSON.stringify(updatedInfo))
-
-      const storedPending = sessionStorage.getItem('kakaoPendingUser')
-      if (storedPending) {
-        try {
-          const parsed: StoredPendingUser = JSON.parse(storedPending)
-          const updatedPending: StoredPendingUser = {
-            ...parsed,
-            kakaoPhoneNumber: normalizedPhone,
-            requiresInfoStep: false,
-          }
-          sessionStorage.setItem('kakaoPendingUser', JSON.stringify(updatedPending))
-        } catch (error) {
-          console.error('카카오 임시 데이터를 업데이트하지 못했습니다:', error)
-        }
-      }
-    }
-
-    router.push('/login/verify')
+    const normalizedPhone = normalizePhoneNumber(userInfo.phoneNumber)
+    router.push(`/login/verify?phone=${encodeURIComponent(normalizedPhone)}&name=${encodeURIComponent(userInfo.name)}&email=${encodeURIComponent(userInfo.email)}&birthDate=${encodeURIComponent(userInfo.birthDate)}&gender=${encodeURIComponent(userInfo.gender)}`)
   }
 
-  const handleCancel = () => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('kakaoPendingUser')
-      sessionStorage.removeItem('kakaoUserInfo')
+  const handleCancel = async () => {
+    try {
+      await fetch('/api/auth/kakao/pending', { method: 'DELETE' })
+    } catch (error) {
+      console.error('Failed to clear pending data:', error)
     }
     router.replace('/login')
   }
+
+  if (loading) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Typography>로딩 중...</Typography>
+      </Box>
+    )
+  }
+
+  if (!pendingData) {
+    return null
+  }
+
+  const isFormValid = userInfo.name.trim() && userInfo.phoneNumber.trim()
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
       <Card sx={{ maxWidth: 420, width: '100%' }}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h5" component="h1" align="center" fontWeight="bold" gutterBottom>
-            {isExistingUserWithoutPhone ? '본인 확인 정보 입력' : '추가 정보 입력'}
+            회원가입
           </Typography>
           <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-            {isExistingUserWithoutPhone
-              ? '카카오 계정과 동일한 휴대폰 번호를 입력한 뒤 본인 확인을 진행해주세요'
-              : '서비스 이용을 위해 추가 정보를 입력해주세요'}
+            서비스 이용을 위해 필수 정보를 입력해주세요
           </Typography>
 
           {error && (
@@ -173,6 +144,7 @@ export default function KakaoAdditionalInfoPage() {
               onChange={(event) => setUserInfo({ ...userInfo, phoneNumber: event.target.value })}
               margin="normal"
               required
+              helperText="필수 입력 항목입니다"
             />
             <TextField
               fullWidth
@@ -200,6 +172,7 @@ export default function KakaoAdditionalInfoPage() {
                 variant="contained"
                 onClick={handleSubmit}
                 fullWidth
+                disabled={!isFormValid}
                 sx={{ backgroundColor: '#FEE500', color: '#000', '&:hover': { backgroundColor: '#FCDD00' } }}
               >
                 다음 단계로

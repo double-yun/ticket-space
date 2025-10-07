@@ -1,24 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, TextField, Typography } from '@mui/material'
 import { setupRecaptcha, sendSMSVerification, verifySMSCode } from '@/lib/firebase'
 import { RecaptchaVerifier, type ConfirmationResult } from 'firebase/auth'
 import type { FirebaseError } from 'firebase/app'
-import type { KakaoRegistrationPayload, PendingKakaoUserData } from '@/types/kakao'
-
-type StoredPendingUser = PendingKakaoUserData & {
-  requiresInfoStep: boolean
-}
-
-type StoredUserInfo = {
-  name: string
-  email: string
-  phoneNumber: string
-  birthDate: string
-  gender: string
-}
+import type { KakaoRegistrationPayload } from '@/types/kakao'
+import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
 
 const normalizePhoneNumber = (phoneNumber: string) => {
   if (!phoneNumber) return ''
@@ -33,58 +22,65 @@ const toE164 = (phoneNumber: string) => {
   return phoneNumber.startsWith('+') ? phoneNumber : `+${cleaned}`
 }
 
-export default function KakaoPhoneVerificationPage() {
+function KakaoPhoneVerificationContent() {
   const router = useRouter()
-  const [pendingUser, setPendingUser] = useState<StoredPendingUser | null>(null)
-  const [userInfo, setUserInfo] = useState<StoredUserInfo | null>(null)
+  const searchParams = useSearchParams()
+  const [pendingData, setPendingData] = useState<PendingKakaoData | null>(null)
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [userInfo, setUserInfo] = useState({
+    name: '',
+    email: '',
+    birthDate: '',
+    gender: '',
+  })
   const [verificationCode, setVerificationCode] = useState('')
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState('')
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null)
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [codeRequested, setCodeRequested] = useState(false)
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
+    const fetchData = async () => {
+      try {
+        // Query params에서 사용자 정보 가져오기
+        const phone = searchParams.get('phone') || ''
+        const name = searchParams.get('name') || ''
+        const email = searchParams.get('email') || ''
+        const birthDate = searchParams.get('birthDate') || ''
+        const gender = searchParams.get('gender') || ''
 
-    const storedPending = sessionStorage.getItem('kakaoPendingUser')
-    if (!storedPending) {
-      router.replace('/login')
-      return
-    }
+        if (!phone || !name) {
+          router.replace('/login/info')
+          return
+        }
 
-    try {
-      const parsed: StoredPendingUser = JSON.parse(storedPending)
+        setPhoneNumber(phone)
+        setUserInfo({ name, email, birthDate, gender })
 
-      if (parsed.requiresInfoStep) {
-        router.replace('/login/info')
-        return
+        // 쿠키에서 pending data 가져오기
+        const response = await fetch('/api/auth/kakao/pending')
+        if (!response.ok) {
+          router.replace('/login')
+          return
+        }
+
+        const data: PendingKakaoData = await response.json()
+        setPendingData(data)
+      } catch (error) {
+        console.error('Failed to load data:', error)
+        router.replace('/login')
+      } finally {
+        setInitialLoading(false)
       }
-
-      setPendingUser(parsed)
-
-      const storedInfo = sessionStorage.getItem('kakaoUserInfo')
-      if (storedInfo) {
-        const parsedInfo = JSON.parse(storedInfo) as StoredUserInfo
-        setUserInfo(parsedInfo)
-        setPhoneNumber(parsedInfo.phoneNumber)
-      } else if (parsed.kakaoPhoneNumber) {
-        setPhoneNumber(parsed.kakaoPhoneNumber)
-      } else {
-        router.replace('/login/info')
-      }
-    } catch (parseError) {
-      console.error('카카오 임시 로그인 데이터를 불러오지 못했습니다:', parseError)
-      sessionStorage.removeItem('kakaoPendingUser')
-      router.replace('/login')
     }
-  }, [router])
+
+    fetchData()
+  }, [router, searchParams])
 
   useEffect(() => {
-    if (!recaptchaVerifier) {
+    if (!recaptchaVerifier && !initialLoading) {
       try {
         const verifier = setupRecaptcha('recaptcha-container')
         setRecaptchaVerifier(verifier)
@@ -97,21 +93,7 @@ export default function KakaoPhoneVerificationPage() {
     return () => {
       recaptchaVerifier?.clear()
     }
-  }, [recaptchaVerifier])
-
-  const expectedPhone = useMemo(() => pendingUser?.kakaoPhoneNumber ?? '', [pendingUser])
-
-  const canEditPhone = useMemo(() => {
-    if (!pendingUser) return false
-    if (!pendingUser.isExistingUser) {
-      return true
-    }
-    if (!pendingUser.kakaoPhoneNumber) {
-      return true
-    }
-    // 기존 사용자이지만 정보 입력 단계에서 번호를 직접 입력한 경우
-    return Boolean(userInfo)
-  }, [pendingUser, userInfo])
+  }, [recaptchaVerifier, initialLoading])
 
   const displayPhoneNumber = useMemo(() => {
     if (!phoneNumber) return ''
@@ -129,7 +111,7 @@ export default function KakaoPhoneVerificationPage() {
   const handleSendCode = async () => {
     const normalized = normalizePhoneNumber(phoneNumber)
     if (!normalized) {
-      setError('휴대폰 번호가 유효하지 않습니다. 이전 단계로 돌아가 다시 입력해주세요.')
+      setError('휴대폰 번호가 유효하지 않습니다.')
       return
     }
 
@@ -173,7 +155,7 @@ export default function KakaoPhoneVerificationPage() {
       return
     }
 
-    if (!pendingUser) {
+    if (!pendingData) {
       setError('로그인 세션 정보를 찾을 수 없습니다. 다시 시도해주세요.')
       return
     }
@@ -184,66 +166,30 @@ export default function KakaoPhoneVerificationPage() {
     try {
       const verificationResult = await verifySMSCode(confirmationResult, verificationCode)
       const verifiedPhoneNumber = verificationResult.phoneNumber
-      const normalizedVerified = normalizePhoneNumber(verifiedPhoneNumber)
-      const normalizedExpected = normalizePhoneNumber(phoneNumber)
 
-      if (pendingUser.kakaoPhoneNumber && normalizedVerified !== normalizedExpected) {
-        throw new Error('인증된 휴대폰 번호가 카카오 계정 정보와 일치하지 않습니다.')
+      const registrationPayload: KakaoRegistrationPayload = {
+        kakaoId: pendingData.kakaoData.id.toString(),
+        name: userInfo.name,
+        email: userInfo.email,
+        phoneNumber: verifiedPhoneNumber,
+        birthDate: userInfo.birthDate,
+        gender: userInfo.gender,
+        accessToken: pendingData.accessToken,
+        refreshToken: pendingData.refreshToken,
+        phoneVerified: true,
       }
 
-      if (pendingUser.isExistingUser) {
-        const response = await fetch('/api/auth/kakao/app-login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            accessToken: pendingUser.accessToken,
-            refreshToken: pendingUser.refreshToken,
-            userData: pendingUser.kakaoData,
-            verifiedPhoneNumber: normalizedVerified,
-          }),
-        })
+      const response = await fetch('/api/auth/kakao/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationPayload),
+      })
 
-        if (!response.ok) {
-          throw new Error('로그인 처리에 실패했습니다.')
-        }
-      } else {
-        if (!userInfo) {
-          throw new Error('사용자 추가 정보를 찾을 수 없습니다. 처음부터 다시 시도해주세요.')
-        }
-
-        const registrationPayload: KakaoRegistrationPayload = {
-          kakaoId: pendingUser.kakaoData.id.toString(),
-          name: userInfo.name,
-          email: userInfo.email,
-          phoneNumber: verifiedPhoneNumber,
-          birthDate: userInfo.birthDate,
-          gender: userInfo.gender,
-          accessToken: pendingUser.accessToken,
-          refreshToken: pendingUser.refreshToken,
-          phoneVerified: true,
-        }
-
-        const response = await fetch('/api/auth/kakao/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(registrationPayload),
-        })
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}))
-          throw new Error(data.error || '회원가입에 실패했습니다.')
-        }
-      }
-
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('kakaoPendingUser')
-        sessionStorage.removeItem('kakaoUserInfo')
-        sessionStorage.removeItem('kakaoAuthData')
-        sessionStorage.removeItem('kakaoLoginRedirect')
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || '회원가입에 실패했습니다.')
       }
 
       router.replace('/')
@@ -277,6 +223,18 @@ export default function KakaoPhoneVerificationPage() {
     setError('')
   }
 
+  if (initialLoading) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Typography>로딩 중...</Typography>
+      </Box>
+    )
+  }
+
+  if (!pendingData) {
+    return null
+  }
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
       <Card sx={{ maxWidth: 420, width: '100%' }}>
@@ -287,16 +245,8 @@ export default function KakaoPhoneVerificationPage() {
           <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
             {codeRequested
               ? `${displayPhoneNumber}로 전송된 인증번호를 입력해주세요`
-              : '서비스 이용을 위해 휴대폰 인증이 필요합니다'}
+              : '회원가입을 완료하기 위해 휴대폰 인증이 필요합니다'}
           </Typography>
-
-          {pendingUser?.isExistingUser && expectedPhone && (
-            <Box sx={{ mb: 2, p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-              <Typography variant="body2" align="center">
-                카카오 계정에 등록된 번호: {displayPhoneNumber}
-              </Typography>
-            </Box>
-          )}
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -310,8 +260,7 @@ export default function KakaoPhoneVerificationPage() {
                 fullWidth
                 label="휴대폰 번호"
                 value={phoneNumber}
-                onChange={(event) => setPhoneNumber(event.target.value)}
-                disabled={!canEditPhone || loading}
+                disabled
               />
 
               <Box id="recaptcha-container" sx={{ display: 'flex', justifyContent: 'center' }} />
@@ -319,11 +268,11 @@ export default function KakaoPhoneVerificationPage() {
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <Button
                   variant="outlined"
-                  onClick={canEditPhone ? handleGoBack : () => router.replace('/login')}
+                  onClick={handleGoBack}
                   disabled={loading}
                   fullWidth
                 >
-                  {canEditPhone ? '이전 단계' : '취소'}
+                  이전 단계
                 </Button>
                 <Button
                   variant="contained"
@@ -344,7 +293,11 @@ export default function KakaoPhoneVerificationPage() {
                 value={verificationCode}
                 onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="123456"
-                inputProps={{ maxLength: 6 }}
+                slotProps={{
+                  htmlInput: {
+                    maxLength: 6
+                  }
+                }}
               />
 
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -371,5 +324,19 @@ export default function KakaoPhoneVerificationPage() {
         </CardContent>
       </Card>
     </Box>
+  )
+}
+
+export default function KakaoPhoneVerificationPage() {
+  return (
+    <Suspense
+      fallback={
+        <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+          <Typography>로딩 중...</Typography>
+        </Box>
+      }
+    >
+      <KakaoPhoneVerificationContent />
+    </Suspense>
   )
 }
