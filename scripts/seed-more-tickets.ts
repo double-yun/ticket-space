@@ -6,7 +6,7 @@ async function main() {
   console.log('🌱 추가 테스트 데이터 생성 시작...')
 
   // 1. 지갑 주소로 유저 찾기
-  const walletAddress = '0x774a20359b7d10f1b56a48dAdEFb69C1B3609772'
+  const walletAddress = '0xcC13e922DF85c22E01e71f9a107526E5A5ee9999'
   const user = await prisma.user.findUnique({
     where: {
       walletAddress: walletAddress,

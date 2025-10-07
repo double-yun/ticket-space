@@ -13,18 +13,31 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies()
     const sessionToken = cookieStore.get('session_token')?.value
 
+    console.log('Wallet fund - Session token:', sessionToken ? 'Found' : 'Not found')
+    console.log('All cookies:', Array.from(cookieStore.getAll()).map(c => c.name))
+
     if (!sessionToken) {
+      console.error('No session token in wallet fund request')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('Looking up session in database...')
     const session = await prisma.session.findUnique({
       where: { sessionToken },
       include: { user: true },
     })
 
-    if (!session || session.expires < new Date()) {
+    if (!session) {
+      console.error('Session not found in database')
+      return NextResponse.json({ error: 'Session not found' }, { status: 401 })
+    }
+
+    if (session.expires < new Date()) {
+      console.error('Session expired')
       return NextResponse.json({ error: 'Session expired' }, { status: 401 })
     }
+
+    console.log('Session valid, user:', session.user.id)
 
     const user = session.user
 
@@ -39,7 +52,7 @@ export async function POST(request: NextRequest) {
       address: user.walletAddress as `0x${string}`,
     })
 
-    if (currentBalance > parseEther('0.5')) {
+    if (currentBalance > parseEther('0.05')) {
       return NextResponse.json({
         success: true,
         message: 'Already have sufficient balance',
@@ -48,7 +61,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const transferValue = parseEther('1.0')
+    const transferValue = parseEther('0.05')
     let transactionHash: `0x${string}`
     let blockNumber: string
 
@@ -77,9 +90,18 @@ export async function POST(request: NextRequest) {
       const serverAccount = privateKeyToAccount(serverPrivateKey)
       const walletClient = getWalletClient(serverAccount)
 
+      // 최신 nonce 가져오기
+      const nonce = await publicClient.getTransactionCount({
+        address: serverAccount.address,
+        blockTag: 'pending',
+      })
+
+      console.log('Current nonce:', nonce)
+
       const hash = await walletClient.sendTransaction({
         to: user.walletAddress as `0x${string}`,
         value: transferValue,
+        nonce,
       })
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash })

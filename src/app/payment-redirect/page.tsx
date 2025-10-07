@@ -89,32 +89,20 @@ function PaymentRedirectContent() {
         // 결제 상태 확인
         if (data.status === 'PAID') {
           setStatus('success');
-          // Capacitor 환경에서 결제 성공 시 카운트다운 후 자동으로 브라우저 닫기
-          if (isCapacitorApp) {
-            let count = 3;
-            const timer = setInterval(() => {
-              count -= 1;
-              setCountdown(count);
-              if (count <= 0) {
-                clearInterval(timer);
-                handleGoHome();
-              }
-            }, 1000);
+
+          // ETH 충전 처리
+          try {
+            console.log('Payment PAID, funding wallet...');
+            const fundResponse = await fetch('/api/wallet/fund', {
+              method: 'POST',
+            });
+            const fundData = await fundResponse.json();
+            console.log('Wallet funding result:', fundData);
+          } catch (fundError) {
+            console.error('Wallet funding failed:', fundError);
           }
         } else if (data.status === 'VIRTUAL_ACCOUNT_ISSUED') {
           setStatus('success'); // 가상계좌 발급도 성공으로 처리
-          // Capacitor 환경에서 가상계좌 발급 시 카운트다운 후 자동으로 브라우저 닫기
-          if (isCapacitorApp) {
-            let count = 3;
-            const timer = setInterval(() => {
-              count -= 1;
-              setCountdown(count);
-              if (count <= 0) {
-                clearInterval(timer);
-                handleGoHome();
-              }
-            }, 1000);
-          }
         } else {
           setStatus('failed');
           setErrorMessage('결제가 완료되지 않았습니다.');

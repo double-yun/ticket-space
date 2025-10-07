@@ -15,10 +15,12 @@ export async function POST(req: Request) {
 
   const payment = await res.json();
 
-  // 예: 내부 주문 금액과 실제 결제 금액 검증
-  // if (expectedAmount !== payment.amount.total) ... 위변조 의심 처리
+  console.log('Payment verification - Status:', payment.status, 'ID:', paymentId);
 
-  // 결제 상태에 따라 후처리
-  // 'PAID' (완료), 'VIRTUAL_ACCOUNT_ISSUED' (가상계좌 발급) 등
-  return NextResponse.json({ status: payment.status, amount: payment.amount?.total });
+  // 결제 상태만 반환 (ETH 충전은 클라이언트에서 별도 API 호출)
+  return NextResponse.json({
+    status: payment.status,
+    amount: payment.amount?.total,
+    paymentId
+  });
 }

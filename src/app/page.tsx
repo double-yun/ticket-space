@@ -79,10 +79,64 @@ export default function Home() {
       })
   }, [router])
 
+  // Deep Link 처리 (결제 완료 후 앱으로 돌아올 때)
+  useEffect(() => {
+    const { App } = require('@capacitor/app')
+
+    const handleAppUrlOpen = async (event: any) => {
+      console.log('App URL opened:', event.url)
+
+      // ticketspace://payment-result?paymentId=...&returnUrl=... 형식
+      if (event.url.startsWith('ticketspace://payment-result')) {
+        const url = new URL(event.url.replace('ticketspace://', 'https://dummy.com/'))
+        const paymentId = url.searchParams.get('paymentId')
+        const returnUrl = url.searchParams.get('returnUrl') || '/'
+
+        if (paymentId) {
+          // payment-result 페이지로 이동
+          router.push(`/payment-result?paymentId=${paymentId}&returnUrl=${encodeURIComponent(returnUrl)}`)
+        }
+      }
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      App.addListener('appUrlOpen', handleAppUrlOpen)
+
+      return () => {
+        App.removeAllListeners()
+      }
+    }
+  }, [router])
+
   useEffect(() => {
     if (sessionUser) {
       fetchTickets()
       fetchBalance()
+    }
+  }, [sessionUser])
+
+  // 페이지가 다시 포커스될 때 잔액 새로고침 (결제 후 돌아왔을 때)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && sessionUser) {
+        fetchBalance()
+        setFunding(false) // 결제 상태 초기화
+      }
+    }
+
+    const handleFocus = () => {
+      if (sessionUser) {
+        fetchBalance()
+        setFunding(false) // 결제 상태 초기화
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [sessionUser])
 
@@ -111,9 +165,13 @@ export default function Home() {
   }
 
   const handleFundWallet = async () => {
-    if (funding) return
+    if (funding) {
+      console.log('이미 결제 진행 중입니다.')
+      return
+    }
 
     setFunding(true)
+    console.log('결제 시작...')
 
     const generateUUID = () =>
       'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -122,59 +180,26 @@ export default function Home() {
         return v.toString(16)
       })
 
-    const paymentId = `payment-${generateUUID()}`
+    const paymentId = `payment-${generateUUID()}-${Date.now()}`
     const storeId = 'store-c9209e03-9213-49bb-99bc-904ae521bb56'
     const channelKey = 'channel-key-87cd1fa3-c29c-4125-be0a-b4fb02f993bc'
     const orderName = '지갑 충전'
     const totalAmount = '1000'
 
+    console.log('결제 정보:', { paymentId, isCapacitor: Capacitor.isNativePlatform() })
+
     try {
       const isCapacitorApp = Capacitor.isNativePlatform()
 
-      if (isCapacitorApp) {
-        const paymentUrl = new URL('/payment', window.location.origin)
-        paymentUrl.searchParams.set('paymentId', paymentId)
-        paymentUrl.searchParams.set('storeId', storeId)
-        paymentUrl.searchParams.set('channelKey', channelKey)
-        paymentUrl.searchParams.set('orderName', orderName)
-        paymentUrl.searchParams.set('totalAmount', totalAmount)
-        paymentUrl.searchParams.set('from_app', 'true')
+      // 리다이렉트 URL 설정
+      const redirectUrl = isCapacitorApp
+        ? `ticketspace://payment-result?paymentId=${paymentId}&returnUrl=${encodeURIComponent(window.location.pathname)}`
+        : `${window.location.origin}/payment-redirect`
 
-        const finishedListener = await Browser.addListener('browserFinished', async () => {
-          try {
-            await fetch('/api/payment/complete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId }),
-            })
-          } catch (error) {
-            console.error('Payment verification failed after browser close.', error)
-          } finally {
-            fetchBalance()
-          }
-        })
+      console.log('redirectUrl:', redirectUrl)
 
-        const pageLoadedListener = await Browser.addListener('browserPageLoaded', event => {
-          console.debug('Payment page loaded:', event.url)
-        })
-
-        try {
-          await Browser.open({
-            url: paymentUrl.toString(),
-            presentationStyle: 'fullscreen',
-            windowName: '_blank',
-            toolbarColor: '#ffffff',
-            showReloadButton: false,
-            showArrow: true,
-          })
-        } finally {
-          await pageLoadedListener.remove()
-          await finishedListener.remove()
-        }
-
-        return
-      }
-
+      // PortOne 결제 시작
+      console.log('PortOne.requestPayment 호출 시작')
       const resp = await PortOne.requestPayment({
         storeId,
         channelKey,
@@ -183,14 +208,28 @@ export default function Home() {
         totalAmount: Number(totalAmount),
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
-        redirectUrl: `${window.location.origin}/payment-redirect`,
+        redirectUrl,
       })
 
-      if (resp && resp.code !== undefined) {
-        alert(resp.message || '결제가 취소되었습니다.')
+      console.log('PortOne.requestPayment 응답:', resp)
+
+      // 앱 환경에서는 외부 브라우저로 이동하므로 여기서 상태 초기화
+      if (isCapacitorApp) {
+        console.log('앱 환경 - 상태 초기화')
+        setFunding(false)
         return
       }
 
+      // 결제 실패/취소 시
+      if (resp && resp.code !== undefined) {
+        console.log('결제 실패/취소:', resp.code, resp.message)
+        alert(resp.message || '결제가 취소되었습니다.')
+        setFunding(false)
+        return
+      }
+
+      // 웹 환경에서만 여기 도달
+      console.log('웹 환경 - 결제 완료 처리')
       await fetch('/api/payment/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -201,7 +240,9 @@ export default function Home() {
     } catch (error) {
       console.error('Wallet funding payment failed.', error)
       alert('❌ 결제 연동 중 오류가 발생했습니다.')
+      setFunding(false)
     } finally {
+      console.log('결제 처리 완료 - finally 블록')
       setFunding(false)
     }
   }
