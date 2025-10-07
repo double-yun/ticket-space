@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getContractAddress, getPublicClient } from '@/lib/blockchain'
 import { ticketAbi } from '@/lib/blockchain/ticket-abi'
+import { prisma } from '@/lib/prisma'
 
 const publicClient = getPublicClient()
 
@@ -14,8 +15,9 @@ export async function GET(request: NextRequest) {
     }
 
     const contractAddress = await getContractAddress()
+    const normalizedAddress = address.toLowerCase()
 
-    const [ethBalance, nftBalance, totalSupply] = await Promise.all([
+    const [ethBalance, nftBalance, totalSupply, user] = await Promise.all([
       publicClient.getBalance({ address: address as `0x${string}` }),
       publicClient.readContract({
         address: contractAddress as `0x${string}`,
@@ -28,6 +30,17 @@ export async function GET(request: NextRequest) {
         abi: ticketAbi,
         functionName: 'totalSupply',
       }),
+      prisma.user.findFirst({
+        where: {
+          OR: [
+            { walletAddress: address },
+            { walletAddress: normalizedAddress },
+          ],
+        },
+        select: {
+          pointBalance: true,
+        },
+      }),
     ])
 
     return NextResponse.json({
@@ -36,6 +49,7 @@ export async function GET(request: NextRequest) {
       ethBalance: (Number(ethBalance) / 1e18).toFixed(4),
       nftBalance: (nftBalance as bigint).toString(),
       totalSupply: (totalSupply as bigint).toString(),
+      pointBalance: user?.pointBalance ?? 0,
     })
   } catch (error) {
     console.error(error)

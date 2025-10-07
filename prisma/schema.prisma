@@ -11,24 +11,27 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  name              String?
-  email             String?   @unique
-  emailVerified     DateTime?
-  image             String?
-  kakaoId           String?   @unique
-  phoneNumber       String?   @unique
-  phoneVerified     Boolean? @default(false)
-  birthDate         String?  // YYYY-MM-DD 형식
-  gender            String?  // 'M', 'F', 또는 null
-  walletAddress     String?   @unique
-  privyUserId       String?   @unique
-  privyWalletId     String?   @unique
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String?
+  email         String?  @unique
+  emailVerified DateTime?
+  image         String?
+  kakaoId       String?  @unique
+  phoneNumber   String?  @unique
+  phoneVerified Boolean? @default(false)
+  birthDate     String?
+  gender        String?
+  walletAddress String?  @unique
+  privyUserId   String?  @unique
+  privyWalletId String?  @unique
+  pointBalance  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  sessions Session[]
-  purchases Purchase[]
+  sessions             Session[]
+  lotteryApplications  LotteryApplication[]
+  tickets              Ticket[]
+  pointHistories       PointHistory[]
 
   @@map("users")
 }
@@ -52,35 +55,131 @@ model VerificationToken {
   @@map("verificationtokens")
 }
 
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  ticketCount Int
+  price       Int
+  deadline    DateTime
+  saleStart   DateTime?
+  status      EventStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  rounds  LotteryRound[]
+  tickets Ticket[]
+
+  @@index([deadline])
+  @@unique([title, deadline])
+  @@map("events")
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+model LotteryRound {
+  id                  String      @id @default(cuid())
+  eventId             String
+  roundNumber         Int
+  status              RoundStatus @default(OPEN)
+  resultHash          String?
+  drawnAt             DateTime?
+  applicationDeadline DateTime
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  event        Event                @relation(fields: [eventId], references: [id])
+  applications LotteryApplication[]
+
+  @@unique([eventId, roundNumber])
+  @@index([applicationDeadline])
+  @@map("lottery_rounds")
+}
+
+enum RoundStatus {
+  OPEN
+  CLOSED
+  DRAWN
+}
+
+model LotteryApplication {
+  id                String            @id @default(cuid())
+  roundId           String
+  userId            String
+  walletAddress     String?
+  priority          Int?
+  applicationTxHash String            @unique
+  status            ApplicationStatus @default(APPLIED)
+  paymentStatus     PaymentStatus     @default(PENDING)
+  paymentDeadline   DateTime?
+  pointAmount       Int?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  round  LotteryRound @relation(fields: [roundId], references: [id])
+  user   User         @relation(fields: [userId], references: [id])
+  ticket Ticket?
+
+  @@unique([roundId, userId])
+  @@index([paymentDeadline])
+  @@map("lottery_applications")
+}
+
+enum ApplicationStatus {
+  APPLIED
+  WON
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
 model Ticket {
-  id            String @id @default(cuid())
-  name          String
-  description   String
-  price         String // ETH 단위 (BigInt는 문자열로 저장)
-  maxSupply     Int
-  currentSupply Int    @default(0)
-  imageUrl      String?
-  isActive      Boolean @default(true)
-  createdAt     DateTime @default(now())
+  id            String   @id @default(cuid())
+  applicationId String   @unique
+  eventId       String
+  userId        String
+  tokenId       BigInt?
+  txHash        String?  @unique
+  used          Boolean  @default(false)
+  refunded      Boolean  @default(false)
+  issuedAt      DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  purchases Purchase[]
+  application LotteryApplication @relation(fields: [applicationId], references: [id])
+  event       Event              @relation(fields: [eventId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
 
+  @@unique([eventId, tokenId])
   @@map("tickets")
 }
 
-model Purchase {
-  id              String   @id @default(cuid())
-  userId          String
-  ticketId        String
-  transactionHash String   @unique
-  tokenId         String
-  purchaseDate    DateTime @default(now())
-  used            Boolean  @default(false)
-  usedAt          DateTime?
+model PointHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  type        PointType
+  description String?
+  createdAt   DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id])
-  ticket Ticket @relation(fields: [ticketId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
-  @@map("purchases")
+  @@index([userId])
+  @@map("point_history")
+}
+
+enum PointType {
+  CHARGE
+  USE
+  ADJUST
 }

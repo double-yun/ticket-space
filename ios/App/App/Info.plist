@@ -61,6 +61,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.ticketing.app</string>
+				<string>ticketspace</string>
 			</array>
 		</dict>
 		<dict>

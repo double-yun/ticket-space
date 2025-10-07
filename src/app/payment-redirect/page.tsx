@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Capacitor } from '@capacitor/core';
 
@@ -21,21 +21,15 @@ function PaymentRedirectContent() {
   const [isCapacitorApp, setIsCapacitorApp] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
-  const handleGoHome = async () => {
+  const handleGoHome = useCallback(async () => {
     if (isCapacitorApp) {
-      // InAppBrowser를 닫기 위한 특별한 URL로 리다이렉트
-      // 앱에서 이 URL을 감지하여 Browser.close()를 호출해야 함
-      window.location.href = 'https://close-browser.local';
-
-      // 백업: 2초 후에도 페이지가 남아있으면 홈으로 이동
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
+      // Custom URL Scheme으로 앱을 열어서 InAppBrowser 닫기
+      window.location.href = 'ticketspace://payment-complete';
     } else {
       // 웹 환경에서는 일반적인 라우팅
       router.push('/');
     }
-  };
+  }, [isCapacitorApp, router]);
 
   useEffect(() => {
     // Capacitor 환경인지 확인
@@ -56,6 +50,7 @@ function PaymentRedirectContent() {
       try {
         // URL 파라미터에서 결제 ID 가져오기
         const paymentId = searchParams.get('paymentId');
+        const userId = searchParams.get('userId'); // InAppBrowser 인증용
         const code = searchParams.get('code');
         const message = searchParams.get('message');
 
@@ -73,10 +68,13 @@ function PaymentRedirectContent() {
         }
 
         // 서버에서 결제 검증
-        const response = await fetch('/api/payment/complete', {
+        const response = await fetch('/api/points/charge', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId }),
+          body: JSON.stringify({ 
+            paymentId,
+            userId // InAppBrowser 인증용
+          }),
         });
 
         if (!response.ok) {
@@ -89,32 +87,20 @@ function PaymentRedirectContent() {
         // 결제 상태 확인
         if (data.status === 'PAID') {
           setStatus('success');
-          // Capacitor 환경에서 결제 성공 시 카운트다운 후 자동으로 브라우저 닫기
-          if (isCapacitorApp) {
-            let count = 3;
-            const timer = setInterval(() => {
-              count -= 1;
-              setCountdown(count);
-              if (count <= 0) {
-                clearInterval(timer);
-                handleGoHome();
-              }
-            }, 1000);
+
+          // ETH 충전 처리
+          try {
+            console.log('Payment PAID, funding wallet...');
+            const fundResponse = await fetch('/api/wallet/fund', {
+              method: 'POST',
+            });
+            const fundData = await fundResponse.json();
+            console.log('Wallet funding result:', fundData);
+          } catch (fundError) {
+            console.error('Wallet funding failed:', fundError);
           }
         } else if (data.status === 'VIRTUAL_ACCOUNT_ISSUED') {
           setStatus('success'); // 가상계좌 발급도 성공으로 처리
-          // Capacitor 환경에서 가상계좌 발급 시 카운트다운 후 자동으로 브라우저 닫기
-          if (isCapacitorApp) {
-            let count = 3;
-            const timer = setInterval(() => {
-              count -= 1;
-              setCountdown(count);
-              if (count <= 0) {
-                clearInterval(timer);
-                handleGoHome();
-              }
-            }, 1000);
-          }
         } else {
           setStatus('failed');
           setErrorMessage('결제가 완료되지 않았습니다.');
@@ -128,6 +114,21 @@ function PaymentRedirectContent() {
 
     verifyPayment();
   }, [searchParams, isCapacitorApp]);
+
+  // 결제 성공 시 카운트다운 & 자동 닫기
+  useEffect(() => {
+    if (status === 'success' && isCapacitorApp && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+
+    if (status === 'success' && isCapacitorApp && countdown === 0) {
+      handleGoHome();
+    }
+  }, [status, isCapacitorApp, countdown, handleGoHome]);
 
   if (status === 'loading') {
     return (

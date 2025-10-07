@@ -42,6 +42,14 @@
                 <data android:scheme="@string/kakao_scheme" android:host="oauth" />
             </intent-filter>
 
+            <!-- Deep Link for payment result -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ticketspace" />
+            </intent-filter>
+
         </activity>
 
         <!-- Kakao SDK를 위한 AuthCodeHandlerActivity -->

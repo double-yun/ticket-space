@@ -1,16 +1,34 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { EventStatus } from '@prisma/client'
 
 export async function GET() {
   try {
-    const tickets = await prisma.ticket.findMany({
+    const events = await prisma.event.findMany({
       where: {
-        isActive: true,
+        status: EventStatus.PUBLISHED,
       },
       orderBy: {
-        createdAt: 'asc',
+        deadline: 'asc',
+      },
+      include: {
+        _count: {
+          select: {
+            tickets: true,
+          },
+        },
       },
     })
+
+    const tickets = events.map((event) => ({
+      id: event.id,
+      name: event.title,
+      description: event.description ?? '',
+      price: event.price,
+      maxSupply: event.ticketCount,
+      currentSupply: event._count.tickets,
+      deadline: event.deadline,
+    }))
 
     return NextResponse.json({
       success: true,

@@ -21,34 +21,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session expired' }, { status: 401 })
     }
 
-    // 사용자의 구매 내역 조회
-    const purchases = await prisma.purchase.findMany({
+    // 새로운 스키마: 사용자의 티켓 조회
+    const tickets = await prisma.ticket.findMany({
       where: {
         userId: session.user.id,
       },
       include: {
-        ticket: true,
+        event: true,
+        application: true,
       },
       orderBy: {
-        purchaseDate: 'desc',
+        issuedAt: 'desc',
       },
     })
 
     return NextResponse.json({
       success: true,
-      purchases: purchases.map(purchase => ({
-        id: purchase.id,
-        transactionHash: purchase.transactionHash,
-        tokenId: purchase.tokenId,
-        purchaseDate: purchase.purchaseDate,
-        used: purchase.used,
-        usedAt: purchase.usedAt,
+      purchases: tickets.map(ticket => ({
+        id: ticket.id,
+        transactionHash: ticket.txHash || '',
+        tokenId: ticket.tokenId?.toString() || '0',
+        purchaseDate: ticket.issuedAt,
+        used: ticket.used,
+        usedAt: ticket.used ? ticket.updatedAt : null,
         ticket: {
-          id: purchase.ticket.id,
-          name: purchase.ticket.name,
-          description: purchase.ticket.description,
-          price: purchase.ticket.price,
-          imageUrl: purchase.ticket.imageUrl,
+          id: ticket.eventId,
+          name: ticket.event.title,
+          description: ticket.event.description || '',
+          price: ticket.event.price.toString(),
+          imageUrl: null, // 새 스키마에는 이미지 URL이 없음
         },
       })),
     })

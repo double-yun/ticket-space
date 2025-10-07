@@ -207,6 +207,8 @@ export default function KakaoLogin() {
         borderRadius: '8px',
         width: '100%',
         maxWidth: '300px',
+        margin: '0 auto',
+        display: 'block',
       }}
     >
       {isLoading ? '로그인 중...' : '카카오톡으로 로그인'}
