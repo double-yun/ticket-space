@@ -8,6 +8,7 @@ import PayButton from '@/components/PayButton'
 import * as PortOne from '@portone/browser-sdk/v2'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
+import { App } from '@capacitor/app'
 import 'swiper/css'
 interface SessionUser {
   id: string
@@ -91,6 +92,29 @@ export default function Home() {
     }
   }, [sessionUser])
 
+  // Custom URL Scheme 리스너 (결제 완료 후 InAppBrowser 닫기)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    const urlListener = App.addListener('appUrlOpen', (event) => {
+      console.log('App opened with URL:', event.url)
+      
+      // ticketspace://payment-complete 감지 시 InAppBrowser 닫기
+      if (event.url.includes('payment-complete')) {
+        Browser.close().then(() => {
+          console.log('InAppBrowser closed after payment')
+          fetchBalance() // 잔액 새로고침
+        }).catch(err => {
+          console.error('Failed to close browser:', err)
+        })
+      }
+    })
+
+    return () => {
+      urlListener.then(listener => listener.remove())
+    }
+  }, [])
+
   const fetchTickets = async () => {
     try {
       const response = await fetch('/api/tickets')
@@ -158,13 +182,21 @@ export default function Home() {
         paymentUrl.searchParams.set('orderName', orderName)
         paymentUrl.searchParams.set('totalAmount', totalAmount.toString())
         paymentUrl.searchParams.set('from_app', 'true')
+        
+        // userId 추가 (InAppBrowser 인증용)
+        if (sessionUser?.id) {
+          paymentUrl.searchParams.set('userId', sessionUser.id)
+        }
 
         const finishedListener = await Browser.addListener('browserFinished', async () => {
           try {
             await fetch('/api/points/charge', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId }),
+              body: JSON.stringify({ 
+                paymentId,
+                userId: sessionUser?.id  // userId 추가
+              }),
             })
           } catch (error) {
             console.error('Payment verification failed after browser close.', error)
@@ -173,21 +205,14 @@ export default function Home() {
           }
         })
 
-        const pageLoadedListener = await Browser.addListener('browserPageLoaded', event => {
-          console.debug('Payment page loaded:', event.url)
-        })
-
         try {
           await Browser.open({
             url: paymentUrl.toString(),
             presentationStyle: 'fullscreen',
             windowName: '_blank',
             toolbarColor: '#ffffff',
-            showReloadButton: false,
-            showArrow: true,
           })
         } finally {
-          await pageLoadedListener.remove()
           await finishedListener.remove()
         }
 
@@ -202,7 +227,7 @@ export default function Home() {
         totalAmount,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
-        redirectUrl: `${window.location.origin}/payment-redirect`,
+        redirectUrl: `${window.location.origin}/payment-redirect?userId=${sessionUser?.id}`,
       })
 
       if (resp && resp.code !== undefined) {
@@ -213,7 +238,10 @@ export default function Home() {
       await fetch('/api/points/charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId }),
+        body: JSON.stringify({ 
+          paymentId,
+          userId: sessionUser?.id
+        }),
       })
 
       fetchBalance()

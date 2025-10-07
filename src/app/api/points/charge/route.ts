@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { PointType } from '@prisma/client'
 
@@ -7,26 +6,23 @@ const PORTONE_API_BASE_URL = process.env.PORTONE_API_BASE_URL ?? 'https://api.po
 const PORTONE_SECRET_API_KEY = process.env.PORTONE_SECRET_API_KEY
 
 export async function POST(req: Request) {
-  const { paymentId } = await req.json()
+  const { paymentId, userId } = await req.json()
 
   if (!paymentId) {
     return NextResponse.json({ error: 'paymentId is required' }, { status: 400 })
   }
 
-  const cookieStore = await cookies()
-  const sessionToken = cookieStore.get('session_token')?.value
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!userId) {
+    return NextResponse.json({ error: 'userId is required' }, { status: 400 })
   }
 
-  const session = await prisma.session.findUnique({
-    where: { sessionToken },
-    include: { user: true },
+  // userId로 사용자 조회 (웹/앱 통일)
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
   })
 
-  if (!session || session.expires <= new Date()) {
-    return NextResponse.json({ error: 'Session expired' }, { status: 401 })
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 401 })
   }
 
   if (!PORTONE_SECRET_API_KEY) {
@@ -57,7 +53,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ status: paymentStatus, amount: totalAmountRaw })
   }
 
-  const user = session.user
+  // user는 이미 위에서 선언됨
   const description = `PORTONE:${paymentId}`
 
   const existingHistory = await prisma.pointHistory.findFirst({

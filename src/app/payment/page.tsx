@@ -23,6 +23,7 @@ function PaymentPageContent() {
       const orderName = searchParams.get('orderName') ?? PORTONE_DEFAULT_ORDER_NAME;
       const totalAmountParam = searchParams.get('totalAmount');
       const totalAmount = totalAmountParam ? Number(totalAmountParam) : PORTONE_DEFAULT_TOPUP_AMOUNT;
+      const userId = searchParams.get('userId'); // InAppBrowser 인증용
 
       if (!paymentId || !storeId || !channelKey) {
         console.error('Required payment parameters missing');
@@ -40,6 +41,10 @@ function PaymentPageContent() {
         const redirectUrl = new URL('/payment-redirect', location.origin);
         if (fromApp === 'true') {
           redirectUrl.searchParams.set('from_app', 'true');
+        }
+        // userId도 전달
+        if (userId) {
+          redirectUrl.searchParams.set('userId', userId);
         }
 
         // PortOne 결제 요청
