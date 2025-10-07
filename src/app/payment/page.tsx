@@ -6,6 +6,11 @@ import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as PortOne from '@portone/browser-sdk/v2';
 
+const PORTONE_STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
+const PORTONE_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
+const PORTONE_DEFAULT_ORDER_NAME = '지갑 충전';
+const PORTONE_DEFAULT_TOPUP_AMOUNT = 1000;
+
 function PaymentPageContent() {
   const searchParams = useSearchParams();
 
@@ -13,13 +18,19 @@ function PaymentPageContent() {
     const initPayment = async () => {
       // URL 파라미터에서 결제 정보 가져오기
       const paymentId = searchParams.get('paymentId');
-      const storeId = searchParams.get('storeId');
-      const channelKey = searchParams.get('channelKey');
-      const orderName = searchParams.get('orderName');
-      const totalAmount = searchParams.get('totalAmount');
+      const storeId = searchParams.get('storeId') ?? PORTONE_STORE_ID;
+      const channelKey = searchParams.get('channelKey') ?? PORTONE_CHANNEL_KEY;
+      const orderName = searchParams.get('orderName') ?? PORTONE_DEFAULT_ORDER_NAME;
+      const totalAmountParam = searchParams.get('totalAmount');
+      const totalAmount = totalAmountParam ? Number(totalAmountParam) : PORTONE_DEFAULT_TOPUP_AMOUNT;
 
       if (!paymentId || !storeId || !channelKey) {
         console.error('Required payment parameters missing');
+        return;
+      }
+
+      if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+        console.error('Invalid PortOne payment amount', totalAmount);
         return;
       }
 
@@ -36,8 +47,8 @@ function PaymentPageContent() {
           storeId: storeId,
           channelKey: channelKey,
           paymentId: paymentId,
-          orderName: orderName || '상품',
-          totalAmount: parseInt(totalAmount || '0'),
+          orderName,
+          totalAmount,
           currency: 'CURRENCY_KRW',
           payMethod: 'CARD',
           redirectUrl: redirectUrl.toString(),

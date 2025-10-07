@@ -22,11 +22,10 @@ interface TicketData {
   id: string
   name: string
   description: string
-  price: string
+  price: number
   maxSupply: number
   currentSupply: number
-  imageUrl?: string
-  isActive: boolean
+  deadline: string
 }
 
 interface BalanceData {
@@ -35,6 +34,7 @@ interface BalanceData {
   ethBalance?: string
   nftBalance?: string
   totalSupply?: string
+  pointBalance?: number
   error?: string
 }
 
@@ -58,6 +58,11 @@ const upcomingEvents = [
   { name: '야구 경기', date: '9월 22일', dday: 'D-8' },
   { name: '뮤지컬 관람', date: '9월 25일', dday: 'D-11' }
 ]
+
+const PORTONE_STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID
+const PORTONE_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
+const PORTONE_ORDER_NAME = '지갑 충전'
+const PORTONE_TOPUP_AMOUNT = 1000
 
 export default function Home() {
   const router = useRouter()
@@ -123,10 +128,24 @@ export default function Home() {
       })
 
     const paymentId = `payment-${generateUUID()}`
-    const storeId = 'store-c9209e03-9213-49bb-99bc-904ae521bb56'
-    const channelKey = 'channel-key-87cd1fa3-c29c-4125-be0a-b4fb02f993bc'
-    const orderName = '지갑 충전'
-    const totalAmount = '1000'
+    const storeId = PORTONE_STORE_ID
+    const channelKey = PORTONE_CHANNEL_KEY
+    const orderName = PORTONE_ORDER_NAME
+    const totalAmount = PORTONE_TOPUP_AMOUNT
+
+    if (!storeId || !channelKey) {
+      console.error('PortOne store/channel configuration missing')
+      alert('결제 연동 설정이 되어 있지 않습니다. 관리자에게 문의해주세요.')
+      setFunding(false)
+      return
+    }
+
+    if (totalAmount <= 0) {
+      console.error('Invalid PortOne top-up amount configured', totalAmount)
+      alert('결제 금액 설정을 확인해주세요.')
+      setFunding(false)
+      return
+    }
 
     try {
       const isCapacitorApp = Capacitor.isNativePlatform()
@@ -137,12 +156,12 @@ export default function Home() {
         paymentUrl.searchParams.set('storeId', storeId)
         paymentUrl.searchParams.set('channelKey', channelKey)
         paymentUrl.searchParams.set('orderName', orderName)
-        paymentUrl.searchParams.set('totalAmount', totalAmount)
+        paymentUrl.searchParams.set('totalAmount', totalAmount.toString())
         paymentUrl.searchParams.set('from_app', 'true')
 
         const finishedListener = await Browser.addListener('browserFinished', async () => {
           try {
-            await fetch('/api/payment/complete', {
+            await fetch('/api/points/charge', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ paymentId }),
@@ -180,7 +199,7 @@ export default function Home() {
         channelKey,
         paymentId,
         orderName,
-        totalAmount: Number(totalAmount),
+        totalAmount,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         redirectUrl: `${window.location.origin}/payment-redirect`,
@@ -191,7 +210,7 @@ export default function Home() {
         return
       }
 
-      await fetch('/api/payment/complete', {
+      await fetch('/api/points/charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentId }),
@@ -240,9 +259,12 @@ export default function Home() {
             </div>
             {balance && (
               <div className="text-right">
-                <p className="text-2xl font-bold">{balance.ethBalance} ETH</p>
+                <p className="text-2xl font-bold">
+                  {(balance.pointBalance ?? 0).toLocaleString()}P
+                </p>
+                <p className="text-sm opacity-80">ETH: {balance.ethBalance}</p>
                 <p className="text-sm opacity-80">NFT: {balance.nftBalance}개</p>
-                {parseFloat(balance.ethBalance) < 0.1 && (
+                {parseFloat(balance.ethBalance ?? '0') < 0.1 && (
                   <button
                     className="mt-2 bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-xl text-sm font-medium"
                     onClick={handleFundWallet}
@@ -309,7 +331,7 @@ export default function Home() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-lg font-bold text-blue-600 mb-2">
-                      {(parseFloat(ticket.price) / 1e18).toFixed(3)} ETH
+                      {ticket.price.toLocaleString()}P
                     </p>
                     <PayButton
                       ticketId={ticket.id}

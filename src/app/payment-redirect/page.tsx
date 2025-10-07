@@ -73,7 +73,7 @@ function PaymentRedirectContent() {
         }
 
         // 서버에서 결제 검증
-        const response = await fetch('/api/payment/complete', {
+        const response = await fetch('/api/points/charge', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paymentId }),
