@@ -32,6 +32,9 @@ CAPACITOR_SERVER_URL은 다음과 같은 방법으로 설정할 수 있습니다
 ```bash
 pnpm db:migrate
 pnpm db:seed
+
+# or
+pnpm exec prisma db push
 ```
 
 ### 4. Run development server
@@ -56,13 +59,13 @@ CAPACITOR_SERVER_URL=http://192.168.0.27:3000
 
 ```bash
 pnpm build
-npx cap sync ios
+pnpm exec cap sync ios
 ```
 
 3. **Xcode 열기**
 
 ```bash
-npx cap open ios
+pnpm exec cap open ios
 ```
 
 ### Android
@@ -71,13 +74,13 @@ npx cap open ios
 
 ```bash
 pnpm build
-npx cap sync android
+pnpm exec cap sync android
 ```
 
 2. **Android Studio 열기**
 
 ```bash
-npx cap open android
+pnpm exec cap open android
 ```
 
 ## 사용 가능한 명령어

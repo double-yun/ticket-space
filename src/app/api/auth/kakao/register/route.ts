@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { generateWallet } from '@/lib/wallet'
 import { createSessionForUser } from '@/lib/users/service'
+import { clearPendingKakaoData } from '@/lib/auth/kakao-pending'
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 새 사용자 생성 - 지갑과 함께
-    const { walletAddress, privateKey } = generateWallet()
+    const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`kakao:${kakaoId}`)
 
     const user = await prisma.user.create({
       data: {
@@ -94,7 +95,8 @@ export async function POST(request: NextRequest) {
         birthDate: birthDate || null,
         gender: gender || null,
         walletAddress,
-        privateKeyHash: privateKey, // 실제 서비스에서는 암호화해서 저장
+        privyUserId,
+        ...(privyWalletId ? { privyWalletId } : {}),
         phoneVerified: true,
       }
     })
@@ -109,6 +111,9 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 30,
       path: '/',
     })
+
+    // Pending 데이터 정리
+    await clearPendingKakaoData()
 
     return NextResponse.json({
       success: true,

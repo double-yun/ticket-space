@@ -1,22 +1,36 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { config as loadEnv } from 'dotenv'
+
+loadEnv()
+
+const serverUrl = process.env.CAPACITOR_SERVER_URL
+const serverConfig = serverUrl
+  ? {
+      url: serverUrl,
+      androidScheme: serverUrl.startsWith('https') ? 'https' : 'http',
+      cleartext: serverUrl.startsWith('http://'),
+    }
+  : undefined
 
 const config: CapacitorConfig = {
   appId: 'com.yun.ticketing.app',
   appName: 'Ticket Space',
   webDir: '.next',
-  server: {
-    androidScheme: 'https',
-    // 개발 중에는 로컬 서버 사용 (Android, iOS 공통)
-    url: process.env.CAPACITOR_SERVER_URL || 'http://localhost:3000',
-    cleartext: true
+  ...(serverConfig ? { server: serverConfig } : {}),
+  ios: {
+    contentInset: 'automatic',
+    limitsNavigationsToAppBoundDomains: false,
+    allowsLinkPreview: false
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 3000,
       launchAutoHide: true,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#4332dbff',
       androidScaleType: 'CENTER_CROP',
-      showSpinner: false
+      showSpinner: true,
+      spinnerStyle: 'large',
+      spinnerColor: '#ffffff'
     },
     KakaoLogin: {
       kakaoAppKey: '9276367f0f032290567277690d083805'

@@ -14,7 +14,7 @@ export async function findOrCreateUserWithKakaoProfile(profile: KakaoProfile): P
     return user
   }
 
-  const { walletAddress, privateKey } = generateWallet()
+  const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`kakao:${kakaoId}`)
 
   user = await prisma.user.create({
     data: {
@@ -23,7 +23,8 @@ export async function findOrCreateUserWithKakaoProfile(profile: KakaoProfile): P
       email: profile.kakao_account?.email,
       image: profile.properties?.profile_image || profile.kakao_account?.profile?.profile_image_url,
       walletAddress,
-      privateKeyHash: privateKey, // 실제로는 암호화해야 함
+      privyUserId,
+      ...(privyWalletId ? { privyWalletId } : {}),
     },
   })
 
