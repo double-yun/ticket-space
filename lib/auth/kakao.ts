@@ -4,6 +4,15 @@ type FetchConfig = {
   redirectUri: string
 }
 
+export type KakaoTokenResponse = {
+  access_token: string
+  token_type: string
+  refresh_token?: string
+  expires_in: number
+  scope?: string
+  refresh_token_expires_in?: number
+}
+
 export type KakaoProfile = {
   id: number | string
   properties?: {
@@ -12,6 +21,7 @@ export type KakaoProfile = {
   }
   kakao_account?: {
     email?: string
+    phone_number?: string
     profile?: {
       nickname?: string
       profile_image_url?: string
@@ -29,13 +39,9 @@ const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token'
 const KAKAO_PROFILE_URL = 'https://kapi.kakao.com/v2/user/me'
 
 export function getKakaoOAuthConfig(): FetchConfig {
-  const clientId = process.env.KAKAO_CLIENT_ID
+  const clientId = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID
   const clientSecret = process.env.KAKAO_CLIENT_SECRET
-  const redirectUri =
-    process.env.KAKAO_REDIRECT_URI ??
-    process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI ??
-    process.env.APP_URL ??
-    process.env.NEXTAUTH_URL
+  const redirectUri = process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI
 
   if (!clientId || !clientSecret) {
     throw new KakaoOAuthError('server_error', 'Kakao OAuth credentials are not configured.')
@@ -52,7 +58,7 @@ export function getKakaoOAuthConfig(): FetchConfig {
   }
 }
 
-export async function exchangeCodeForAccessToken(code: string, config: FetchConfig) {
+export async function exchangeCodeForTokens(code: string, config: FetchConfig): Promise<KakaoTokenResponse> {
   const response = await fetch(KAKAO_TOKEN_URL, {
     method: 'POST',
     headers: {
@@ -72,14 +78,19 @@ export async function exchangeCodeForAccessToken(code: string, config: FetchConf
     throw new KakaoOAuthError('token_error', detail)
   }
 
-  const tokenData = await response.json().catch(() => ({}))
-  const accessToken = tokenData?.access_token as string | undefined
+  const tokenData = (await response.json().catch(() => ({}))) as Partial<KakaoTokenResponse>
+  const accessToken = tokenData?.access_token
 
   if (!accessToken) {
     throw new KakaoOAuthError('token_error', 'Missing access token in response.')
   }
 
-  return accessToken
+  return tokenData as KakaoTokenResponse
+}
+
+export async function exchangeCodeForAccessToken(code: string, config: FetchConfig) {
+  const tokens = await exchangeCodeForTokens(code, config)
+  return tokens.access_token
 }
 
 export async function fetchKakaoProfile(accessToken: string): Promise<KakaoProfile> {

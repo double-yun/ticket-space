@@ -17,13 +17,20 @@ const config: CapacitorConfig = {
   appName: 'Ticket Space',
   webDir: '.next',
   ...(serverConfig ? { server: serverConfig } : {}),
+  ios: {
+    contentInset: 'automatic',
+    limitsNavigationsToAppBoundDomains: false,
+    allowsLinkPreview: false
+  },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1000,
+      launchShowDuration: 3000,
       launchAutoHide: true,
       backgroundColor: '#4332dbff',
       androidScaleType: 'CENTER_CROP',
-      showSpinner: false
+      showSpinner: true,
+      spinnerStyle: 'large',
+      spinnerColor: '#ffffff'
     },
     KakaoLogin: {
       kakaoAppKey: '9276367f0f032290567277690d083805'
