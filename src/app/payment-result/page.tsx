@@ -4,14 +4,20 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { token, isLoading: authLoading } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
   const [message, setMessage] = useState('결제 정보를 확인하는 중...');
 
   useEffect(() => {
+    if (authLoading || status !== 'loading') {
+      return;
+    }
+
     const processPayment = async () => {
       const paymentId = searchParams.get('paymentId');
       const returnUrl = searchParams.get('returnUrl') || '/';
@@ -53,8 +59,19 @@ function PaymentResultContent() {
 
         // 2. ETH 충전
         setMessage('지갑을 충전하는 중...');
+        if (!token) {
+          console.warn('Wallet funding skipped: missing auth token');
+          setStatus('success');
+          setMessage('로그인이 확인되지 않아 지갑 충전을 건너뜁니다.');
+          setTimeout(() => router.push(returnUrl), 2000);
+          return;
+        }
+
         const fundResponse = await fetch('/api/wallet/fund', {
           method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         const fundData = await fundResponse.json();
@@ -77,7 +94,7 @@ function PaymentResultContent() {
     };
 
     processPayment();
-  }, [searchParams, router]);
+  }, [searchParams, router, token, authLoading, status]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

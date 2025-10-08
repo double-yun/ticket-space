@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { privateKeyToAccount } from 'viem/accounts'
 import { prisma } from '@/lib/prisma'
 import {
@@ -14,28 +13,17 @@ import {
   isAlchemySmartWalletEnabled,
 } from '@/lib/blockchain/alchemy-smart-wallet'
 import ticketAbiJson from '@/lib/blockchain/ticket-abi.json'
+import { getAuthenticatedUser } from '@/lib/auth/server'
 
 const ticketAbi = ticketAbiJson as const
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('session_token')?.value
+    const user = await getAuthenticatedUser(request)
 
-    if (!sessionToken) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const session = await prisma.session.findUnique({
-      where: { sessionToken },
-      include: { user: true },
-    })
-
-    if (!session || session.expires < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const user = session.user
 
     if (!user.walletAddress) {
       return NextResponse.json({ error: 'User wallet not found' }, { status: 400 })

@@ -1,45 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { cookies } from 'next/headers'
 import { parseEther } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { getChainId, getPublicClient, getWalletClient } from '@/lib/blockchain'
 import { getAlchemySmartAccountClient, isAlchemySmartWalletEnabled } from '@/lib/blockchain/alchemy-smart-wallet'
+import { getAuthenticatedUser } from '@/lib/auth/server'
 
 const SEPOLIA_CHAIN_ID = 11155111
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('session_token')?.value
+    const user = await getAuthenticatedUser(request)
 
-    console.log('Wallet fund - Session token:', sessionToken ? 'Found' : 'Not found')
-    console.log('All cookies:', Array.from(cookieStore.getAll()).map(c => c.name))
-
-    if (!sessionToken) {
-      console.error('No session token in wallet fund request')
+    if (!user) {
+      console.error('Wallet fund request missing valid authentication token')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    console.log('Looking up session in database...')
-    const session = await prisma.session.findUnique({
-      where: { sessionToken },
-      include: { user: true },
-    })
-
-    if (!session) {
-      console.error('Session not found in database')
-      return NextResponse.json({ error: 'Session not found' }, { status: 401 })
-    }
-
-    if (session.expires < new Date()) {
-      console.error('Session expired')
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    console.log('Session valid, user:', session.user.id)
-
-    const user = session.user
 
     if (!user.walletAddress) {
       return NextResponse.json({ error: 'User wallet not found' }, { status: 400 })

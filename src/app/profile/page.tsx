@@ -1,9 +1,22 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { user, logout, isLoading: authLoading } = useAuth()
+
+  useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!user) {
+      router.push('/login')
+    }
+  }, [authLoading, user, router])
 
   const handleLogout = async () => {
     try {
@@ -11,13 +24,14 @@ export default function ProfilePage() {
         method: 'POST',
       })
 
-      if (response.ok) {
-        router.push('/login')
-      } else {
+      if (!response.ok) {
         console.error('Logout failed')
       }
     } catch (error) {
       console.error('Logout error:', error)
+    } finally {
+      logout()
+      router.push('/login')
     }
   }
 
@@ -27,6 +41,14 @@ export default function ProfilePage() {
     { icon: '❓', label: '고객센터', action: () => console.log('고객센터') },
     { icon: '🚪', label: '로그아웃', action: handleLogout, danger: true },
   ]
+
+  if (authLoading || !user) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -43,8 +65,8 @@ export default function ProfilePage() {
               <span className="text-white text-4xl">👤</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">사용자</h2>
-              <p className="text-gray-600">user@example.com</p>
+              <h2 className="text-xl font-bold text-gray-900">{user?.name ?? '사용자'}</h2>
+              <p className="text-gray-600">{user?.email ?? 'user@example.com'}</p>
             </div>
           </div>
 

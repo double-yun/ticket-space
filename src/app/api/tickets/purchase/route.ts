@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { purchaseTicketWithPoints, PurchaseTicketError } from '@/lib/tickets/purchaseWithPoints'
+import { getAuthenticatedUser } from '@/lib/auth/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,24 +11,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '이벤트 ID가 필요합니다.' }, { status: 400 })
     }
 
-    // 세션 확인
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('session_token')?.value
+    const user = await getAuthenticatedUser(request)
 
-    if (!sessionToken) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const session = await prisma.session.findUnique({
-      where: { sessionToken },
-      include: { user: true },
-    })
-
-    if (!session || session.expires < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
-    const user = session.user
 
     try {
       const result = await purchaseTicketWithPoints({

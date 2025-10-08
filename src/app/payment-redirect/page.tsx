@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Capacitor } from '@capacitor/core';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PaymentInfo {
   status?: string;
@@ -15,6 +16,7 @@ interface PaymentInfo {
 function PaymentRedirectContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { token, isLoading: authLoading } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'failed' | 'error'>('loading');
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -46,6 +48,10 @@ function PaymentRedirectContent() {
   }, []);
 
   useEffect(() => {
+    if (authLoading || status !== 'loading') {
+      return;
+    }
+
     const verifyPayment = async () => {
       try {
         // URL 파라미터에서 결제 ID 가져오기
@@ -91,11 +97,18 @@ function PaymentRedirectContent() {
           // ETH 충전 처리
           try {
             console.log('Payment PAID, funding wallet...');
-            const fundResponse = await fetch('/api/wallet/fund', {
-              method: 'POST',
-            });
-            const fundData = await fundResponse.json();
-            console.log('Wallet funding result:', fundData);
+            if (!token) {
+              console.warn('Skipping wallet funding due to missing auth token');
+            } else {
+              const fundResponse = await fetch('/api/wallet/fund', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              const fundData = await fundResponse.json();
+              console.log('Wallet funding result:', fundData);
+            }
           } catch (fundError) {
             console.error('Wallet funding failed:', fundError);
           }
@@ -113,7 +126,7 @@ function PaymentRedirectContent() {
     };
 
     verifyPayment();
-  }, [searchParams, isCapacitorApp]);
+  }, [searchParams, isCapacitorApp, token, authLoading, status]);
 
   // 결제 성공 시 카운트다운 & 자동 닫기
   useEffect(() => {

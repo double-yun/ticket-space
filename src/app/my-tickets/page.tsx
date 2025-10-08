@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Purchase {
   id: string
@@ -22,6 +23,7 @@ interface Purchase {
 
 export default function MyTicketsPage() {
   const router = useRouter()
+  const { user, token, isLoading: authLoading } = useAuth()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [qrPopupOpen, setQrPopupOpen] = useState(false)
@@ -30,31 +32,43 @@ export default function MyTicketsPage() {
   const [timeLeft, setTimeLeft] = useState(15)
 
   useEffect(() => {
-    fetch('/api/auth/session')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          fetchPurchases()
-        } else {
-          router.push('/login')
-        }
-      })
-  }, [router])
+    if (authLoading) {
+      return
+    }
 
-  const fetchPurchases = async () => {
+    if (!user || !token) {
+      router.push('/login')
+      return
+    }
+
+    setLoading(true)
+    fetchPurchases()
+  }, [authLoading, user, token, router, fetchPurchases])
+
+  const fetchPurchases = useCallback(async () => {
+    if (!token) {
+      return
+    }
+
     try {
-      const response = await fetch('/api/purchases')
+      const response = await fetch('/api/purchases', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       const data = await response.json()
 
       if (data.success) {
         setPurchases(data.purchases)
+      } else if (data.error === 'Unauthorized') {
+        router.push('/login')
       }
     } catch (error) {
       console.error('Error fetching purchases:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, router])
 
   const generateQRCode = async (purchase: Purchase) => {
     try {
@@ -97,7 +111,15 @@ export default function MyTicketsPage() {
   const startPollingTicketStatus = (purchaseId: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch('/api/purchases')
+        if (!token) {
+          return
+        }
+
+        const response = await fetch('/api/purchases', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         const data = await response.json()
 
         if (data.success) {

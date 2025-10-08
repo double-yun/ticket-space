@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 
 type ApplicationStatus = 'APPLIED' | 'WON' | 'PAID' | 'EXPIRED' | 'CANCELLED'
 type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
@@ -96,29 +97,49 @@ function getPaymentBadgeColors(status: PaymentStatus) {
 
 export default function LotteryApplicationsPage() {
   const router = useRouter()
+  const { user, token, isLoading: authLoading } = useAuth()
   const [applications, setApplications] = useState<LotteryApplication[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        const response = await fetch('/api/lottery/applications')
-        if (!response.ok) {
-          throw new Error('failed')
-        }
-        const data = await response.json()
-        setApplications(data.applications ?? [])
-      } catch (err) {
-        console.error('Failed to fetch lottery applications', err)
-        setError('신청 내역을 불러오지 못했습니다.')
-      } finally {
-        setLoading(false)
-      }
+  const fetchApplications = useCallback(async () => {
+    if (!token) {
+      return
     }
 
+    try {
+      const response = await fetch('/api/lottery/applications', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (!response.ok) {
+        throw new Error('failed')
+      }
+      const data = await response.json()
+      setApplications(data.applications ?? [])
+      setError(null)
+    } catch (err) {
+      console.error('Failed to fetch lottery applications', err)
+      setError('신청 내역을 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
+
+  useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!user || !token) {
+      router.push('/login')
+      return
+    }
+
+    setLoading(true)
     fetchApplications()
-  }, [])
+  }, [authLoading, user, token, router, fetchApplications])
 
   const { pendingApplications, completedApplications } = useMemo(() => {
     const pending = []

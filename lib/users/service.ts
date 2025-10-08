@@ -31,17 +31,3 @@ export async function findOrCreateUserWithKakaoProfile(profile: KakaoProfile): P
   console.log(`🎉 새 사용자 생성: ${user.name} (${user.walletAddress})`)
   return user
 }
-
-export async function createSessionForUser(userId: string, prefix: string) {
-  const sessionToken = `${prefix}_${userId}_${Date.now()}`
-
-  await prisma.session.create({
-    data: {
-      sessionToken,
-      userId,
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30일
-    },
-  })
-
-  return sessionToken
-}

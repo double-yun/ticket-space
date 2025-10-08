@@ -1,27 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { getAuthenticatedUser } from '@/lib/auth/server'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const sessionToken = cookieStore.get('session_token')?.value
+    const user = await getAuthenticatedUser(request)
 
-    if (!sessionToken) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const session = await prisma.session.findUnique({
-      where: { sessionToken },
-      include: { user: true },
-    })
-
-    if (!session || session.expires < new Date()) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 })
-    }
-
     const applications = await prisma.lotteryApplication.findMany({
-      where: { userId: session.user.id },
+      where: { userId: user.id },
       include: {
         round: {
           include: {

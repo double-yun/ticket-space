@@ -11,7 +11,7 @@ import { Browser } from '@capacitor/browser'
 import { App } from '@capacitor/app'
 import { useAuth } from '@/contexts/AuthContext'
 import 'swiper/css'
-interface SessionUser {
+interface AuthUser {
   id: string
   name?: string | null
   email?: string | null
@@ -74,7 +74,7 @@ const PORTONE_TOPUP_AMOUNT = 1000
 export default function Home() {
   const router = useRouter()
   const { user, token, logout, isLoading: authLoading } = useAuth()
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [directTickets, setDirectTickets] = useState<TicketData[]>([])
   const [lotteryTickets, setLotteryTickets] = useState<LotteryTicketData[]>([])
@@ -89,15 +89,15 @@ export default function Home() {
       router.push('/login')
       return
     }
-    setSessionUser(user as SessionUser)
+    setAuthUser(user as AuthUser)
   }, [user, router, authLoading])
 
   useEffect(() => {
-    if (sessionUser) {
+    if (authUser) {
       fetchTickets()
       fetchBalance()
     }
-  }, [sessionUser])
+  }, [authUser])
 
   // Custom URL Scheme 리스너 (결제 완료 후 InAppBrowser 닫기)
   useEffect(() => {
@@ -136,10 +136,10 @@ export default function Home() {
   }
 
   const fetchBalance = async () => {
-    if (!sessionUser?.walletAddress) return
+    if (!authUser?.walletAddress) return
 
     try {
-      const response = await fetch(`/api/balance?address=${sessionUser.walletAddress}`)
+      const response = await fetch(`/api/balance?address=${authUser.walletAddress}`)
       const data = await response.json()
       setBalance(data)
     } catch (error) {
@@ -192,8 +192,8 @@ export default function Home() {
         paymentUrl.searchParams.set('from_app', 'true')
         
         // userId 추가 (InAppBrowser 인증용)
-        if (sessionUser?.id) {
-          paymentUrl.searchParams.set('userId', sessionUser.id)
+        if (authUser?.id) {
+          paymentUrl.searchParams.set('userId', authUser.id)
         }
 
         const finishedListener = await Browser.addListener('browserFinished', async () => {
@@ -203,7 +203,7 @@ export default function Home() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                 paymentId,
-                userId: sessionUser?.id  // userId 추가
+                userId: authUser?.id  // userId 추가
               }),
             })
           } catch (error) {
@@ -235,7 +235,7 @@ export default function Home() {
         totalAmount,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
-        redirectUrl: `${window.location.origin}/payment-redirect?userId=${sessionUser?.id}`,
+        redirectUrl: `${window.location.origin}/payment-redirect?userId=${authUser?.id}`,
       })
 
       if (resp && resp.code !== undefined) {
@@ -248,7 +248,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           paymentId,
-          userId: sessionUser?.id
+          userId: authUser?.id
         }),
       })
 
@@ -261,7 +261,7 @@ export default function Home() {
     }
   }
 
-  if (!sessionUser) return null
+  if (!authUser) return null
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -289,7 +289,7 @@ export default function Home() {
               <div>
                 <h3 className="text-lg font-semibold">내 지갑</h3>
                 <p className="text-sm opacity-80 font-mono">
-                  {sessionUser.walletAddress?.slice(0, 6)}...{sessionUser.walletAddress?.slice(-4)}
+                  {authUser.walletAddress?.slice(0, 6)}...{authUser.walletAddress?.slice(-4)}
                 </p>
               </div>
             </div>

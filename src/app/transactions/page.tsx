@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Container,
   Typography,
@@ -47,36 +48,48 @@ interface Purchase {
 
 export default function TransactionsPage() {
   const router = useRouter()
+  const { user, token, isLoading: authLoading } = useAuth()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // 세션 확인
-    fetch('/api/auth/session')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          fetchPurchases()
-        } else {
-          router.push('/login')
-        }
-      })
-  }, [router])
+  const fetchPurchases = useCallback(async () => {
+    if (!token) {
+      return
+    }
 
-  const fetchPurchases = async () => {
     try {
-      const response = await fetch('/api/purchases')
+      const response = await fetch('/api/purchases', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       const data = await response.json()
 
       if (data.success) {
         setPurchases(data.purchases)
+      } else if (data.error === 'Unauthorized') {
+        router.push('/login')
       }
     } catch (error) {
       console.error('Error fetching purchases:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, router])
+
+  useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!user || !token) {
+      router.push('/login')
+      return
+    }
+
+    setLoading(true)
+    fetchPurchases()
+  }, [authLoading, user, token, router, fetchPurchases])
 
   const openTransaction = (hash: string) => {
     // 실제로는 블록 익스플로러 링크를 열어야 하지만, Anvil이므로 복사

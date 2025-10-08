@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { useAuth } from '@/contexts/AuthContext'
 
 // QR 스캐너를 동적으로 로드 (SSR 방지)
 const QrScanner = dynamic(() => import('@/components/QrScanner'), {
@@ -26,22 +27,23 @@ interface VerificationResult {
 
 export default function ScanPage() {
   const router = useRouter()
+  const { user, isLoading: authLoading } = useAuth()
   const [isScanning, setIsScanning] = useState(false)
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 관리자 권한 확인 (간단한 버전)
-    fetch('/api/auth/session')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.user) {
-          router.push('/login')
-        } else {
-          setLoading(false)
-        }
-      })
-  }, [router])
+    if (authLoading) {
+      return
+    }
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    setLoading(false)
+  }, [authLoading, user, router])
 
   const handleScan = async (data: string) => {
     if (!data || !isScanning) return
