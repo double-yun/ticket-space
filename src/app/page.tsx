@@ -294,7 +294,7 @@ export default function Home() {
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <div className="pb-20 px-4 space-y-6">
+        <div className="pb-20 px-4 pt-6 space-y-6">
         {/* 지갑 정보 */}
         <div className="bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-700 rounded-3xl p-6 shadow-lg">
           <div className="flex items-center justify-between text-white">

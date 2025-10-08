@@ -258,9 +258,9 @@ function LoginPageContent() {
 
   return (
     <div className="bg-gradient-to-b from-blue-50 to-white min-h-screen">
-      <div className="min-h-screen flex flex-col justify-center items-center p-4">
+      <div className="min-h-screen flex flex-col items-center p-4 pt-16 pb-8">
         {/* 로고 영역 */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 flex-shrink-0">
           <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
             <span className="text-4xl">🎫</span>
           </div>

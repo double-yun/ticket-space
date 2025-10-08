@@ -196,7 +196,7 @@ export default function MyTicketsPage() {
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <div className="pb-20 px-4">
+        <div className="pb-20 px-4 pt-6">
         {purchases.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
             <span className="text-6xl opacity-30 block mb-4">🎫</span>

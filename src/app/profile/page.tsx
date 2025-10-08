@@ -67,7 +67,7 @@ export default function ProfilePage() {
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <div className="pb-20 px-4 space-y-6">
+        <div className="pb-20 px-4 pt-6 space-y-6">
         {/* 프로필 카드 */}
         <div className="bg-white rounded-3xl p-6 shadow-sm">
           <div className="flex items-center space-x-4 mb-6">

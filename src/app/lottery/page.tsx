@@ -176,7 +176,7 @@ export default function LotteryApplicationsPage() {
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <div className="pb-20 px-4 space-y-6">
+        <div className="pb-20 px-4 pt-6 space-y-6">
         <div className="bg-white rounded-3xl p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">자동 결제 안내</h2>
           <p className="text-sm text-gray-600 leading-6">
