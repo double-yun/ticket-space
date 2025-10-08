@@ -8,6 +8,7 @@ import { RecaptchaVerifier, type ConfirmationResult } from 'firebase/auth'
 import type { FirebaseError } from 'firebase/app'
 import type { KakaoRegistrationPayload } from '@/types/kakao'
 import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
+import { useAuth } from '@/contexts/AuthContext'
 
 const normalizePhoneNumber = (phoneNumber: string) => {
   if (!phoneNumber) return ''
@@ -25,6 +26,7 @@ const toE164 = (phoneNumber: string) => {
 function KakaoPhoneVerificationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { setAuthToken } = useAuth()
   const [pendingData, setPendingData] = useState<PendingKakaoData | null>(null)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [userInfo, setUserInfo] = useState({
@@ -190,6 +192,13 @@ function KakaoPhoneVerificationContent() {
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
         throw new Error(data.error || '회원가입에 실패했습니다.')
+      }
+
+      const data = await response.json()
+
+      // JWT 토큰 저장
+      if (data.token) {
+        setAuthToken(data.token)
       }
 
       router.replace('/')

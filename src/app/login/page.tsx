@@ -10,9 +10,11 @@ import PhoneVerification from '@/components/PhoneVerification'
 import AccountCreationForm from '@/components/AccountCreationForm'
 import KakaoLogin from '@/components/KakaoLogin'
 import type { KakaoUserInfo } from '@/types/kakao'
+import { useAuth } from '@/contexts/AuthContext'
 
 function LoginPageContent() {
   const router = useRouter()
+  const { user, isLoading: authLoading, setAuthToken } = useAuth()
   const [showPhoneVerification, setShowPhoneVerification] = useState(false)
   const [kakaoUserInfo, setKakaoUserInfo] = useState<KakaoUserInfo | null>(null)
   const [showAccountCreation, setShowAccountCreation] = useState(false)
@@ -27,73 +29,35 @@ function LoginPageContent() {
   const searchParams = useSearchParams()
 
   const callbackUrl = searchParams.get('callbackUrl') ?? '/'
+  const tokenFromUrl = searchParams.get('token')
+  const redirectUrl = searchParams.get('redirect')
+
+  // Handle token from OAuth callback
+  useEffect(() => {
+    if (tokenFromUrl) {
+      setAuthToken(tokenFromUrl)
+      // Clean URL and redirect
+      const targetUrl = redirectUrl || callbackUrl
+      router.replace(targetUrl)
+    }
+  }, [tokenFromUrl, redirectUrl, callbackUrl, setAuthToken, router])
+
+  // Check if user is already logged in via JWT
+  useEffect(() => {
+    if (authLoading) return
+
+    if (user && !tokenFromUrl) {
+      // User is already authenticated, redirect to callback URL
+      router.replace(callbackUrl)
+    }
+  }, [user, authLoading, router, callbackUrl, tokenFromUrl])
 
   useEffect(() => {
-    let cancelled = false
-    let retryTimer: ReturnType<typeof setTimeout> | null = null
-
-    const loadSession = async () => {
-      try {
-        const response = await fetch('/api/auth/session', {
-          cache: 'no-store',
-          credentials: 'include',
-        })
-
-        if (!response.ok) {
-          return
-        }
-
-        const data = await response.json()
-        if (cancelled) {
-          return
-        }
-
-        if (!data?.user) {
-          retryTimer = setTimeout(loadSession, 1000)
-          return
-        }
-
-        const sessionUser = data.user as {
-          id: string
-          name?: string | null
-          email?: string | null
-          kakaoId?: string | null
-          phoneNumber?: string | null
-        }
-
-        if (!sessionUser.phoneNumber) {
-          setKakaoUserInfo({
-            kakaoId: sessionUser.kakaoId ?? sessionUser.id,
-            nickname: sessionUser.name ?? '',
-            email: sessionUser.email ?? '',
-            phoneNumber: null,
-          })
-          setShowAccountCreation(false)
-          setShowPhoneVerification(true)
-          return
-        }
-
-        router.replace(callbackUrl)
-      } catch (error) {
-        console.error('세션 조회 실패:', error)
-      }
-    }
-
-    loadSession()
-      .catch((error) => console.error('세션 로드 에러:', error))
-
     // 네이티브 환경에서 앱 URL 리스너 설정 (콜백 처리용)
     if (Capacitor.isNativePlatform()) {
       setupAppUrlListener()
     }
-
-    return () => {
-      cancelled = true
-      if (retryTimer) {
-        clearTimeout(retryTimer)
-      }
-    }
-  }, [router, callbackUrl])
+  }, [])
 
 
   const setupAppUrlListener = () => {
@@ -224,6 +188,10 @@ function LoginPageContent() {
         })
 
         if (response.ok) {
+          const data = await response.json()
+          if (data.token) {
+            setAuthToken(data.token)
+          }
           router.push('/')
         } else {
           console.error('로그인 처리 실패')
@@ -258,6 +226,11 @@ function LoginPageContent() {
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
         throw new Error(data.error || '로그인에 실패했습니다.')
+      }
+
+      const data = await response.json()
+      if (data.token) {
+        setAuthToken(data.token)
       }
 
       router.push('/')

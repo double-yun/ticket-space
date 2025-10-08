@@ -9,6 +9,7 @@ import * as PortOne from '@portone/browser-sdk/v2'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import { App } from '@capacitor/app'
+import { useAuth } from '@/contexts/AuthContext'
 import 'swiper/css'
 interface SessionUser {
   id: string
@@ -72,6 +73,7 @@ const PORTONE_TOPUP_AMOUNT = 1000
 
 export default function Home() {
   const router = useRouter()
+  const { user, token, logout, isLoading: authLoading } = useAuth()
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [directTickets, setDirectTickets] = useState<TicketData[]>([])
@@ -80,16 +82,15 @@ export default function Home() {
   const [funding, setFunding] = useState(false)
 
   useEffect(() => {
-    fetch('/api/auth/session')
-      .then(res => res.json())
-      .then((data: { user: SessionUser | null }) => {
-        if (data?.user) {
-          setSessionUser(data.user)
-        } else {
-          router.push('/login')
-        }
-      })
-  }, [router])
+    // Wait for auth to finish loading
+    if (authLoading) return
+
+    if (!user) {
+      router.push('/login')
+      return
+    }
+    setSessionUser(user as SessionUser)
+  }, [user, router, authLoading])
 
   useEffect(() => {
     if (sessionUser) {
@@ -268,8 +269,8 @@ export default function Home() {
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center">
         <h1 className="text-xl font-bold">티켓팅</h1>
         <button
-          onClick={async () => {
-            await fetch('/api/auth/logout', { method: 'POST' })
+          onClick={() => {
+            logout()
             router.push('/login')
           }}
         >

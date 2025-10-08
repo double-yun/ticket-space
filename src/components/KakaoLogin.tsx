@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@mui/material'
 import { Capacitor } from '@capacitor/core'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 
 // Capacitor 카카오 로그인 플러그인 직접 import
 import { KakaoLoginPlugin as KakaoPlugin } from 'capacitor-kakao-login-plugin'
@@ -28,6 +29,7 @@ const KakaoLoginNative = KakaoPlugin as KakaoLoginInterface
 export default function KakaoLogin() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { setAuthToken } = useAuth()
 
   // 휴대폰 번호 정규화 함수 ("+82 010-1234-5678" -> "01012345678")
   const normalizePhoneNumber = useCallback((phoneNumber: string) => {
@@ -80,6 +82,13 @@ export default function KakaoLogin() {
           throw new Error('로그인 처리에 실패했습니다.')
         }
 
+        const loginData = await loginResponse.json()
+
+        // JWT 토큰 저장
+        if (loginData.token) {
+          setAuthToken(loginData.token)
+        }
+
         // 로그인 성공 - 홈으로 이동
         router.push('/')
       } else {
@@ -113,7 +122,7 @@ export default function KakaoLogin() {
         alert('카카오 로그인 정보를 처리하지 못했습니다. 다시 시도해주세요.')
       }
     }
-  }, [normalizePhoneNumber, router])
+  }, [normalizePhoneNumber, router, setAuthToken])
 
 
   const handleKakaoLogin = async () => {

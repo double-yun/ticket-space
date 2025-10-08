@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { KakaoUserInfo } from '@/types/kakao'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface AccountCreationFormProps {
   kakaoUserInfo: KakaoUserInfo
@@ -10,6 +11,7 @@ interface AccountCreationFormProps {
 }
 
 export default function AccountCreationForm({ kakaoUserInfo, onAccountCreated, onCancel }: AccountCreationFormProps) {
+  const { setAuthToken } = useAuth()
   const [nickname, setNickname] = useState(kakaoUserInfo?.nickname || '')
   const [email, setEmail] = useState(kakaoUserInfo?.email || '')
   const [loading, setLoading] = useState(false)
@@ -32,7 +34,7 @@ export default function AccountCreationForm({ kakaoUserInfo, onAccountCreated, o
     setError('')
 
     try {
-      const response = await fetch('/api/auth/kakao/create-account', {
+      const response = await fetch('/api/auth/kakao/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,12 +42,20 @@ export default function AccountCreationForm({ kakaoUserInfo, onAccountCreated, o
         body: JSON.stringify({
           kakaoId: kakaoUserInfo.kakaoId,
           phoneNumber: kakaoUserInfo.phoneNumber,
-          nickname: nickname.trim(),
+          name: nickname.trim(),
           email: email.trim(),
+          phoneVerified: true,
         })
       })
 
       if (response.ok) {
+        const data = await response.json()
+
+        // JWT 토큰 저장
+        if (data.token) {
+          setAuthToken(data.token)
+        }
+
         onAccountCreated()
       } else {
         const data = await response.json()
