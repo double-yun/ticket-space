@@ -24,6 +24,7 @@ contract TicketSBT is ERC721, Ownable, IERC5192 {
     string private _base;
 
     mapping(uint256 => bool) private _locked; // always true after mint
+    mapping(uint256 => uint256) public tokenIdToEventId;
 
     constructor(string memory name_, string memory symbol_, string memory baseURI_) ERC721(name_, symbol_) Ownable(msg.sender) {
         _base = baseURI_;
@@ -51,10 +52,11 @@ contract TicketSBT is ERC721, Ownable, IERC5192 {
     }
 
     // ----- Mint / Burn -----
-    function mint(address to) external onlyOwner returns (uint256 tokenId) {
+    function mint(address to, uint256 eventId) external onlyOwner returns (uint256 tokenId) {
         tokenId = ++_id;
-        _safeMint(to, tokenId);       // ERC721Receiver 체크 포함
+        _safeMint(to, tokenId);
         _locked[tokenId] = true;
+        tokenIdToEventId[tokenId] = eventId;
         emit Locked(tokenId);
     }
 
