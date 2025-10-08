@@ -142,63 +142,41 @@ function LoginPageContent() {
 
 
   const handlePhoneVerificationSuccess = async (phoneNumber: string) => {
-    if (kakaoUserInfo) {
-      // 카카오 로그인 플로우: 인증된 전화번호로 기존 계정 확인
-      try {
-        const userCheckResponse = await fetch('/api/auth/kakao/check', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            kakaoId: kakaoUserInfo.kakaoId,
-            phoneNumber
-          })
+    // 카카오 로그인 플로우에서만 호출됨: 인증된 전화번호로 기존 계정 확인
+    if (!kakaoUserInfo) {
+      console.error('카카오 정보 없이 전화번호 인증이 호출되었습니다.')
+      return
+    }
+
+    try {
+      const userCheckResponse = await fetch('/api/auth/kakao/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          kakaoId: kakaoUserInfo.kakaoId,
+          phoneNumber
         })
+      })
 
-        if (userCheckResponse.ok) {
-          const userCheckData = await userCheckResponse.json()
+      if (userCheckResponse.ok) {
+        const userCheckData = await userCheckResponse.json()
 
-          if (userCheckData.userExists) {
-            // 기존 사용자 자동 로그인
-            router.push('/')
-            return
-          }
-        }
-
-        // 새 사용자인 경우 계정 생성 단계로
-        setKakaoUserInfo(prev => (prev ? { ...prev, phoneNumber } : prev))
-        setShowPhoneVerification(false)
-        setShowAccountCreation(true)
-      } catch (error) {
-        console.error('사용자 확인 중 오류:', error)
-        alert('사용자 확인 중 오류가 발생했습니다.')
-      }
-    } else {
-      // 일반 휴대폰 로그인 플로우
-      try {
-        const response = await fetch('/api/auth/phone/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phoneNumber
-          })
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data.token) {
-            setAuthToken(data.token)
-          }
+        if (userCheckData.userExists) {
+          // 기존 사용자 자동 로그인
           router.push('/')
-        } else {
-          console.error('로그인 처리 실패')
+          return
         }
-      } catch (error) {
-        console.error('로그인 에러:', error)
       }
+
+      // 새 사용자인 경우 계정 생성 단계로
+      setKakaoUserInfo(prev => (prev ? { ...prev, phoneNumber } : prev))
+      setShowPhoneVerification(false)
+      setShowAccountCreation(true)
+    } catch (error) {
+      console.error('사용자 확인 중 오류:', error)
+      alert('사용자 확인 중 오류가 발생했습니다.')
     }
   }
 

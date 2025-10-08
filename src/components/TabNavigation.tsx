@@ -19,13 +19,13 @@ export default function TabNavigation() {
           <span className="text-xs mt-1">홈</span>
         </button>
         <button
-          onClick={() => router.push('/search')}
+          onClick={() => router.push('/lottery')}
           className={`flex-1 flex flex-col items-center py-3 ${
-            pathname === '/search' ? 'text-blue-600' : 'text-gray-500'
+            pathname === '/lottery' ? 'text-blue-600' : 'text-gray-500'
           }`}
         >
-          <span className="text-lg">🔍</span>
-          <span className="text-xs mt-1">검색</span>
+          <span className="text-lg">🍀</span>
+          <span className="text-xs mt-1">추첨 내역</span>
         </button>
         <button
           onClick={() => router.push('/my-tickets')}

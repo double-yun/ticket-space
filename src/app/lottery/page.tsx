@@ -216,7 +216,7 @@ export default function LotteryApplicationsPage() {
             <span className="text-lg">🏠</span>
             <span className="text-xs mt-1">홈</span>
           </button>
-          <button onClick={() => router.push('/search')} className="flex-1 flex flex-col items-center py-3 text-blue-600">
+          <button onClick={() => router.push('/lottery')} className="flex-1 flex flex-col items-center py-3 text-blue-600">
             <span className="text-lg">🍀</span>
             <span className="text-xs mt-1">추첨 내역</span>
           </button>
