@@ -38,7 +38,7 @@ function PaymentPageContent() {
       try {
         // from_app 파라미터를 리다이렉트 URL에 전달
         const fromApp = searchParams.get('from_app');
-        const redirectUrl = new URL('/payment-redirect', location.origin);
+        const redirectUrl = new URL('/points/charge/callback', location.origin);
         if (fromApp === 'true') {
           redirectUrl.searchParams.set('from_app', 'true');
         }
@@ -62,7 +62,7 @@ function PaymentPageContent() {
         // 결제 실패 시 처리
         if (resp && resp.code !== undefined) {
           // 에러 정보를 포함하여 리다이렉트
-          const errorUrl = new URL('/payment-redirect', location.origin);
+          const errorUrl = new URL('/points/charge/callback', location.origin);
           errorUrl.searchParams.set('code', resp.code ?? 'UNKNOWN');
           errorUrl.searchParams.set('message', resp.message || '결제가 취소되었습니다.');
           window.location.href = errorUrl.toString();
@@ -70,7 +70,7 @@ function PaymentPageContent() {
       } catch (error) {
         console.error('Payment initialization failed:', error);
         // 에러 발생 시 리다이렉트
-        const errorUrl = new URL('/payment-redirect', location.origin);
+        const errorUrl = new URL('/points/charge/callback', location.origin);
         errorUrl.searchParams.set('code', 'ERROR');
         errorUrl.searchParams.set('message', '결제 초기화에 실패했습니다.');
         window.location.href = errorUrl.toString();

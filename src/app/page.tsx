@@ -192,7 +192,7 @@ export default function Home() {
       const isCapacitorApp = Capacitor.isNativePlatform()
 
       if (isCapacitorApp) {
-        const paymentUrl = new URL('/payment', window.location.origin)
+        const paymentUrl = new URL('/points/charge/start', window.location.origin)
         paymentUrl.searchParams.set('paymentId', paymentId)
         paymentUrl.searchParams.set('storeId', storeId)
         paymentUrl.searchParams.set('channelKey', channelKey)
@@ -244,7 +244,7 @@ export default function Home() {
         totalAmount,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
-        redirectUrl: `${window.location.origin}/payment-redirect?userId=${authUser?.id}`,
+        redirectUrl: `${window.location.origin}/points/charge/callback?userId=${authUser?.id}`,
       })
 
       if (resp && resp.code !== undefined) {
