@@ -3,12 +3,12 @@
 import { useState } from 'react'
 
 interface PayButtonProps {
-  ticketId: string
+  eventId: string
   disabled?: boolean
   onSuccess?: () => void
 }
 
-export default function PayButton({ ticketId, disabled, onSuccess }: PayButtonProps) {
+export default function PayButton({ eventId, disabled, onSuccess }: PayButtonProps) {
   const [processing, setProcessing] = useState(false)
 
   const handleClick = async () => {
@@ -20,7 +20,7 @@ export default function PayButton({ ticketId, disabled, onSuccess }: PayButtonPr
       const response = await fetch('/api/tickets/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticketId }),
+        body: JSON.stringify({ eventId }),
       })
 
       const data = await response.json().catch(() => ({}))
