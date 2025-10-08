@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import TabNavigation from '@/components/TabNavigation'
+import TopBar from '@/components/TopBar'
+import usePullToRefresh from '@/hooks/usePullToRefresh'
 
 interface Purchase {
   id: string
@@ -30,6 +33,10 @@ export default function MyTicketsPage() {
   const [selectedTicket, setSelectedTicket] = useState<Purchase | null>(null)
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
   const [timeLeft, setTimeLeft] = useState(15)
+
+  const { containerRef, isRefreshing } = usePullToRefresh(async () => {
+    await fetchPurchases()
+  })
 
   const fetchPurchases = useCallback(async () => {
     if (!token) {
@@ -180,13 +187,16 @@ export default function MyTicketsPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* 상단바 */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-xl font-bold text-center">내 티켓</h1>
-      </div>
+    <div className="bg-gray-50 min-h-screen overflow-hidden">
+      <TopBar title="내 티켓" />
 
-      <div className="pb-20 px-4 pt-6">
+      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+        {isRefreshing && (
+          <div className="text-center py-2">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+        <div className="pb-20 px-4">
         {purchases.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
             <span className="text-6xl opacity-30 block mb-4">🎫</span>
@@ -270,90 +280,71 @@ export default function MyTicketsPage() {
             </div>
           </div>
         )}
-      </div>
 
-      {/* QR 코드 팝업 */}
-      {qrPopupOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-2xl">
-            {selectedTicket && (
-              <div className="p-8 text-center">
-                {/* 헤더 */}
-                <div className="mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl text-white">🎫</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">티켓 QR 코드</h2>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedTicket.ticket.name}</h3>
-                  <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
-                </div>
-
-                {/* QR 코드 */}
-                <div className="bg-gray-50 p-6 rounded-2xl mb-4">
-                  {qrCodeDataURL ? (
-                    <img
-                      src={qrCodeDataURL}
-                      alt="티켓 QR 코드"
-                      className="w-48 h-48 mx-auto rounded-xl shadow-sm"
-                    />
-                  ) : (
-                    <div className="w-48 h-48 flex items-center justify-center mx-auto">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        {/* QR 코드 팝업 */}
+        {qrPopupOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-2xl">
+              {selectedTicket && (
+                <div className="p-8 text-center">
+                  {/* 헤더 */}
+                  <div className="mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl text-white">🎫</span>
                     </div>
-                  )}
-                </div>
-
-                {/* 타이머 및 프로그레스 바 */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <span className="text-sm text-gray-600">다음 갱신까지</span>
-                    <span className="text-lg font-bold text-blue-600">{timeLeft}초</span>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">티켓 QR 코드</h2>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedTicket.ticket.name}</h3>
+                    <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 transition-all duration-1000 ease-linear"
-                      style={{ width: `${(timeLeft / 15) * 100}%` }}
-                    ></div>
+
+                  {/* QR 코드 */}
+                  <div className="bg-gray-50 p-6 rounded-2xl mb-4">
+                    {qrCodeDataURL ? (
+                      <img
+                        src={qrCodeDataURL}
+                        alt="티켓 QR 코드"
+                        className="w-48 h-48 mx-auto rounded-xl shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-48 h-48 flex items-center justify-center mx-auto">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* 타이머 및 프로그레스 바 */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <span className="text-sm text-gray-600">다음 갱신까지</span>
+                      <span className="text-lg font-bold text-blue-600">{timeLeft}초</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 transition-all duration-1000 ease-linear"
+                        style={{ width: `${(timeLeft / 15) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-6">입장 시 이 QR 코드를 스캔해주세요</p>
+                  <p className="text-xs text-gray-500 mb-6">🔒 복제 방지를 위해 15초마다 자동 갱신됩니다</p>
+
+                  {/* 닫기 버튼 */}
+                  <button
+                    onClick={handleCloseQR}
+                    className="w-full bg-blue-500 text-white rounded-2xl py-3 font-semibold"
+                  >
+                    닫기
+                  </button>
                 </div>
-
-                <p className="text-sm text-gray-600 mb-6">입장 시 이 QR 코드를 스캔해주세요</p>
-                <p className="text-xs text-gray-500 mb-6">🔒 복제 방지를 위해 15초마다 자동 갱신됩니다</p>
-
-                {/* 닫기 버튼 */}
-                <button
-                  onClick={handleCloseQR}
-                  className="w-full bg-blue-500 text-white rounded-2xl py-3 font-semibold"
-                >
-                  닫기
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* 하단 네비게이션 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex">
-          <button onClick={() => router.push('/')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🏠</span>
-            <span className="text-xs mt-1">홈</span>
-          </button>
-          <button onClick={() => router.push('/lottery')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🍀</span>
-            <span className="text-xs mt-1">추첨 내역</span>
-          </button>
-          <button onClick={() => router.push('/my-tickets')} className="flex-1 flex flex-col items-center py-3 text-blue-600">
-            <span className="text-lg">🎫</span>
-            <span className="text-xs mt-1">내 티켓</span>
-          </button>
-          <button onClick={() => router.push('/profile')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">👤</span>
-            <span className="text-xs mt-1">프로필</span>
-          </button>
-        </div>
+        )}
       </div>
+      </div>
+
+      <TabNavigation />
     </div>
   )
 }

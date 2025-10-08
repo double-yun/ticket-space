@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import TabNavigation from '@/components/TabNavigation'
+import TopBar from '@/components/TopBar'
+import usePullToRefresh from '@/hooks/usePullToRefresh'
 
 type ApplicationStatus = 'APPLIED' | 'WON' | 'PAID' | 'EXPIRED' | 'CANCELLED'
 type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
@@ -102,6 +105,10 @@ export default function LotteryApplicationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const { containerRef, isRefreshing } = usePullToRefresh(async () => {
+    await fetchApplications()
+  })
+
   const fetchApplications = useCallback(async () => {
     if (!token) {
       return
@@ -160,12 +167,16 @@ export default function LotteryApplicationsPage() {
   }, [applications])
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-xl font-bold text-center">추첨 신청 내역</h1>
-      </div>
+    <div className="bg-gray-50 min-h-screen overflow-hidden">
+      <TopBar title="추첨 신청 내역" />
 
-      <div className="pb-20 px-4 pt-6 space-y-6">
+      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+        {isRefreshing && (
+          <div className="text-center py-2">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+        <div className="pb-20 px-4 space-y-6">
         <div className="bg-white rounded-3xl p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">자동 결제 안내</h2>
           <p className="text-sm text-gray-600 leading-6">
@@ -208,28 +219,10 @@ export default function LotteryApplicationsPage() {
         {error && (
           <div className="text-center text-red-500 text-sm">{error}</div>
         )}
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex">
-          <button onClick={() => router.push('/')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🏠</span>
-            <span className="text-xs mt-1">홈</span>
-          </button>
-          <button onClick={() => router.push('/lottery')} className="flex-1 flex flex-col items-center py-3 text-blue-600">
-            <span className="text-lg">🍀</span>
-            <span className="text-xs mt-1">추첨 내역</span>
-          </button>
-          <button onClick={() => router.push('/tickets')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🎫</span>
-            <span className="text-xs mt-1">내 티켓</span>
-          </button>
-          <button onClick={() => router.push('/profile')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">👤</span>
-            <span className="text-xs mt-1">프로필</span>
-          </button>
         </div>
       </div>
+
+      <TabNavigation />
     </div>
   )
 }

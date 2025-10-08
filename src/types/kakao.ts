@@ -21,14 +21,6 @@ export interface KakaoUserInfo {
   phoneNumber: string | null
 }
 
-export interface PendingKakaoUserData {
-  kakaoData: KakaoProfile
-  accessToken: string
-  refreshToken?: string
-  isExistingUser?: boolean
-  kakaoPhoneNumber?: string
-}
-
 export interface KakaoRegistrationPayload {
   kakaoId: string
   name: string

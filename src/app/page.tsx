@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Settings } from '@mui/icons-material'
 import PayButton from '@/components/PayButton'
+import TabNavigation from '@/components/TabNavigation'
+import TopBar from '@/components/TopBar'
+import usePullToRefresh from '@/hooks/usePullToRefresh'
 import * as PortOne from '@portone/browser-sdk/v2'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
@@ -80,6 +83,12 @@ export default function Home() {
   const [lotteryTickets, setLotteryTickets] = useState<LotteryTicketData[]>([])
   const [balance, setBalance] = useState<BalanceData | null>(null)
   const [funding, setFunding] = useState(false)
+
+  const handleRefresh = async () => {
+    await Promise.all([fetchTickets(), fetchBalance()])
+  }
+
+  const { containerRef, isRefreshing } = usePullToRefresh(handleRefresh)
 
   useEffect(() => {
     // Wait for auth to finish loading
@@ -264,21 +273,28 @@ export default function Home() {
   if (!authUser) return null
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* 상단바 */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-bold">티켓팅</h1>
-        <button
-          onClick={() => {
-            logout()
-            router.push('/login')
-          }}
-        >
-          <Settings className="text-gray-600" />
-        </button>
-      </div>
+    <div className="bg-gray-50 min-h-screen overflow-hidden">
+      <TopBar
+        title="티켓팅"
+        rightButton={
+          <button
+            onClick={() => {
+              logout()
+              router.push('/login')
+            }}
+          >
+            <Settings className="text-gray-600" />
+          </button>
+        }
+      />
 
-      <div className="pb-20 px-4 space-y-6 pt-6">
+      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+        {isRefreshing && (
+          <div className="text-center py-2">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+        <div className="pb-20 px-4 space-y-6">
         {/* 지갑 정보 */}
         <div className="bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-700 rounded-3xl p-6 shadow-lg">
           <div className="flex items-center justify-between text-white">
@@ -425,29 +441,10 @@ export default function Home() {
             )}
           </div>
         </div>
-      </div>
-
-      {/* 하단 네비게이션 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex">
-          <button onClick={() => router.push('/')} className="flex-1 flex flex-col items-center py-3 text-blue-600">
-            <span className="text-lg">🏠</span>
-            <span className="text-xs mt-1">홈</span>
-          </button>
-          <button onClick={() => router.push('/lottery')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🍀</span>
-            <span className="text-xs mt-1">추첨 내역</span>
-          </button>
-          <button onClick={() => router.push('/tickets')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🎫</span>
-            <span className="text-xs mt-1">내 티켓</span>
-          </button>
-          <button onClick={() => router.push('/profile')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">👤</span>
-            <span className="text-xs mt-1">프로필</span>
-          </button>
         </div>
       </div>
+
+      <TabNavigation />
     </div>
   )
 }

@@ -39,13 +39,42 @@ function PaymentResultContent() {
         return;
       }
 
+      if (!token) {
+        setStatus('failed');
+        setMessage('로그인이 필요합니다.');
+        setTimeout(() => router.push('/'), 2000);
+        return;
+      }
+
       try {
-        // 1. 결제 검증
+        // 1. 사용자 정보 가져오기
+        const meResponse = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!meResponse.ok) {
+          setStatus('failed');
+          setMessage('사용자 정보를 가져올 수 없습니다.');
+          setTimeout(() => router.push(returnUrl), 2000);
+          return;
+        }
+
+        const meData = await meResponse.json();
+        const userId = meData.user?.id;
+
+        if (!userId) {
+          setStatus('failed');
+          setMessage('사용자 정보를 찾을 수 없습니다.');
+          setTimeout(() => router.push(returnUrl), 2000);
+          return;
+        }
+
+        // 2. 결제 검증 및 포인트 충전
         setMessage('결제를 확인하는 중...');
-        const verifyResponse = await fetch('/api/payment/complete', {
+        const verifyResponse = await fetch('/api/points/charge', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId }),
+          body: JSON.stringify({ paymentId, userId }),
         });
 
         const verifyData = await verifyResponse.json();
@@ -57,9 +86,8 @@ function PaymentResultContent() {
           return;
         }
 
-        // ETH 충전 로직은 제거됨. 포인트 충전은 다른 API에서 처리.
         setStatus('success');
-        setMessage('결제가 확인되었습니다.');
+        setMessage('결제가 완료되었습니다.');
         setTimeout(() => router.push(returnUrl), 2000);
       } catch (error) {
         console.error('Payment processing failed:', error);

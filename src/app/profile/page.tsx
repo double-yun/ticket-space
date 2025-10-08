@@ -3,10 +3,17 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import TabNavigation from '@/components/TabNavigation'
+import TopBar from '@/components/TopBar'
+import usePullToRefresh from '@/hooks/usePullToRefresh'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user, logout, isLoading: authLoading } = useAuth()
+
+  const { containerRef, isRefreshing } = usePullToRefresh(async () => {
+    // 프로필 페이지는 실시간 데이터가 없으므로 빈 함수
+  })
 
   useEffect(() => {
     if (authLoading) {
@@ -51,13 +58,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      {/* 상단바 */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <h1 className="text-xl font-bold text-center">프로필</h1>
-      </div>
+    <div className="bg-gray-50 min-h-screen overflow-hidden">
+      <TopBar title="프로필" />
 
-      <div className="pb-20 px-4 pt-6 space-y-6">
+      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+        {isRefreshing && (
+          <div className="text-center py-2">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+        <div className="pb-20 px-4 space-y-6">
         {/* 프로필 카드 */}
         <div className="bg-white rounded-3xl p-6 shadow-sm">
           <div className="flex items-center space-x-4 mb-6">
@@ -128,29 +138,10 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* 하단 네비게이션 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex">
-          <button onClick={() => router.push('/')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🏠</span>
-            <span className="text-xs mt-1">홈</span>
-          </button>
-          <button onClick={() => router.push('/lottery')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🍀</span>
-            <span className="text-xs mt-1">추첨 내역</span>
-          </button>
-          <button onClick={() => router.push('/tickets')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🎫</span>
-            <span className="text-xs mt-1">내 티켓</span>
-          </button>
-          <button onClick={() => router.push('/profile')} className="flex-1 flex flex-col items-center py-3 text-blue-600">
-            <span className="text-lg">👤</span>
-            <span className="text-xs mt-1">프로필</span>
-          </button>
         </div>
       </div>
+
+      <TabNavigation />
     </div>
   )
 }
