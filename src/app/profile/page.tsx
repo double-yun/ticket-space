@@ -67,56 +67,56 @@ export default function ProfilePage() {
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <div className="pb-20 px-4 pt-6 space-y-6">
+        <div className="pb-20 px-4 pt-6 space-y-4">
         {/* 프로필 카드 */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm">
+        <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl p-6 shadow-xl shadow-blue-500/20">
           <div className="flex items-center space-x-4 mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-4xl">👤</span>
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center ring-4 ring-white/30">
+              <span className="text-4xl">👤</span>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{user?.name ?? '사용자'}</h2>
-              <p className="text-gray-600">{user?.email ?? 'user@example.com'}</p>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-white mb-1">{user?.name ?? '사용자'}</h2>
+              <p className="text-blue-100 text-sm">{user?.email ?? 'user@example.com'}</p>
             </div>
           </div>
 
           {/* 통계 */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">0</p>
-              <p className="text-sm text-gray-600">보유 티켓</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center">
+              <p className="text-2xl font-bold text-white mb-1">0</p>
+              <p className="text-xs text-blue-100">보유 티켓</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">0</p>
-              <p className="text-sm text-gray-600">사용한 티켓</p>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center">
+              <p className="text-2xl font-bold text-white mb-1">0</p>
+              <p className="text-xs text-blue-100">사용한 티켓</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-purple-600">0</p>
-              <p className="text-sm text-gray-600">총 구매금액</p>
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center">
+              <p className="text-2xl font-bold text-white mb-1">0</p>
+              <p className="text-xs text-blue-100">구매금액</p>
             </div>
           </div>
         </div>
 
         {/* 메뉴 */}
-        <div className="bg-white rounded-3xl overflow-hidden shadow-sm">
+        <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-gray-100">
           {menuItems.map((item, index) => (
             <button
               key={index}
               onClick={item.action}
-              className={`w-full flex items-center justify-between p-4 border-b border-gray-100 last:border-0 active:bg-gray-50 transition-colors ${
+              className={`w-full flex items-center justify-between p-4 border-b border-gray-50 last:border-0 active:scale-98 active:bg-gray-50 transition-all duration-150 ${
                 item.danger ? 'text-red-600' : 'text-gray-800'
               }`}
             >
               <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  item.danger ? 'bg-red-100' : 'bg-gray-100'
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm ${
+                  item.danger ? 'bg-red-50' : 'bg-gray-50'
                 }`}>
-                  <span className="text-lg">{item.icon}</span>
+                  <span className="text-xl">{item.icon}</span>
                 </div>
-                <span className="font-medium">{item.label}</span>
+                <span className="font-semibold text-sm">{item.label}</span>
               </div>
-              <div className="text-gray-400">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <div className="text-gray-300">
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M6 3l5 5-5 5V3z"/>
                 </svg>
               </div>
@@ -125,16 +125,17 @@ export default function ProfilePage() {
         </div>
 
         {/* 앱 정보 */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">앱 정보</h3>
+        <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100">
+          <h3 className="text-base font-bold text-gray-900 mb-4">앱 정보</h3>
           <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">버전</span>
-              <span className="text-gray-800">1.0.0</span>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-gray-600">버전</span>
+              <span className="text-sm font-semibold text-gray-900">1.0.0</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">개발자</span>
-              <span className="text-gray-800">Ticketing Team</span>
+            <div className="h-px bg-gray-100" />
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-gray-600">개발자</span>
+              <span className="text-sm font-semibold text-gray-900">Ticketing Team</span>
             </div>
           </div>
         </div>

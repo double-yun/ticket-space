@@ -257,88 +257,108 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="bg-gradient-to-b from-blue-50 to-white min-h-screen">
-      <div className="min-h-screen flex flex-col items-center p-4 pt-16 pb-8">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-white min-h-screen relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+
+      <div className="min-h-screen flex flex-col items-center p-6 pt-20 pb-8 relative z-10">
         {/* 로고 영역 */}
-        <div className="text-center mb-12 flex-shrink-0">
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <span className="text-4xl">🎫</span>
+        <div className="text-center mb-10 flex-shrink-0 animate-fade-in">
+          <div className="w-28 h-28 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/30 transform hover:scale-105 transition-transform duration-300">
+            <span className="text-5xl">🎫</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            티켓팅 시스템
+          <h1 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+            티켓팅
           </h1>
-          <p className="text-lg text-gray-600">
-            NFT 티켓으로 안전하고 투명한 티켓 거래
+          <p className="text-base text-gray-600 font-medium">
+            NFT 기반 안전한 티켓 거래 플랫폼
           </p>
         </div>
 
         {/* 카카오 로그인 버튼 */}
-        <div className="w-full max-w-sm mb-8">
+        <div className="w-full max-w-sm mb-6">
           <KakaoLogin />
         </div>
 
         {/* 임시 데모 로그인 */}
-        <div className="w-full max-w-sm mb-10">
-          <div className="bg-white/70 border border-dashed border-gray-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-sm text-gray-600 mb-3">
-              카카오 로그인을 사용할 수 없다면 아래 데모 계정으로 임시 접속할 수 있습니다.
+        <div className="w-full max-w-sm mb-8">
+          <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" />
+              <p className="text-sm font-semibold text-gray-700">
+                데모 계정으로 체험하기
+              </p>
+            </div>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              카카오 로그인 없이 바로 시작할 수 있습니다
             </p>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-2.5">
               {demoUsers.map((demo) => (
                 <button
                   key={demo.variant}
                   onClick={() => handleDemoLogin(demo.variant, demo.label)}
-                  className="w-full bg-gray-900 text-white font-medium py-2.5 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-gray-800 to-gray-900 text-white font-semibold py-3 rounded-xl hover:from-gray-900 hover:to-black transition-all duration-200 disabled:opacity-50 shadow-md active:scale-98"
                   disabled={demoLoading !== null}
                 >
-                  {demoLoading === demo.variant ? '로그인 중...' : `${demo.label}로 접속`}
+                  {demoLoading === demo.variant ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      로그인 중...
+                    </span>
+                  ) : (
+                    `${demo.label}로 접속`
+                  )}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* 안내 문구 */}
-        <div className="text-center mb-8 px-4">
-          <p className="text-sm text-gray-500 mb-2">
-            최초 로그인 시 개인 지갑이 자동으로 생성됩니다
-          </p>
-          <p className="text-sm text-gray-500">
-            카카오 계정으로 간편하게 시작하세요
-          </p>
-        </div>
-
         {/* 기능 소개 */}
-        <div className="w-full max-w-sm">
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                <span className="text-lg">🔐</span>
+        <div className="w-full max-w-sm space-y-3">
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="p-4 flex items-center gap-4 hover:bg-blue-50/50 transition-colors">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                <span className="text-xl">🔐</span>
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-800">개인 전용 블록체인 지갑</h4>
-                <p className="text-sm text-gray-600">자동 생성되는 안전한 지갑</p>
-              </div>
-            </div>
-            <div className="p-4 border-b border-gray-100 flex items-center">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                <span className="text-lg">💎</span>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-800">NFT 티켓 소유권</h4>
-                <p className="text-sm text-gray-600">블록체인으로 보장되는 진위성</p>
-              </div>
-            </div>
-            <div className="p-4 flex items-center">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                <span className="text-lg">⚡</span>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-800">빠르고 안전한 거래</h4>
-                <p className="text-sm text-gray-600">투명하고 신뢰할 수 있는 시스템</p>
+              <div className="flex-1">
+                <h4 className="font-bold text-gray-900 text-sm mb-0.5">개인 전용 블록체인 지갑</h4>
+                <p className="text-xs text-gray-600">자동 생성되는 안전한 지갑</p>
               </div>
             </div>
           </div>
+
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="p-4 flex items-center gap-4 hover:bg-purple-50/50 transition-colors">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                <span className="text-xl">💎</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-gray-900 text-sm mb-0.5">NFT 티켓 소유권</h4>
+                <p className="text-xs text-gray-600">블록체인으로 보장되는 진위성</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="p-4 flex items-center gap-4 hover:bg-green-50/50 transition-colors">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                <span className="text-xl">⚡</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-gray-900 text-sm mb-0.5">빠르고 안전한 거래</h4>
+                <p className="text-xs text-gray-600">투명하고 신뢰할 수 있는 시스템</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 안내 문구 */}
+        <div className="text-center mt-8 px-4">
+          <p className="text-xs text-gray-500">
+            최초 로그인 시 개인 지갑이 자동으로 생성됩니다
+          </p>
         </div>
       </div>
     </div>
