@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { generateWallet } from '@/lib/wallet'
-import { createSessionForUser } from '@/lib/users/service'
+import { signToken } from '@/lib/auth/jwt'
 import { clearPendingKakaoData } from '@/lib/auth/kakao-pending'
 
 export async function POST(request: NextRequest) {
@@ -60,19 +59,18 @@ export async function POST(request: NextRequest) {
         existingPhoneNumber: existingUser.phoneNumber
       })
 
-      // 기존 사용자로 로그인 처리
-      const sessionToken = await createSessionForUser(existingUser.id, 'app')
-      const cookieStore = await cookies()
-      cookieStore.set('session_token', sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 30,
-        path: '/',
+      // 기존 사용자로 JWT 발급
+      const token = signToken({
+        sub: existingUser.id,
+        userId: existingUser.id,
+        walletAddress: existingUser.walletAddress || undefined,
+        kakaoId: existingUser.kakaoId || undefined,
+        phoneNumber: existingUser.phoneNumber || undefined,
       })
 
       return NextResponse.json({
         success: true,
+        token,
         user: {
           id: existingUser.id,
           name: existingUser.name,
@@ -101,15 +99,13 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // 세션 쿠키 설정
-    const sessionToken = await createSessionForUser(user.id, 'app')
-    const cookieStore = await cookies()
-    cookieStore.set('session_token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/',
+    // JWT 토큰 발급
+    const token = signToken({
+      sub: user.id,
+      userId: user.id,
+      walletAddress: user.walletAddress || undefined,
+      kakaoId: user.kakaoId || undefined,
+      phoneNumber: user.phoneNumber || undefined,
     })
 
     // Pending 데이터 정리
@@ -117,6 +113,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      token,
       user: {
         id: user.id,
         name: user.name,

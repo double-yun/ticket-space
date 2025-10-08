@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import {
   KakaoOAuthError,
   exchangeCodeForTokens,
@@ -8,7 +7,7 @@ import {
 } from '@/lib/auth/kakao'
 import { setPendingKakaoData } from '@/lib/auth/kakao-pending'
 import { prisma } from '@/lib/prisma'
-import { createSessionForUser } from '@/lib/users/service'
+import { signToken } from '@/lib/auth/jwt'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -41,18 +40,21 @@ export async function GET(request: NextRequest) {
     })
 
     if (existingUser) {
-      // 기존 사용자: 즉시 로그인
-      const sessionToken = await createSessionForUser(existingUser.id, 'web')
-      const cookieStore = await cookies()
-      cookieStore.set('session_token', sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 30,
-        path: '/',
+      // 기존 사용자: JWT 발급 후 리다이렉트
+      const token = signToken({
+        sub: existingUser.id,
+        userId: existingUser.id,
+        walletAddress: existingUser.walletAddress || undefined,
+        kakaoId: existingUser.kakaoId || undefined,
+        phoneNumber: existingUser.phoneNumber || undefined,
       })
 
-      return NextResponse.redirect(new URL('/', request.url))
+      // JWT를 URL query parameter로 전달하여 프론트에서 저장
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('token', token)
+      redirectUrl.searchParams.set('redirect', '/')
+
+      return NextResponse.redirect(redirectUrl)
     } else {
       // 신규 사용자: 임시 데이터 저장 후 정보 입력 페이지로
       await setPendingKakaoData({

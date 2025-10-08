@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateWallet } from '@/lib/users/wallet'
+import { signToken } from '@/lib/auth/jwt'
 
 type DemoRequestBody = {
   variant?: string
@@ -54,18 +55,16 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const sessionToken = `demo_${user.id}_${Date.now()}`
-
-    await prisma.session.create({
-      data: {
-        sessionToken,
-        userId: user.id,
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
+    // Generate JWT token
+    const token = signToken({
+      sub: user.id,
+      userId: user.id,
+      walletAddress: user.walletAddress || undefined,
     })
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
+      token,
       user: {
         id: user.id,
         email: user.email,
@@ -73,15 +72,6 @@ export async function POST(request: NextRequest) {
         walletAddress: user.walletAddress,
       },
     })
-
-    response.cookies.set('session_token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/',
-    })
-
-    return response
   } catch (error) {
     console.error('Demo login error:', error)
     return NextResponse.json({ success: false, error: 'Demo login failed' }, { status: 500 })

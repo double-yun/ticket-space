@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface PayButtonProps {
   eventId: string
@@ -9,17 +10,26 @@ interface PayButtonProps {
 }
 
 export default function PayButton({ eventId, disabled, onSuccess }: PayButtonProps) {
+  const { token } = useAuth()
   const [processing, setProcessing] = useState(false)
 
   const handleClick = async () => {
     if (processing || disabled) return
+
+    if (!token) {
+      alert('로그인이 필요합니다. 다시 로그인해 주세요.')
+      return
+    }
 
     setProcessing(true)
 
     try {
       const response = await fetch('/api/tickets/purchase', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ eventId }),
       })
 

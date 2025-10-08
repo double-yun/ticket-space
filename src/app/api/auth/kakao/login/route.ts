@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { generateWallet } from '@/lib/wallet'
-import { createSessionForUser } from '@/lib/users/service'
+import { signToken } from '@/lib/auth/jwt'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,18 +40,18 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const sessionToken = await createSessionForUser(user.id, 'app')
-    const cookieStore = await cookies()
-    cookieStore.set('session_token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/',
+    // Generate JWT token
+    const token = signToken({
+      sub: user.id, // Privy uses 'sub' for user identification
+      userId: user.id,
+      walletAddress: user.walletAddress || undefined,
+      kakaoId: user.kakaoId || undefined,
+      phoneNumber: user.phoneNumber || undefined,
     })
 
     return NextResponse.json({
       success: true,
+      token,
       user: {
         id: user.id,
         name: user.name,
