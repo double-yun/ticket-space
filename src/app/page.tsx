@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Swiper, SwiperSlide } from 'swiper/react'
 import PayButton from '@/components/PayButton'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
@@ -13,6 +12,7 @@ import { Browser } from '@capacitor/browser'
 import { App } from '@capacitor/app'
 import { useAuth } from '@/contexts/AuthContext'
 import 'swiper/css'
+
 interface AuthUser {
   id: string
   name?: string | null
@@ -47,27 +47,6 @@ interface BalanceData {
   error?: string
 }
 
-const categories = [
-  { id: 'concert', name: '콘서트', icon: '🎵', color: 'from-purple-500 to-pink-500' },
-  { id: 'sports', name: '스포츠', icon: '🏆', color: 'from-green-500 to-emerald-500' },
-  { id: 'theater', name: '연극/뮤지컬', icon: '🎭', color: 'from-red-500 to-rose-500' },
-  { id: 'exhibition', name: '전시회', icon: '🎨', color: 'from-blue-500 to-cyan-500' },
-  { id: 'festival', name: '페스티벌', icon: '🎪', color: 'from-yellow-500 to-orange-500' },
-  { id: 'other', name: '기타', icon: '⋯', color: 'from-gray-500 to-slate-500' }
-]
-
-const featuredEvents = [
-  { id: 1, title: 'K-POP 슈퍼콘서트 2024', date: '2024.09.20', location: '올림픽공원 체조경기장', image: 'bg-gradient-to-r from-pink-400 to-purple-600' },
-  { id: 2, title: '클래식 갈라콘서트', date: '2024.09.25', location: '세종문화회관', image: 'bg-gradient-to-r from-blue-400 to-indigo-600' },
-  { id: 3, title: '뮤지컬 <라이온킹>', date: '2024.10.01', location: '샤롯데씨어터', image: 'bg-gradient-to-r from-orange-400 to-red-600' }
-]
-
-const upcomingEvents = [
-  { name: 'IU 콘서트', date: '9월 20일', dday: 'D-6' },
-  { name: '야구 경기', date: '9월 22일', dday: 'D-8' },
-  { name: '뮤지컬 관람', date: '9월 25일', dday: 'D-11' }
-]
-
 const PORTONE_STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID
 const PORTONE_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
 const PORTONE_ORDER_NAME = '지갑 충전'
@@ -75,58 +54,50 @@ const PORTONE_TOPUP_AMOUNT = 1000
 
 export default function Home() {
   const router = useRouter()
-  const { user, token, logout, isLoading: authLoading } = useAuth()
+  const { user, token, isLoading: authLoading } = useAuth()
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [directTickets, setDirectTickets] = useState<TicketData[]>([])
   const [lotteryTickets, setLotteryTickets] = useState<LotteryTicketData[]>([])
   const [balance, setBalance] = useState<BalanceData | null>(null)
+  const [ticketCount, setTicketCount] = useState(0)
   const [funding, setFunding] = useState(false)
 
-  const handleRefresh = async () => {
-    await Promise.all([fetchTickets(), fetchBalance()])
-  }
+  const fetchAllData = useCallback(async () => {
+    if (!user || !token) return
+    setLoading(true)
+    await Promise.all([fetchTickets(), fetchBalance(), fetchTicketCount()])
+    setLoading(false)
+  }, [user, token])
 
-  const { containerRef, isRefreshing } = usePullToRefresh(handleRefresh)
+  const { containerRef, isRefreshing } = usePullToRefresh(fetchAllData)
 
   useEffect(() => {
-    // Wait for auth to finish loading
     if (authLoading) return
-
     if (!user) {
       router.push('/login')
-      return
+    } else {
+      setAuthUser(user as AuthUser)
     }
-    setAuthUser(user as AuthUser)
   }, [user, router, authLoading])
 
   useEffect(() => {
     if (authUser) {
-      fetchTickets()
-      fetchBalance()
+      fetchAllData()
     }
-  }, [authUser])
+  }, [authUser, fetchAllData])
 
-  // Custom URL Scheme 리스너 (결제 완료 후 InAppBrowser 닫기)
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
-
-    const urlListener = App.addListener('appUrlOpen', (event) => {
-      console.log('App opened with URL:', event.url)
-      
-      // ticketspace://payment-complete 감지 시 InAppBrowser 닫기
+    const listener = App.addListener('appUrlOpen', (event) => {
       if (event.url.includes('payment-complete')) {
         Browser.close().then(() => {
-          console.log('InAppBrowser closed after payment')
-          fetchBalance() // 잔액 새로고침
-        }).catch(err => {
-          console.error('Failed to close browser:', err)
+          fetchBalance()
         })
       }
     })
-
     return () => {
-      urlListener.then(listener => listener.remove())
+      listener.then(l => l.remove())
     }
   }, [])
 
@@ -138,14 +109,11 @@ export default function Home() {
       setLotteryTickets(data.lotteryEvents || [])
     } catch (error) {
       console.error('Error fetching tickets:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
   const fetchBalance = async () => {
     if (!authUser?.walletAddress) return
-
     try {
       const response = await fetch(`/api/balance?address=${authUser.walletAddress}`)
       const data = await response.json()
@@ -155,115 +123,64 @@ export default function Home() {
     }
   }
 
+  const fetchTicketCount = async () => {
+    if (!token) return
+    try {
+      const response = await fetch('/api/purchases', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await response.json()
+      if (data.success) {
+        setTicketCount(data.purchases.length)
+      }
+    } catch (error) {
+      console.error('Error fetching ticket count:', error)
+    }
+  }
+
   const handleFundWallet = async () => {
     if (funding) return
-
     setFunding(true)
 
-    const generateUUID = () =>
-      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-        const r = (Math.random() * 16) | 0
-        const v = c === 'x' ? r : (r & 0x3) | 0x8
-        return v.toString(16)
-      })
-
-    const paymentId = `payment-${generateUUID()}`
-    const storeId = PORTONE_STORE_ID
-    const channelKey = PORTONE_CHANNEL_KEY
-    const orderName = PORTONE_ORDER_NAME
-    const totalAmount = PORTONE_TOPUP_AMOUNT
+    const paymentId = `payment-${crypto.randomUUID()}`
+    const { NEXT_PUBLIC_PORTONE_STORE_ID: storeId, NEXT_PUBLIC_PORTONE_CHANNEL_KEY: channelKey } = process.env
 
     if (!storeId || !channelKey) {
-      console.error('PortOne store/channel configuration missing')
-      alert('결제 연동 설정이 되어 있지 않습니다. 관리자에게 문의해주세요.')
-      setFunding(false)
-      return
-    }
-
-    if (totalAmount <= 0) {
-      console.error('Invalid PortOne top-up amount configured', totalAmount)
-      alert('결제 금액 설정을 확인해주세요.')
+      alert('결제 설정이 필요합니다.')
       setFunding(false)
       return
     }
 
     try {
-      const isCapacitorApp = Capacitor.isNativePlatform()
-
-      if (isCapacitorApp) {
+      if (Capacitor.isNativePlatform()) {
         const paymentUrl = new URL('/points/charge/start', window.location.origin)
         paymentUrl.searchParams.set('paymentId', paymentId)
         paymentUrl.searchParams.set('storeId', storeId)
         paymentUrl.searchParams.set('channelKey', channelKey)
-        paymentUrl.searchParams.set('orderName', orderName)
-        paymentUrl.searchParams.set('totalAmount', totalAmount.toString())
+        paymentUrl.searchParams.set('orderName', '포인트 충전')
+        paymentUrl.searchParams.set('totalAmount', '1000')
         paymentUrl.searchParams.set('from_app', 'true')
-        
-        // userId 추가 (InAppBrowser 인증용)
         if (authUser?.id) {
           paymentUrl.searchParams.set('userId', authUser.id)
         }
-
-        const finishedListener = await Browser.addListener('browserFinished', async () => {
-          try {
-            await fetch('/api/points/charge', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                paymentId,
-                userId: authUser?.id  // userId 추가
-              }),
-            })
-          } catch (error) {
-            console.error('Payment verification failed after browser close.', error)
-          } finally {
-            fetchBalance()
-          }
-        })
-
-        try {
-          await Browser.open({
-            url: paymentUrl.toString(),
-            presentationStyle: 'fullscreen',
-            windowName: '_blank',
-            toolbarColor: '#ffffff',
-          })
-        } finally {
-          await finishedListener.remove()
-        }
-
-        return
-      }
-
-      const resp = await PortOne.requestPayment({
-        storeId,
-        channelKey,
-        paymentId,
-        orderName,
-        totalAmount,
-        currency: 'CURRENCY_KRW',
-        payMethod: 'CARD',
-        redirectUrl: `${window.location.origin}/points/charge/callback?userId=${authUser?.id}`,
-      })
-
-      if (resp && resp.code !== undefined) {
-        alert(resp.message || '결제가 취소되었습니다.')
-        return
-      }
-
-      await fetch('/api/points/charge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        await Browser.open({ url: paymentUrl.toString() })
+      } else {
+        const resp = await PortOne.requestPayment({
+          storeId,
+          channelKey,
           paymentId,
-          userId: authUser?.id
-        }),
-      })
-
-      fetchBalance()
+          orderName: '포인트 충전',
+          totalAmount: 1000,
+          currency: 'KRW',
+          payMethod: 'CARD',
+          redirectUrl: `${window.location.origin}/points/charge/callback?userId=${authUser?.id}`,
+        })
+        if (resp?.code) {
+          alert(resp.message || '결제가 취소되었습니다.')
+        }
+      }
     } catch (error) {
-      console.error('Wallet funding payment failed.', error)
-      alert('❌ 결제 연동 중 오류가 발생했습니다.')
+      alert('결제 처리 중 오류가 발생했습니다.')
     } finally {
       setFunding(false)
     }
@@ -277,157 +194,135 @@ export default function Home() {
 
       <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
         {isRefreshing && (
-          <div className="text-center py-2">
+          <div className="fixed top-16 left-0 right-0 flex justify-center py-2 z-10">
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <div className="pb-20 px-4 pt-6 space-y-6">
-        {/* 지갑 정보 */}
-        <div className="bg-gradient-to-br from-blue-500 via-purple-600 to-indigo-700 rounded-3xl p-6 shadow-lg">
-          <div className="flex items-center justify-between text-white">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                <span className="text-white text-2xl">💳</span>
-              </div>
+        <div className="pb-20 px-4 pt-6 space-y-8">
+          {/* 지갑 정보 */}
+          <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl p-6 shadow-xl shadow-blue-500/20">
+            <div className="flex items-start justify-between text-white mb-4">
               <div>
-                <h3 className="text-lg font-semibold">내 지갑</h3>
-                <p className="text-sm opacity-80 font-mono">
+                <h3 className="text-lg font-bold mb-1">내 지갑</h3>
+                <p className="text-sm text-blue-100 font-mono tracking-wider">
                   {authUser.walletAddress?.slice(0, 6)}...{authUser.walletAddress?.slice(-4)}
                 </p>
               </div>
+              <button
+                className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-white/30 transition-all active:scale-95"
+                onClick={handleFundWallet}
+                disabled={funding}
+              >
+                {funding ? '처리 중...' : '충전'}
+              </button>
             </div>
-            {balance && (
-              <div className="text-right">
-                <p className="text-2xl font-bold">
-                  {(balance.pointBalance ?? 0).toLocaleString()}P
+            <div className="flex items-end justify-between">
+              <div className="text-left">
+                <p className="text-sm text-blue-200 mb-1">보유 티켓</p>
+                <p className="text-3xl font-bold text-white">
+                  {ticketCount}
+                  <span className="text-2xl font-normal ml-1">개</span>
                 </p>
-                <button
-                  className="mt-2 bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-xl text-sm font-medium"
-                  onClick={handleFundWallet}
-                  disabled={funding}
-                >
-                  {funding ? '결제 연결 중...' : '💰 충전'}
-                </button>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* 인기 이벤트 */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">🔥 인기 이벤트</h2>
-          <Swiper spaceBetween={16} slidesPerView={1.1}>
-            {featuredEvents.map((event) => (
-              <SwiperSlide key={event.id}>
-                <div className={`h-48 ${event.image} rounded-3xl p-6 flex items-end shadow-lg`}>
-                  <div className="text-white">
-                    <h3 className="font-bold text-lg mb-1">{event.title}</h3>
-                    <p className="text-sm opacity-90">{event.date} · {event.location}</p>
-                  </div>
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
-
-        {/* 카테고리 */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">카테고리</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {categories.map((category) => (
-              <div key={category.id} className="bg-white rounded-2xl p-4 shadow-sm active:scale-95 transition-transform">
-                <div className={`w-14 h-14 bg-gradient-to-br ${category.color} rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm`}>
-                  <span className="text-white text-2xl">{category.icon}</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-800 text-center">{category.name}</p>
+              <div className="text-right">
+                <p className="text-sm text-blue-200 mb-1">보유 포인트</p>
+                <p className="text-3xl font-bold text-white">
+                  {(balance?.pointBalance ?? 0).toLocaleString()}
+                  <span className="text-2xl font-normal ml-1">P</span>
+                </p>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
 
-        {/* 티켓 목록 */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">🎪 바로 구매 가능한 티켓</h2>
-          <div className="space-y-3">
-            {directTickets.map((ticket) => (
-              <div key={ticket.id} className="bg-white rounded-3xl p-5 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-3xl">🎫</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 mb-1">{ticket.name}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{ticket.description}</p>
-                    <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                      ticket.currentSupply >= ticket.maxSupply ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                    }`}>
-                      {ticket.currentSupply}/{ticket.maxSupply} 판매됨
+          {/* 바로 구매 가능한 티켓 */}
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">바로 구매 가능한 이벤트</h2>
+            <div className="space-y-4">
+              {directTickets.map((ticket) => (
+                <div key={ticket.id} className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-start gap-5">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
+                      <span className="text-white text-4xl">🎫</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-900 mb-1.5">{ticket.name}</h3>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{ticket.description}</p>
+                      <div className="flex items-center justify-between">
+                        <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                          ticket.currentSupply >= ticket.maxSupply ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          남은 수량: {ticket.maxSupply - ticket.currentSupply}개
+                        </div>
+                        <p className="text-xl font-bold text-blue-600">
+                          {ticket.price.toLocaleString()}P
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-lg font-bold text-blue-600 mb-2">
-                      {ticket.price.toLocaleString()}P
-                    </p>
+                  <div className="mt-4">
                     <PayButton
                       eventId={ticket.id}
                       disabled={ticket.currentSupply >= ticket.maxSupply}
-                      onSuccess={() => {
-                        fetchTickets()
-                        fetchBalance()
-                      }}
+                      onSuccess={fetchAllData}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition-all duration-200 disabled:bg-gray-300"
                     />
                   </div>
                 </div>
-              </div>
-            ))}
-            {!loading && directTickets.length === 0 && (
-              <div className="bg-white rounded-3xl p-5 shadow-sm text-center text-gray-500">
-                바로 구매 가능한 티켓이 없습니다.
-              </div>
-            )}
+              ))}
+              {!loading && directTickets.length === 0 && (
+                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
+                  <span className="text-5xl opacity-40 block mb-4">🎟️</span>
+                  <h3 className="text-lg font-semibold text-gray-800">진행중인 이벤트가 없습니다</h3>
+                  <p className="text-sm text-gray-500 mt-2">곧 새로운 이벤트로 찾아올게요!</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* 추첨 신청 가능한 티켓 */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">🍀 추첨 신청 가능한 티켓</h2>
-          <div className="space-y-3">
-            {lotteryTickets.map((ticket) => (
-              <div key={`${ticket.id}-${ticket.roundId}`} className="bg-white rounded-3xl p-5 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-3xl">🍀</span>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 mb-1">{ticket.name}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{ticket.description}</p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                      <span className="inline-flex items-center bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
-                        추첨 신청 마감 {new Date(ticket.applicationDeadline).toLocaleString()}
-                      </span>
-                      <span className="inline-flex items-center bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                        {ticket.price.toLocaleString()}P (당첨 시 결제)
-                      </span>
+          {/* 추첨 신청 가능한 티켓 */}
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">추첨 이벤트</h2>
+            <div className="space-y-4">
+              {lotteryTickets.map((ticket) => (
+                <div key={`${ticket.id}-${ticket.roundId}`} className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                  <div className="flex items-start gap-5">
+                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
+                      <span className="text-white text-4xl">✨</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-900 mb-1.5">{ticket.name}</h3>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{ticket.description}</p>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                        <span className="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-semibold">
+                          <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd"></path></svg>
+                          마감: {new Date(ticket.applicationDeadline).toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-xl font-bold text-emerald-600">
+                      {ticket.price.toLocaleString()}P
+                      <span className="text-sm font-normal text-gray-500 ml-1">(당첨 시)</span>
+                    </p>
                     <button
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300 disabled:text-gray-500"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200 disabled:bg-gray-300 active:scale-95"
                       onClick={() => router.push(`/lottery/${ticket.roundId}`)}
                     >
-                      추첨 신청
+                      추첨 신청하기
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
-            {!loading && lotteryTickets.length === 0 && (
-              <div className="bg-white rounded-3xl p-5 shadow-sm text-center text-gray-500">
-                현재 신청 가능한 추첨 티켓이 없습니다.
-              </div>
-            )}
+              ))}
+              {!loading && lotteryTickets.length === 0 && (
+                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
+                  <span className="text-5xl opacity-40 block mb-4">🎁</span>
+                  <h3 className="text-lg font-semibold text-gray-800">진행중인 추첨이 없습니다</h3>
+                  <p className="text-sm text-gray-500 mt-2">곧 새로운 추첨 이벤트로 찾아올게요!</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         </div>
       </div>
 

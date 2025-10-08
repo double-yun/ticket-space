@@ -149,21 +149,9 @@ export default function LotteryApplicationsPage() {
   }, [authLoading, user, token, router, fetchApplications])
 
   const { pendingApplications, completedApplications } = useMemo(() => {
-    const pending = []
-    const completed = []
-
-    for (const application of applications) {
-      if (application.status === 'APPLIED' || application.status === 'WON') {
-        pending.push(application)
-      } else {
-        completed.push(application)
-      }
-    }
-
-    return {
-      pendingApplications: pending,
-      completedApplications: completed,
-    }
+    const pending = applications.filter(app => app.status === 'APPLIED' || app.status === 'WON')
+    const completed = applications.filter(app => app.status !== 'APPLIED' && app.status !== 'WON')
+    return { pendingApplications: pending, completedApplications: completed }
   }, [applications])
 
   return (
@@ -176,49 +164,53 @@ export default function LotteryApplicationsPage() {
             <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         )}
-        <div className="pb-20 px-4 pt-6 space-y-6">
-        <div className="bg-white rounded-3xl p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">자동 결제 안내</h2>
-          <p className="text-sm text-gray-600 leading-6">
-            추첨에 당첨되면 포인트가 자동으로 차감되고 SBT 티켓이 발급돼요. 잔액이 부족하면 결제가 실패할 수 있으니
-            여유 있게 충전해 주세요.
-          </p>
-        </div>
-
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">⏳ 진행 중인 추첨</h2>
-          <div className="space-y-3">
-            {pendingApplications.map((application) => (
-              <ApplicationCard key={application.id} application={application} />
-            ))}
-            {!loading && pendingApplications.length === 0 && (
-              <div className="bg-white rounded-3xl p-6 shadow-sm text-center text-gray-500">
-                진행 중인 추첨 신청이 없습니다.
-              </div>
-            )}
+        <div className="pb-20 px-4 pt-6 space-y-8">
+          <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100">
+            <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <span className="text-xl">💡</span> 자동 결제 안내
+            </h2>
+            <p className="text-sm text-gray-600 leading-6">
+              추첨에 당첨되면 포인트가 자동으로 차감되고 SBT 티켓이 발급돼요. 잔액이 부족하면 결제가 실패할 수 있으니 여유 있게 충전해 주세요.
+            </p>
           </div>
-        </section>
 
-        <section>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">📒 지난 추첨</h2>
-          <div className="space-y-3">
-            {completedApplications.map((application) => (
-              <ApplicationCard key={application.id} application={application} />
-            ))}
-            {!loading && completedApplications.length === 0 && (
-              <div className="bg-white rounded-3xl p-6 shadow-sm text-center text-gray-500">
-                지난 추첨 신청 내역이 없습니다.
-              </div>
-            )}
-          </div>
-        </section>
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">진행 중인 추첨</h2>
+            <div className="space-y-4">
+              {pendingApplications.map((application) => (
+                <ApplicationCard key={application.id} application={application} />
+              ))}
+              {!loading && pendingApplications.length === 0 && (
+                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
+                  <span className="text-5xl opacity-40 block mb-4">🎉</span>
+                  <h3 className="text-lg font-semibold text-gray-800">진행 중인 추첨이 없습니다</h3>
+                  <p className="text-sm text-gray-500 mt-2">새로운 추첨 이벤트를 기대해주세요!</p>
+                </div>
+              )}
+            </div>
+          </section>
 
-        {loading && (
-          <div className="text-center text-gray-500">불러오는 중...</div>
-        )}
-        {error && (
-          <div className="text-center text-red-500 text-sm">{error}</div>
-        )}
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">지난 추첨</h2>
+            <div className="space-y-4">
+              {completedApplications.map((application) => (
+                <ApplicationCard key={application.id} application={application} />
+              ))}
+              {!loading && completedApplications.length === 0 && (
+                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
+                  <span className="text-5xl opacity-40 block mb-4">📂</span>
+                  <h3 className="text-lg font-semibold text-gray-800">지난 추첨 내역이 없습니다</h3>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {loading && (
+            <div className="text-center text-gray-500 py-8">불러오는 중...</div>
+          )}
+          {error && (
+            <div className="text-center text-red-500 text-sm py-8">{error}</div>
+          )}
         </div>
       </div>
 
@@ -233,78 +225,79 @@ function ApplicationCard({ application }: { application: LotteryApplication }) {
   const statusLabel = statusLabels[application.status]
   const statusColor = getStatusBadgeColors(application.status)
   const paymentLabel = paymentStatusLabels[application.paymentStatus]
-  const paymentColor = getPaymentBadgeColors(application.paymentStatus)
   const deadline = formatDate(application.round?.applicationDeadline ?? null)
   const drawTime = formatDate(application.round?.drawnAt ?? null)
   const createdAt = formatDate(application.createdAt)
-  const ticketIssuedAt = formatDate(application.ticket?.issuedAt ?? null)
-  const paymentDeadline = formatDate(application.paymentDeadline)
+
+  const getCardGradient = (status: ApplicationStatus) => {
+    switch (status) {
+      case 'APPLIED':
+        return 'from-blue-400 to-purple-500'
+      case 'WON':
+        return 'from-emerald-400 to-cyan-500'
+      case 'PAID':
+        return 'from-purple-500 to-indigo-600'
+      default:
+        return 'from-gray-300 to-gray-400'
+    }
+  }
 
   return (
-    <div className="bg-white rounded-3xl p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">{eventTitle}</h3>
-          {roundNumber !== undefined && (
-            <p className="text-sm text-gray-600">라운드 #{roundNumber}</p>
-          )}
+    <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+      <div className="flex items-start gap-5 mb-4">
+        <div className={`w-20 h-20 bg-gradient-to-br ${getCardGradient(application.status)} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md`}>
+          <span className="text-white text-4xl">
+            {application.status === 'APPLIED' ? '⏳' : application.status === 'WON' ? '🎉' : application.status === 'PAID' ? '🎫' : '📁'}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
-            {statusLabel}
-          </span>
-          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${paymentColor}`}>
-            {paymentLabel}
-          </span>
+        <div className="flex-1">
+          <div className="flex justify-between items-start mb-1.5">
+            <h3 className="font-bold text-lg text-gray-900 line-clamp-2">{eventTitle}</h3>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
+              {statusLabel}
+            </span>
+          </div>
+          {roundNumber !== undefined && (
+            <p className="text-sm font-semibold text-gray-600 mb-3">라운드 #{roundNumber}</p>
+          )}
         </div>
       </div>
 
-      <div className="space-y-2 text-sm text-gray-600">
+      <div className="space-y-3 text-sm text-gray-600 bg-gray-50/70 p-4 rounded-2xl">
         <div className="flex items-center justify-between">
-          <span>신청일</span>
-          <span className="font-medium text-gray-900">{createdAt}</span>
+          <span className="font-semibold">신청일</span>
+          <span className="font-mono text-gray-800">{createdAt}</span>
         </div>
-        {deadline && (
+        {deadline !== '-' && (
           <div className="flex items-center justify-between">
-            <span>신청 마감</span>
-            <span>{deadline}</span>
+            <span className="font-semibold">신청 마감</span>
+            <span className="font-mono text-gray-800">{deadline}</span>
           </div>
         )}
-        {drawTime && (
+        {drawTime !== '-' && (
           <div className="flex items-center justify-between">
-            <span>추첨 예정</span>
-            <span>{drawTime}</span>
-          </div>
-        )}
-        {application.priority !== null && (
-          <div className="flex items-center justify-between">
-            <span>우선순위</span>
-            <span className="font-semibold text-emerald-600">{application.priority}위</span>
+            <span className="font-semibold">추첨 시간</span>
+            <span className="font-mono text-gray-800">{drawTime}</span>
           </div>
         )}
         {application.pointAmount !== null && (
           <div className="flex items-center justify-between">
-            <span>결제 금액</span>
-            <span>{application.pointAmount.toLocaleString()}P</span>
+            <span className="font-semibold">결제 금액</span>
+            <span className="font-bold text-lg text-emerald-600">{application.pointAmount.toLocaleString()}P</span>
           </div>
-        )}
-        {application.ticket && ticketIssuedAt && (
-          <div className="flex items-center justify-between">
-            <span>SBT 발급</span>
-            <span>{ticketIssuedAt}</span>
-          </div>
-        )}
-        {application.paymentStatus === 'FAILED' && (
-          <p className="text-xs text-red-500">
-            결제가 실패했습니다. 포인트 잔액을 확인하고 라운드 재오픈 시 다시 시도해주세요.
-          </p>
-        )}
-        {paymentDeadline && application.paymentStatus === 'PENDING' && (
-          <p className="text-xs text-amber-600">
-            결제 대기 중입니다. 결제 마감 {paymentDeadline}까지 포인트 잔액을 확인해주세요.
-          </p>
         )}
       </div>
+
+      {application.paymentStatus === 'FAILED' && (
+        <div className="mt-3 bg-red-50 text-red-700 text-xs font-medium p-3 rounded-lg text-center">
+          결제가 실패했습니다. 포인트 잔액을 확인하고 다음 기회에 다시 시도해주세요.
+        </div>
+      )}
+      {application.paymentStatus === 'PENDING' && application.paymentDeadline && (
+        <div className="mt-3 bg-amber-50 text-amber-700 text-xs font-medium p-3 rounded-lg text-center">
+          결제 대기 중입니다. 마감 ({formatDate(application.paymentDeadline)}) 전까지 포인트 잔액을 확인해주세요.
+        </div>
+      )}
     </div>
   )
 }
