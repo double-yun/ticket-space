@@ -57,34 +57,10 @@ function PaymentResultContent() {
           return;
         }
 
-        // 2. ETH 충전
-        setMessage('지갑을 충전하는 중...');
-        if (!token) {
-          console.warn('Wallet funding skipped: missing auth token');
-          setStatus('success');
-          setMessage('로그인이 확인되지 않아 지갑 충전을 건너뜁니다.');
-          setTimeout(() => router.push(returnUrl), 2000);
-          return;
-        }
-
-        const fundResponse = await fetch('/api/wallet/fund', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const fundData = await fundResponse.json();
-
-        if (fundData.success || fundData.alreadyFunded) {
-          setStatus('success');
-          setMessage('충전이 완료되었습니다!');
-          setTimeout(() => router.push(returnUrl), 2000);
-        } else {
-          setStatus('failed');
-          setMessage('충전 중 오류가 발생했습니다.');
-          setTimeout(() => router.push(returnUrl), 2000);
-        }
+        // ETH 충전 로직은 제거됨. 포인트 충전은 다른 API에서 처리.
+        setStatus('success');
+        setMessage('결제가 확인되었습니다.');
+        setTimeout(() => router.push(returnUrl), 2000);
       } catch (error) {
         console.error('Payment processing failed:', error);
         setStatus('failed');

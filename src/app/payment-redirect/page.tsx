@@ -94,24 +94,7 @@ function PaymentRedirectContent() {
         if (data.status === 'PAID') {
           setStatus('success');
 
-          // ETH 충전 처리
-          try {
-            console.log('Payment PAID, funding wallet...');
-            if (!token) {
-              console.warn('Skipping wallet funding due to missing auth token');
-            } else {
-              const fundResponse = await fetch('/api/wallet/fund', {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              });
-              const fundData = await fundResponse.json();
-              console.log('Wallet funding result:', fundData);
-            }
-          } catch (fundError) {
-            console.error('Wallet funding failed:', fundError);
-          }
+
         } else if (data.status === 'VIRTUAL_ACCOUNT_ISSUED') {
           setStatus('success'); // 가상계좌 발급도 성공으로 처리
         } else {

@@ -298,17 +298,13 @@ export default function Home() {
                 <p className="text-2xl font-bold">
                   {(balance.pointBalance ?? 0).toLocaleString()}P
                 </p>
-                <p className="text-sm opacity-80">ETH: {balance.ethBalance}</p>
-                <p className="text-sm opacity-80">NFT: {balance.nftBalance}개</p>
-                {parseFloat(balance.ethBalance ?? '0') < 0.1 && (
-                  <button
-                    className="mt-2 bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-xl text-sm font-medium"
-                    onClick={handleFundWallet}
-                    disabled={funding}
-                  >
-                    {funding ? '결제 연결 중...' : '💰 충전'}
-                  </button>
-                )}
+                <button
+                  className="mt-2 bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-xl text-sm font-medium"
+                  onClick={handleFundWallet}
+                  disabled={funding}
+                >
+                  {funding ? '결제 연결 중...' : '💰 충전'}
+                </button>
               </div>
             )}
           </div>
