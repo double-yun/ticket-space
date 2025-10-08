@@ -10,6 +10,7 @@ interface Purchase {
   purchaseDate: string
   used: boolean
   usedAt?: string
+  pointAmount: number
   ticket: {
     id: string
     name: string
@@ -214,7 +215,7 @@ export default function MyTicketsPage() {
                     </div>
                     <div className="flex flex-col gap-2 items-end">
                       <p className="text-lg font-bold text-blue-600">
-                        {(parseFloat(purchase.ticket.price) / 1e18).toFixed(3)} ETH
+                        {parseFloat(purchase.ticket.price).toLocaleString()} P
                       </p>
                       <p className="text-xs text-gray-500">
                         {purchase.transactionHash.slice(0, 6)}...{purchase.transactionHash.slice(-4)}

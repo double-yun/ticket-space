@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getContractAddress, getPublicClient } from '@/lib/blockchain'
-import { ticketAbi } from '@/lib/blockchain/ticket-abi'
 import { prisma } from '@/lib/prisma'
+import ticketAbiJson from '@/lib/blockchain/ticket-abi.json'
+
+const ticketAbi = ticketAbiJson as const
 
 const publicClient = getPublicClient()
 

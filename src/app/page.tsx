@@ -362,7 +362,7 @@ export default function Home() {
                       {ticket.price.toLocaleString()}P
                     </p>
                     <PayButton
-                      ticketId={ticket.id}
+                      eventId={ticket.id}
                       disabled={ticket.currentSupply >= ticket.maxSupply}
                       onSuccess={() => {
                         fetchTickets()

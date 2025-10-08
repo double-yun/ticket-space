@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { privateKeyToAccount } from 'viem/accounts'
 import { prisma } from '@/lib/prisma'
 import {
   getChainId,
@@ -12,8 +13,9 @@ import {
   getSmartAccountAddress,
   isAlchemySmartWalletEnabled,
 } from '@/lib/blockchain/alchemy-smart-wallet'
-import { ticketAbi } from '@/lib/blockchain/ticket-abi'
-import { privateKeyToAccount } from 'viem/accounts'
+import ticketAbiJson from '@/lib/blockchain/ticket-abi.json'
+
+const ticketAbi = ticketAbiJson as const
 
 export async function POST(request: NextRequest) {
   try {

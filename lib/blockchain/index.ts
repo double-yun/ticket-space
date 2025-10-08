@@ -118,7 +118,11 @@ export async function getContractAddress(): Promise<string> {
     return cachedTicketAddress
   }
 
-  const envContractAddress = process.env.CONTRACT_ADDRESS ?? process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+  const envContractAddress =
+    process.env.TICKET_CONTRACT_ADDRESS ??
+    process.env.NEXT_PUBLIC_TICKET_CONTRACT_ADDRESS ??
+    process.env.CONTRACT_ADDRESS ??
+    process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
 
   if (envContractAddress) {
     cachedTicketAddress = envContractAddress
@@ -144,7 +148,7 @@ export async function getContractAddress(): Promise<string> {
     }
   }
 
-  throw new Error('Contract address not configured. Please deploy the contract or set the CONTRACT_ADDRESS environment variable.')
+  throw new Error('Contract address not configured. Please deploy the contract or set the TICKET_CONTRACT_ADDRESS environment variable.')
 }
 
 export function getRpcUrl() {

@@ -1,33 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { decodeEventLog, encodeFunctionData } from 'viem'
+import { decodeEventLog } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { prisma } from '@/lib/prisma'
-import {
-  getChainId,
-  getContractAddress,
-  getPublicClient,
-  getWalletClient,
-} from '@/lib/blockchain'
-import {
-  getAlchemySmartAccountClient,
-  getSmartAccountAddress,
-  isAlchemySmartWalletEnabled,
-} from '@/lib/blockchain/alchemy-smart-wallet'
-import { ticketAbi } from '@/lib/blockchain/ticket-abi'
+import { getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
+import ticketAbiJson from '@/lib/blockchain/ticket-abi.json'
 
-const SEPOLIA_CHAIN_ID = 11155111
+const ticketAbi = ticketAbiJson as const
 
 export async function POST(request: NextRequest) {
   try {
-    const { ticketId } = await request.json()
+    const { eventId } = await request.json()
 
-    if (!ticketId) {
-      return NextResponse.json({ error: '티켓 ID가 필요합니다.' }, { status: 400 })
+    if (!eventId) {
+      return NextResponse.json({ error: '이벤트 ID가 필요합니다.' }, { status: 400 })
     }
 
-    const contractAddress = await getContractAddress()
-
+    // 세션 확인
     const cookieStore = await cookies()
     const sessionToken = cookieStore.get('session_token')?.value
 
@@ -44,155 +33,118 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Session expired' }, { status: 401 })
     }
 
-    const ticket = await prisma.ticket.findUnique({
-      where: { id: ticketId },
-    })
-
-    if (!ticket) {
-      return NextResponse.json({ error: '티켓을 찾을 수 없습니다.' }, { status: 404 })
-    }
-
-    if (ticket.currentSupply >= ticket.maxSupply) {
-      return NextResponse.json({ error: '티켓이 매진되었습니다.' }, { status: 400 })
-    }
-
     const user = session.user
 
     if (!user.walletAddress) {
       return NextResponse.json({ error: '사용자 지갑 정보를 찾을 수 없습니다.' }, { status: 400 })
     }
 
-    const publicClient = getPublicClient()
-    const chainId = getChainId()
-
-    const ticketPrice = BigInt(ticket.price)
-
-    const encodedMintData = encodeFunctionData({
-      abi: ticketAbi,
-      functionName: 'mint',
-      args: [user.walletAddress as `0x${string}`],
+    // Event 조회
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        _count: {
+          select: { tickets: true },
+        },
+      },
     })
 
-    let contractOwner: `0x${string}`
-    try {
-      contractOwner = (await publicClient.readContract({
-        address: contractAddress as `0x${string}`,
-        abi: ticketAbi,
-        functionName: 'owner',
-      })) as `0x${string}`
-    } catch (error) {
-      console.error('Failed to read ticket contract owner.', error)
+    if (!event) {
+      return NextResponse.json({ error: '이벤트를 찾을 수 없습니다.' }, { status: 404 })
+    }
+
+    // 티켓 매진 확인
+    if (event._count.tickets >= event.ticketCount) {
+      return NextResponse.json({ error: '티켓이 매진되었습니다.' }, { status: 400 })
+    }
+
+    // 포인트 잔액 확인
+    if (user.pointBalance < event.price) {
       return NextResponse.json(
-        { error: '티켓 컨트랙트 소유자 정보를 확인할 수 없습니다. 배포 상태를 점검해주세요.' },
-        { status: 500 },
+        { error: `포인트가 부족합니다. 필요: ${event.price}P, 보유: ${user.pointBalance}P` },
+        { status: 400 }
       )
     }
 
-    const shouldAttemptSmartWallet = chainId === SEPOLIA_CHAIN_ID && isAlchemySmartWalletEnabled()
-    let useSmartWallet = false
-
-    if (shouldAttemptSmartWallet) {
-      try {
-        const smartAccountAddress = await getSmartAccountAddress()
-        if (smartAccountAddress && smartAccountAddress.toLowerCase() === contractOwner.toLowerCase()) {
-          useSmartWallet = true
-        } else {
-          console.warn(
-            `Smart wallet ${smartAccountAddress ?? 'unknown'} is not the contract owner ${contractOwner}. Falling back to server wallet.`,
-          )
-        }
-      } catch (error) {
-        console.warn('Failed to verify smart wallet ownership. Falling back to server wallet.', error)
-      }
-    }
-
-    let paymentReceipt:
-      | { transactionHash: `0x${string}`; blockNumber: bigint }
-      | undefined
-
-    const defaultPrivateKey =
-      (process.env.PRIVATE_KEY as `0x${string}` | undefined) ??
-      ('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as `0x${string}`)
-
-    const serverAccount = privateKeyToAccount(defaultPrivateKey)
-    const serverWalletClient = getWalletClient(serverAccount)
-
-    try {
-      const paymentHash = await serverWalletClient.sendTransaction({
-        to: contractOwner,
-        value: ticketPrice,
-      })
-
-      paymentReceipt = await publicClient.waitForTransactionReceipt({ hash: paymentHash })
-    } catch (error) {
-      console.error('Server wallet failed to transfer ticket price on behalf of user.', error)
-      return NextResponse.json(
-        { error: '서버 지갑에서 결제에 실패했습니다. 관리자에게 문의해주세요.' },
-        { status: 500 },
-      )
-    }
-
-    let mintReceipt:
-      | {
-          transactionHash: `0x${string}`
-          blockNumber: bigint
-          logs: readonly {
-            data: `0x${string}`
-            topics: readonly `0x${string}`[]
-          }[]
-        }
-      | undefined
-
-    if (useSmartWallet) {
-      const smartAccountClient = await getAlchemySmartAccountClient()
-      const { hash: userOpHash } = await smartAccountClient.sendUserOperation({
-        uo: {
-          target: contractAddress as `0x${string}`,
-          data: encodedMintData,
-        },
-      })
-
-      const onChainHash = await smartAccountClient.waitForUserOperationTransaction({ hash: userOpHash })
-      mintReceipt = await publicClient.waitForTransactionReceipt({ hash: onChainHash })
-    } else {
-      const defaultPrivateKey =
-        (process.env.PRIVATE_KEY as `0x${string}` | undefined) ??
-        ('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as `0x${string}`)
-
-      const serverAccount = privateKeyToAccount(defaultPrivateKey)
-      const walletClient = getWalletClient(serverAccount)
-
-      if (contractOwner.toLowerCase() !== serverAccount.address.toLowerCase()) {
-        console.error(
-          `Server wallet ${serverAccount.address} is not the ticket contract owner ${contractOwner}. Cannot execute mint.`,
-        )
-        return NextResponse.json(
-          {
-            error:
-              '서버 지갑이 티켓 컨트랙트의 소유자가 아닙니다. PRIVATE_KEY 환경변수를 소유자 키로 설정하거나 소유권을 이전해주세요.',
+    // 트랜잭션 시작: 포인트 차감 + 히스토리 기록
+    const [updatedUser, pointHistory] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          pointBalance: {
+            decrement: event.price,
           },
-          { status: 500 },
-        )
-      }
+        },
+      }),
+      prisma.pointHistory.create({
+        data: {
+          userId: user.id,
+          amount: -event.price,
+          type: 'USE',
+          description: `티켓 구매: ${event.title}`,
+        },
+      }),
+    ])
 
+    // SBT Mint
+    const contractAddress = (await getContractAddress()) as `0x${string}`
+    const publicClient = getPublicClient()
+
+    const privateKey = process.env.PRIVATE_KEY as `0x${string}` | undefined
+    if (!privateKey) {
+      // 포인트 롤백
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: user.id },
+          data: { pointBalance: { increment: event.price } },
+        }),
+        prisma.pointHistory.delete({
+          where: { id: pointHistory.id },
+        }),
+      ])
+      return NextResponse.json(
+        { error: 'PRIVATE_KEY 환경변수가 설정되지 않았습니다.' },
+        { status: 500 }
+      )
+    }
+
+    const serverAccount = privateKeyToAccount(privateKey)
+    const walletClient = getWalletClient(serverAccount)
+
+    let mintReceipt
+    try {
       const { request: contractRequest } = await publicClient.simulateContract({
         account: serverAccount,
-        address: contractAddress as `0x${string}`,
+        address: contractAddress,
         abi: ticketAbi,
         functionName: 'mint',
-        args: [user.walletAddress as `0x${string}`],
+        args: [user.walletAddress as `0x${string}`, BigInt(eventId)],
       })
 
       const hash = await walletClient.writeContract(contractRequest)
       mintReceipt = await publicClient.waitForTransactionReceipt({ hash })
+    } catch (error) {
+      console.error('SBT mint failed:', error)
+
+      // 포인트 롤백
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: user.id },
+          data: { pointBalance: { increment: event.price } },
+        }),
+        prisma.pointHistory.delete({
+          where: { id: pointHistory.id },
+        }),
+      ])
+
+      return NextResponse.json(
+        { error: 'SBT 발급에 실패했습니다. 포인트가 환불되었습니다.' },
+        { status: 500 }
+      )
     }
 
-    if (!mintReceipt) {
-      throw new Error('Mint transaction receipt is missing.')
-    }
-
+    // Transfer 이벤트에서 tokenId 추출
     let tokenId: bigint | null = null
-
     for (const log of mintReceipt.logs) {
       try {
         const decoded = decodeEventLog({
@@ -206,47 +158,44 @@ export async function POST(request: NextRequest) {
           break
         }
       } catch {
-        // Ignore logs that do not match the Ticket ABI events
+        // Ignore logs that do not match
       }
     }
 
     if (!tokenId) {
-      throw new Error('Mint event log를 찾을 수 없습니다.')
+      console.error('TokenId not found in mint receipt')
+      return NextResponse.json(
+        { error: 'SBT가 발급되었으나 TokenId를 찾을 수 없습니다.' },
+        { status: 500 }
+      )
     }
 
-    const purchase = await prisma.purchase.create({
+    // Ticket 생성 (직접 구매, lottery application 없음)
+    const ticket = await prisma.ticket.create({
       data: {
+        eventId: event.id,
         userId: user.id,
-        ticketId: ticket.id,
-        transactionHash: mintReceipt.transactionHash,
-        tokenId: tokenId.toString(),
-      },
-    })
-
-    const updatedTicket = await prisma.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        currentSupply: {
-          increment: 1,
-        },
+        tokenId: tokenId,
+        txHash: mintReceipt.transactionHash,
       },
     })
 
     return NextResponse.json({
       success: true,
-      purchase: {
-        id: purchase.id,
+      ticket: {
+        id: ticket.id,
         transactionHash: mintReceipt.transactionHash,
         tokenId: tokenId.toString(),
         blockNumber: mintReceipt.blockNumber.toString(),
-        ticket: updatedTicket,
+        event: {
+          id: event.id,
+          title: event.title,
+          price: event.price,
+        },
       },
-      payment: paymentReceipt
-        ? {
-            transactionHash: paymentReceipt.transactionHash,
-            blockNumber: paymentReceipt.blockNumber.toString(),
-          }
-        : undefined,
+      user: {
+        pointBalance: updatedUser.pointBalance,
+      },
     })
   } catch (error) {
     console.error('Purchase error:', error)

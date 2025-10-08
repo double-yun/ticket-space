@@ -56,7 +56,7 @@ model VerificationToken {
 }
 
 model Event {
-  id          String      @id @default(cuid())
+  id          Int         @id @default(autoincrement())
   title       String
   description String?
   ticketCount Int
@@ -83,7 +83,7 @@ enum EventStatus {
 
 model LotteryRound {
   id                  String      @id @default(cuid())
-  eventId             String
+  eventId             Int
   roundNumber         Int
   status              RoundStatus @default(OPEN)
   resultHash          String?
@@ -146,8 +146,8 @@ enum PaymentStatus {
 
 model Ticket {
   id            String   @id @default(cuid())
-  applicationId String   @unique
-  eventId       String
+  applicationId String?  @unique
+  eventId       Int
   userId        String
   tokenId       BigInt?
   txHash        String?  @unique
@@ -156,9 +156,9 @@ model Ticket {
   issuedAt      DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  application LotteryApplication @relation(fields: [applicationId], references: [id])
-  event       Event              @relation(fields: [eventId], references: [id])
-  user        User               @relation(fields: [userId], references: [id])
+  application LotteryApplication? @relation(fields: [applicationId], references: [id])
+  event       Event               @relation(fields: [eventId], references: [id])
+  user        User                @relation(fields: [userId], references: [id])
 
   @@unique([eventId, tokenId])
   @@map("tickets")
