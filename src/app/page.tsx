@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Swiper, SwiperSlide } from 'swiper/react'
-import { Settings } from '@mui/icons-material'
 import PayButton from '@/components/PayButton'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
@@ -274,19 +273,7 @@ export default function Home() {
 
   return (
     <div className="bg-gray-50 min-h-screen overflow-hidden">
-      <TopBar
-        title="티켓팅"
-        rightButton={
-          <button
-            onClick={() => {
-              logout()
-              router.push('/login')
-            }}
-          >
-            <Settings className="text-gray-600" />
-          </button>
-        }
-      />
+      <TopBar title="티켓팅" />
 
       <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
         {isRefreshing && (
