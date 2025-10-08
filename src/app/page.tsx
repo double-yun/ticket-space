@@ -29,6 +29,11 @@ interface TicketData {
   deadline: string
 }
 
+interface LotteryTicketData extends TicketData {
+  roundId: string
+  applicationDeadline: string
+}
+
 interface BalanceData {
   success: boolean
   address?: string
@@ -69,7 +74,8 @@ export default function Home() {
   const router = useRouter()
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [tickets, setTickets] = useState<TicketData[]>([])
+  const [directTickets, setDirectTickets] = useState<TicketData[]>([])
+  const [lotteryTickets, setLotteryTickets] = useState<LotteryTicketData[]>([])
   const [balance, setBalance] = useState<BalanceData | null>(null)
   const [funding, setFunding] = useState(false)
 
@@ -119,7 +125,8 @@ export default function Home() {
     try {
       const response = await fetch('/api/tickets')
       const data = await response.json()
-      setTickets(data.tickets || [])
+      setDirectTickets(data.directPurchaseEvents || [])
+      setLotteryTickets(data.lotteryEvents || [])
     } catch (error) {
       console.error('Error fetching tickets:', error)
     } finally {
@@ -340,9 +347,9 @@ export default function Home() {
 
         {/* 티켓 목록 */}
         <div>
-          <h2 className="text-xl font-bold mb-4 text-gray-900">🎪 이용 가능한 티켓</h2>
+          <h2 className="text-xl font-bold mb-4 text-gray-900">🎪 바로 구매 가능한 티켓</h2>
           <div className="space-y-3">
-            {tickets.map((ticket) => (
+            {directTickets.map((ticket) => (
               <div key={ticket.id} className="bg-white rounded-3xl p-5 shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -373,6 +380,52 @@ export default function Home() {
                 </div>
               </div>
             ))}
+            {!loading && directTickets.length === 0 && (
+              <div className="bg-white rounded-3xl p-5 shadow-sm text-center text-gray-500">
+                바로 구매 가능한 티켓이 없습니다.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 추첨 신청 가능한 티켓 */}
+        <div>
+          <h2 className="text-xl font-bold mb-4 text-gray-900">🍀 추첨 신청 가능한 티켓</h2>
+          <div className="space-y-3">
+            {lotteryTickets.map((ticket) => (
+              <div key={`${ticket.id}-${ticket.roundId}`} className="bg-white rounded-3xl p-5 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-3xl">🍀</span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-900 mb-1">{ticket.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{ticket.description}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                      <span className="inline-flex items-center bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                        추첨 신청 마감 {new Date(ticket.applicationDeadline).toLocaleString()}
+                      </span>
+                      <span className="inline-flex items-center bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                        {ticket.price.toLocaleString()}P (당첨 시 결제)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <button
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-2xl text-sm font-semibold transition disabled:bg-gray-300 disabled:text-gray-500"
+                      onClick={() => router.push(`/lottery/${ticket.roundId}`)}
+                    >
+                      추첨 신청
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!loading && lotteryTickets.length === 0 && (
+              <div className="bg-white rounded-3xl p-5 shadow-sm text-center text-gray-500">
+                현재 신청 가능한 추첨 티켓이 없습니다.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -385,8 +438,8 @@ export default function Home() {
             <span className="text-xs mt-1">홈</span>
           </button>
           <button onClick={() => router.push('/search')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
-            <span className="text-lg">🔍</span>
-            <span className="text-xs mt-1">검색</span>
+            <span className="text-lg">🍀</span>
+            <span className="text-xs mt-1">추첨 내역</span>
           </button>
           <button onClick={() => router.push('/my-tickets')} className="flex-1 flex flex-col items-center py-3 text-gray-500">
             <span className="text-lg">🎫</span>
