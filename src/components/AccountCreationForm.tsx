@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import type { KakaoUserInfo } from '@/types/kakao'
 import { useAuth } from '@/contexts/AuthContext'
+import { generateKeyPair, getDeviceInfo, checkBiometricAvailability } from '@/lib/crypto/key-manager'
+import { Capacitor } from '@capacitor/core'
 
 interface AccountCreationFormProps {
   kakaoUserInfo: KakaoUserInfo
@@ -34,6 +36,57 @@ export default function AccountCreationForm({ kakaoUserInfo, onAccountCreated, o
     setError('')
 
     try {
+      let publicKey = ''
+      let deviceInfo = ''
+
+      console.log('[DEBUG] Starting account creation process')
+      console.log('[DEBUG] Is native platform:', Capacitor.isNativePlatform())
+      console.log('[DEBUG] Platform:', Capacitor.getPlatform())
+
+      // 네이티브 플랫폼에서만 키페어 생성
+      if (Capacitor.isNativePlatform()) {
+        console.log('[DEBUG] Native platform detected, checking biometric...')
+
+        // 생체 인증 또는 기기 잠금 가능 여부 확인
+        console.log('[DEBUG] Checking biometric availability...')
+        const biometric = await checkBiometricAvailability()
+        console.log('[DEBUG] Biometric availability:', biometric)
+
+        if (!biometric.available) {
+          setError('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
+          setLoading(false)
+          return
+        }
+
+        // 1. 키페어 생성 (생체 인증 또는 화면 잠금 필요)
+        try {
+          console.log('[DEBUG] Generating key pair for userId:', kakaoUserInfo.kakaoId)
+          publicKey = await generateKeyPair(kakaoUserInfo.kakaoId)
+          console.log('[DEBUG] Public key generated:', publicKey ? `${publicKey.substring(0, 20)}...` : 'null')
+          console.log('[DEBUG] Full public key length:', publicKey ? publicKey.length : 0)
+
+          console.log('[DEBUG] Getting device info...')
+          deviceInfo = await getDeviceInfo()
+          console.log('[DEBUG] Device info:', deviceInfo)
+        } catch (keyError) {
+          console.error('Key generation error:', keyError)
+          setError(`보안 키 생성에 실패했습니다: ${keyError instanceof Error ? keyError.message : '인증을 다시 시도해주세요.'}`)
+          setLoading(false)
+          return
+        }
+      } else {
+        // 웹에서는 인증 불가 안내
+        console.log('[DEBUG] Web platform detected')
+        setError('인증은 모바일 앱에서만 사용 가능합니다.')
+        setLoading(false)
+        return
+      }
+
+      console.log('[DEBUG] Sending registration request with publicKey:', !!publicKey)
+      console.log('[DEBUG] Public key value:', publicKey)
+      console.log('[DEBUG] Device info value:', deviceInfo)
+
+      // 2. 서버에 계정 생성 요청 (공개키 포함)
       const response = await fetch('/api/auth/kakao/register', {
         method: 'POST',
         headers: {
@@ -45,6 +98,10 @@ export default function AccountCreationForm({ kakaoUserInfo, onAccountCreated, o
           name: nickname.trim(),
           email: email.trim(),
           phoneVerified: true,
+          // 비대칭 키 인증 필드
+          publicKey,
+          keyAlgorithm: 'ECDSA_P256',
+          deviceInfo,
         })
       })
 
@@ -75,9 +132,16 @@ export default function AccountCreationForm({ kakaoUserInfo, onAccountCreated, o
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
           계정 생성
         </h2>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-2">
           마지막 단계입니다. 닉네임과 이메일을 입력해주세요.
         </p>
+        {Capacitor.isNativePlatform() && (
+          <div className="bg-blue-50 p-3 rounded-lg mt-3">
+            <p className="text-xs text-blue-700">
+              🔐 보안 강화를 위해 생체 인증 또는 화면 잠금 인증이 필요합니다
+            </p>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

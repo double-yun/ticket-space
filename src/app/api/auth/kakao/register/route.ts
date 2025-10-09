@@ -15,7 +15,11 @@ export async function POST(request: NextRequest) {
       gender,
       accessToken,
       refreshToken,
-      phoneVerified
+      phoneVerified,
+      // 새로 추가: 비대칭 키 인증 필드
+      publicKey,
+      keyAlgorithm,
+      deviceInfo
     } = await request.json()
 
     console.log('Registration request data:', {
@@ -25,7 +29,8 @@ export async function POST(request: NextRequest) {
       phoneVerified,
       email,
       birthDate,
-      gender
+      gender,
+      hasPublicKey: !!publicKey
     })
 
     // 필수 필드 검증
@@ -38,6 +43,14 @@ export async function POST(request: NextRequest) {
       })
       return NextResponse.json(
         { error: 'Required fields are missing' },
+        { status: 400 }
+      )
+    }
+
+    // 공개키 필수 검증
+    if (!publicKey) {
+      return NextResponse.json(
+        { error: 'Public key is required for biometric authentication' },
         { status: 400 }
       )
     }
@@ -96,6 +109,11 @@ export async function POST(request: NextRequest) {
         privyUserId,
         ...(privyWalletId ? { privyWalletId } : {}),
         phoneVerified: true,
+        // 비대칭 키 인증 필드
+        publicKey,
+        keyAlgorithm: keyAlgorithm || 'ECDSA_P256',
+        keyCreatedAt: new Date(),
+        deviceInfo: deviceInfo || null,
       }
     })
 

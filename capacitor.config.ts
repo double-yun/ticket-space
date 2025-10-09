@@ -37,6 +37,9 @@ const config: CapacitorConfig = {
     },
     App: {
       urlSchemes: ['ticketspace']
+    },
+    SecureKey: {
+      // SecureKey plugin configuration
     }
   }
 };

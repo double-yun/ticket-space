@@ -11,6 +11,8 @@ import AccountCreationForm from '@/components/AccountCreationForm'
 import KakaoLogin from '@/components/KakaoLogin'
 import type { KakaoUserInfo } from '@/types/kakao'
 import { useAuth } from '@/contexts/AuthContext'
+import { hasPrivateKey } from '@/lib/crypto/key-manager'
+import { biometricLogin } from '@/lib/crypto/auth-signer'
 
 function LoginPageContent() {
   const router = useRouter()
@@ -102,6 +104,24 @@ function LoginPageContent() {
       if (data.success) {
         const { kakaoId, nickname, email, phoneNumber } = data
 
+        // **[NEW]** 개인키 존재 확인 (기존 사용자 확인)
+        const keyExists = await hasPrivateKey(kakaoId)
+
+        if (keyExists) {
+          // 개인키 있음 → 생체 인증 로그인
+          try {
+            const loginResult = await biometricLogin(kakaoId)
+            setAuthToken(loginResult.token)
+            router.push('/')
+            return
+          } catch (error) {
+            console.error('Biometric login failed:', error)
+            alert('생체 인증 로그인에 실패했습니다. 다시 시도해주세요.')
+            return
+          }
+        }
+
+        // 개인키 없음 → 신규 사용자 또는 다른 기기
         // 전화번호가 있는 경우 기존 계정 확인
         if (phoneNumber) {
           const userCheckResponse = await fetch('/api/auth/kakao/check', {
@@ -116,19 +136,19 @@ function LoginPageContent() {
             const userCheckData = await userCheckResponse.json()
 
             if (userCheckData.userExists) {
-              // 기존 사용자 자동 로그인
-              router.push('/')
+              // 계정은 있지만 개인키 없음 → 다른 기기
+              alert('이 계정은 다른 기기에서 생성되었습니다.\n계정을 생성한 기기에서만 로그인할 수 있습니다.')
               return
             }
           }
         }
 
-        // 새 사용자인 경우 - 전화번호 인증 단계로 (카카오에서는 전화번호를 제공하지 않음)
+        // 새 사용자인 경우 - 전화번호 인증 단계로
         setKakaoUserInfo({
           kakaoId,
           nickname,
           email,
-          phoneNumber: null // 카카오에서는 전화번호를 제공하지 않음
+          phoneNumber: null
         })
         setShowPhoneVerification(true)
       } else {
@@ -195,24 +215,93 @@ function LoginPageContent() {
 
     setDemoLoading(variant)
     try {
-      const response = await fetch('/api/auth/demo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variant, name: label }),
-      })
+      // 네이티브 플랫폼에서만 키 페어 인증 사용
+      if (Capacitor.isNativePlatform()) {
+        // **[NEW]** 개인키 존재 확인
+        const keyExists = await hasPrivateKey(variant)
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || '로그인에 실패했습니다.')
+        if (keyExists) {
+          // 개인키 있음 → 생체 인증 로그인
+          try {
+            const loginResult = await biometricLogin(variant)
+            setAuthToken(loginResult.token)
+            router.push('/')
+            return
+          } catch (error) {
+            console.error('Biometric login failed:', error)
+            alert('생체 인증 로그인에 실패했습니다. 다시 시도해주세요.')
+            return
+          }
+        }
+
+        // 개인키 없음 → 신규 사용자, 키페어 생성 필요
+        // 서버에 공개키와 함께 계정 생성 요청
+        const { generateKeyPair, getDeviceInfo, checkBiometricAvailability } = await import('@/lib/crypto/key-manager')
+
+        console.log('[DEBUG] Demo login: Checking biometric availability...')
+        const biometric = await checkBiometricAvailability()
+        console.log('[DEBUG] Demo login: Biometric availability:', JSON.stringify(biometric))
+        console.log('[DEBUG] Demo login: available =', biometric.available)
+        console.log('[DEBUG] Demo login: biometryType =', biometric.biometryType)
+
+        if (!biometric.available) {
+          alert('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
+          return
+        }
+
+        console.log('[DEBUG] Demo login: Generating key pair for variant:', variant)
+        const publicKey = await generateKeyPair(variant)
+        console.log('[DEBUG] Demo login: Public key generated:', publicKey ? `${publicKey.substring(0, 20)}...` : 'null')
+
+        const deviceInfo = await getDeviceInfo()
+        console.log('[DEBUG] Demo login: Device info:', deviceInfo)
+
+        // 공개키와 함께 데모 로그인 요청
+        const response = await fetch('/api/auth/demo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            variant,
+            name: label,
+            publicKey,
+            keyAlgorithm: 'ECDSA_P256',
+            deviceInfo,
+          }),
+        })
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}))
+          throw new Error(data.error || '로그인에 실패했습니다.')
+        }
+
+        const data = await response.json()
+        if (data.token) {
+          setAuthToken(data.token)
+        }
+
+        router.push('/')
+      } else {
+        // 웹 플랫폼에서는 기존 방식 (키페어 없이)
+        const response = await fetch('/api/auth/demo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variant, name: label }),
+        })
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}))
+          throw new Error(data.error || '로그인에 실패했습니다.')
+        }
+
+        const data = await response.json()
+        if (data.token) {
+          setAuthToken(data.token)
+        }
+
+        router.push('/')
       }
-
-      const data = await response.json()
-      if (data.token) {
-        setAuthToken(data.token)
-      }
-
-      router.push('/')
     } catch (error) {
+      console.error('[DEBUG] Demo login error:', error)
       const message = error instanceof Error ? error.message : '로그인 중 문제가 발생했습니다.'
       alert(message)
     } finally {

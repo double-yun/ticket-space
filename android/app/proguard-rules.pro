@@ -19,3 +19,11 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep Capacitor plugins
+-keep class * extends com.getcapacitor.Plugin { *; }
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+
+# Keep SecureKeyPlugin
+-keep class com.ticketing.app.SecureKeyPlugin { *; }
+-keep class com.ticketing.app.SecureKeyPlugin$** { *; }

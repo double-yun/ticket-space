@@ -45,6 +45,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>안전한 로그인을 위해 Face ID를 사용합니다</string>
 	<key>KAKAO_APP_KEY</key>
 	<string>9276367f0f032290567277690d083805</string>
 	<key>LSApplicationQueriesSchemes</key>
