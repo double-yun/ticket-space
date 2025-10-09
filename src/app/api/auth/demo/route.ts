@@ -6,6 +6,9 @@ import { signToken } from '@/lib/auth/jwt'
 type DemoRequestBody = {
   variant?: string
   name?: string
+  publicKey?: string
+  keyAlgorithm?: string
+  deviceInfo?: string
 }
 
 const DEMO_EMAIL_DOMAIN = 'demo.local'
@@ -23,6 +26,15 @@ export async function POST(request: NextRequest) {
     const variant = sanitizeVariant(body.variant)
     const displayName = body.name?.trim() || `데모 사용자 (${variant})`
     const email = `${variant}@${DEMO_EMAIL_DOMAIN}`
+    const { publicKey, keyAlgorithm, deviceInfo } = body
+
+    console.log('[Demo Login] Request:', {
+      variant,
+      email,
+      hasPublicKey: !!publicKey,
+      keyAlgorithm,
+      deviceInfo,
+    })
 
     let user = await prisma.user.findUnique({ where: { email } })
 
@@ -35,8 +47,16 @@ export async function POST(request: NextRequest) {
           walletAddress,
           privyUserId,
           ...(privyWalletId ? { privyWalletId } : {}),
+          // 공개키 정보 저장 (네이티브에서만)
+          ...(publicKey ? {
+            publicKey,
+            keyAlgorithm: keyAlgorithm || 'ECDSA_P256',
+            keyCreatedAt: new Date(),
+            deviceInfo: deviceInfo || null,
+          } : {}),
         },
       })
+      console.log('[Demo Login] New user created with public key:', !!publicKey)
     } else if (!user.walletAddress) {
       const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`demo:${variant}`)
       user = await prisma.user.update({
@@ -46,13 +66,31 @@ export async function POST(request: NextRequest) {
           privyUserId,
           ...(privyWalletId ? { privyWalletId } : {}),
           name: user.name ?? displayName,
+          // 공개키 정보 업데이트
+          ...(publicKey ? {
+            publicKey,
+            keyAlgorithm: keyAlgorithm || 'ECDSA_P256',
+            keyCreatedAt: new Date(),
+            deviceInfo: deviceInfo || null,
+          } : {}),
         },
       })
+      console.log('[Demo Login] User wallet and key updated')
     } else if (!user.name) {
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { name: displayName },
+        data: {
+          name: displayName,
+          // 공개키 정보 업데이트 (없는 경우만)
+          ...(publicKey && !user.publicKey ? {
+            publicKey,
+            keyAlgorithm: keyAlgorithm || 'ECDSA_P256',
+            keyCreatedAt: new Date(),
+            deviceInfo: deviceInfo || null,
+          } : {}),
+        },
       })
+      console.log('[Demo Login] User name updated')
     }
 
     // Generate JWT token

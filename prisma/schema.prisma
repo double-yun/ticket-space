@@ -25,12 +25,20 @@ model User {
   privyUserId   String?  @unique
   privyWalletId String?  @unique
   pointBalance  Int      @default(0)
+
+  // 비대칭 키 인증 필드
+  publicKey     String?  @unique
+  keyAlgorithm  String?  @default("ECDSA_P256")
+  keyCreatedAt  DateTime?
+  deviceInfo    String?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   lotteryApplications  LotteryApplication[]
   tickets              Ticket[]
   pointHistories       PointHistory[]
+  authChallenges       AuthChallenge[]
 
   @@map("users")
 }
@@ -162,4 +170,20 @@ enum PointType {
   CHARGE
   USE
   ADJUST
+}
+
+model AuthChallenge {
+  id          String   @id @default(cuid())
+  userId      String
+  challenge   String   @unique
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([challenge])
+  @@index([expiresAt])
+  @@map("auth_challenges")
 }

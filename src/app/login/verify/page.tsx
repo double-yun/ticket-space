@@ -9,6 +9,8 @@ import type { FirebaseError } from 'firebase/app'
 import type { KakaoRegistrationPayload } from '@/types/kakao'
 import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
 import { useAuth } from '@/contexts/AuthContext'
+import { Capacitor } from '@capacitor/core'
+import { generateKeyPair, getDeviceInfo, checkBiometricAvailability } from '@/lib/crypto/key-manager'
 
 const normalizePhoneNumber = (phoneNumber: string) => {
   if (!phoneNumber) return ''
@@ -169,6 +171,37 @@ function KakaoPhoneVerificationContent() {
       const verificationResult = await verifySMSCode(confirmationResult, verificationCode)
       const verifiedPhoneNumber = verificationResult.phoneNumber
 
+      let publicKey = ''
+      let deviceInfo = ''
+
+      // 네이티브 플랫폼에서만 키페어 생성
+      if (Capacitor.isNativePlatform()) {
+        // 생체 인증 또는 기기 잠금 가능 여부 확인
+        const biometric = await checkBiometricAvailability()
+
+        if (!biometric.available) {
+          setError('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
+          setLoading(false)
+          return
+        }
+
+        // 키페어 생성 (생체 인증 또는 화면 잠금 필요)
+        try {
+          publicKey = await generateKeyPair(pendingData.kakaoData.id.toString())
+          deviceInfo = await getDeviceInfo()
+        } catch (keyError) {
+          console.error('Key generation error:', keyError)
+          setError(`보안 키 생성에 실패했습니다: ${keyError instanceof Error ? keyError.message : '인증을 다시 시도해주세요.'}`)
+          setLoading(false)
+          return
+        }
+      } else {
+        // 웹에서는 인증 불가 안내
+        setError('인증은 모바일 앱에서만 사용 가능합니다.')
+        setLoading(false)
+        return
+      }
+
       const registrationPayload: KakaoRegistrationPayload = {
         kakaoId: pendingData.kakaoData.id.toString(),
         name: userInfo.name,
@@ -179,6 +212,10 @@ function KakaoPhoneVerificationContent() {
         accessToken: pendingData.accessToken,
         refreshToken: pendingData.refreshToken,
         phoneVerified: true,
+        // 비대칭 키 인증 필드
+        publicKey,
+        keyAlgorithm: 'ECDSA_P256',
+        deviceInfo,
       }
 
       const response = await fetch('/api/auth/kakao/register', {
