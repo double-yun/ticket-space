@@ -108,9 +108,11 @@ export default function Home() {
   }
 
   const fetchBalance = async () => {
-    if (!authUser?.walletAddress) return
+    if (!token) return
     try {
-      const response = await fetch(`/api/balance?address=${authUser.walletAddress}`)
+      const response = await fetch('/api/balance', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       const data = await response.json()
       setBalance(data)
     } catch (error) {
