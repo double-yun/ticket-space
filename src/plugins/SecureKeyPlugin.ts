@@ -1,57 +1,51 @@
 import { registerPlugin } from '@capacitor/core'
 
+/**
+ * SecureKeyPlugin 인터페이스
+ * 네이티브 Secure Enclave 기반 키 관리 및 생체인증 관련 기능
+ */
 export interface SecureKeyPlugin {
   /**
-   * 키페어 생성 (개인키는 HSM에 저장, 공개키 반환)
-   * @param options.userId - 사용자 고유 ID (키 식별자로 사용)
-   * @param options.promptMessage - 생체 인증 프롬프트 메시지
-   * @returns publicKey - Base64 인코딩된 공개키 (SPKI 형식)
+   * 생체 인증을 통해 키페어를 생성하고 공개키(Base64)를 반환
    */
   generateKeyPair(options: {
     userId: string
-    promptMessage: string
+    promptMessage?: string
   }): Promise<{ publicKey: string }>
 
   /**
    * 개인키 존재 여부 확인
-   * @param options.userId - 사용자 고유 ID
-   * @returns exists - 개인키 존재 여부
    */
-  hasPrivateKey(options: { userId: string }): Promise<{ exists: boolean }>
+  hasPrivateKey(options: {
+    userId: string
+  }): Promise<{ exists: boolean }>
 
   /**
-   * 데이터 서명 (생체 인증 필수)
-   * @param options.userId - 사용자 고유 ID
-   * @param options.data - 서명할 데이터 (챌린지)
-   * @param options.promptMessage - 생체 인증 프롬프트 메시지
-   * @returns signature - Base64 인코딩된 서명
+   * Secure Enclave에 저장된 개인키로 데이터 서명 (Base64 반환)
    */
   signData(options: {
     userId: string
     data: string
-    promptMessage: string
+    promptMessage?: string
   }): Promise<{ signature: string }>
 
   /**
-   * 공개키 조회
-   * @param options.userId - 사용자 고유 ID
-   * @returns publicKey - Base64 인코딩된 공개키, null이면 키 없음
+   * 공개키(Base64) 조회
    */
-  getPublicKey(options: { userId: string }): Promise<{ publicKey: string | null }>
+  getPublicKey(options: {
+    userId: string
+  }): Promise<{ publicKey: string | null }>
 
   /**
    * 생체 인증 가능 여부 확인
-   * @returns available - 생체 인증 사용 가능 여부
-   * @returns biometryType - 생체 인증 타입 (fingerprint, face, iris, none)
    */
   isBiometricAvailable(): Promise<{
     available: boolean
-    biometryType: 'fingerprint' | 'face' | 'iris' | 'none'
+    biometryType: 'fingerprint' | 'face' | 'none'
   }>
 
   /**
-   * 기기 정보 조회
-   * @returns deviceInfo - OS, 모델, OS 버전 등
+   * 기기 정보 조회 (ex. iOS 17.0 - iPhone)
    */
   getDeviceInfo(): Promise<{ deviceInfo: string }>
 }

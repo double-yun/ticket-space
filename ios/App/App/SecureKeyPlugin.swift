@@ -3,8 +3,8 @@ import Capacitor
 import LocalAuthentication
 import Security
 
-@objc(SecureKeyPlugin)
-public class SecureKeyPlugin: CAPPlugin {
+@objc(SecureKey)
+public class SecureKey: CAPPlugin {
 
     private let keyTag = "com.ticketing.app.securekey"
 
