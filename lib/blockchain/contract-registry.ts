@@ -8,6 +8,12 @@ const CONTRACT_SIGNATURES = {
     'mint(address)',
     'ownerOf(uint256)'
   ],
+  Lottery: [
+    'submitApplicationFor(address,uint256)',
+    'getApplicants(uint256)',
+    'hasApplied(uint256,address)',
+    'createLottery(uint256,uint256)'
+  ],
   // 다른 컨트랙트들도 추가 가능
   // PaymentContract: ['processPayment(uint256)', 'getPaymentStatus(uint256)'],
   // EventContract: ['createEvent(string)', 'getEvent(uint256)']
