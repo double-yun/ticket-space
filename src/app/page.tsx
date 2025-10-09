@@ -47,11 +47,6 @@ interface BalanceData {
   error?: string
 }
 
-const PORTONE_STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID
-const PORTONE_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
-const PORTONE_ORDER_NAME = '지갑 충전'
-const PORTONE_TOPUP_AMOUNT = 1000
-
 export default function Home() {
   const router = useRouter()
   const { user, token, isLoading: authLoading } = useAuth()
@@ -143,7 +138,8 @@ export default function Home() {
     setFunding(true)
 
     const paymentId = `payment-${crypto.randomUUID()}`
-    const { NEXT_PUBLIC_PORTONE_STORE_ID: storeId, NEXT_PUBLIC_PORTONE_CHANNEL_KEY: channelKey } = process.env
+	const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
+	const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
 
     if (!storeId || !channelKey) {
       alert('결제 설정이 필요합니다.')
