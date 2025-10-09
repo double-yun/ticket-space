@@ -132,8 +132,83 @@ contract LotteryApplicationTest is Test {
         assertEq(applicants.length, 2);
         assertEq(applicants[0], user1);
         assertEq(applicants[1], user2);
-        
+
         uint256 count = lotteryApp.getApplicantsCount(eventId);
         assertEq(count, 2);
+    }
+
+    function test_SubmitApplicationFor() public {
+        // Setup: create a lottery
+        vm.startPrank(owner);
+        lotteryApp.createLottery(eventId, deadline);
+
+        // Test: owner submits application for user1
+        lotteryApp.submitApplicationFor(user1, eventId);
+        vm.stopPrank();
+
+        address[] memory applicants = lotteryApp.getApplicants(eventId);
+        assertEq(applicants.length, 1);
+        assertEq(applicants[0], user1);
+
+        bool hasApplied = lotteryApp.hasApplied(eventId, user1);
+        assertTrue(hasApplied);
+    }
+
+    function test_Fail_SubmitApplicationFor_NotOwner() public {
+        // Setup: create a lottery
+        vm.startPrank(owner);
+        lotteryApp.createLottery(eventId, deadline);
+        vm.stopPrank();
+
+        // Test: user1 tries to submit application for user2
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user1));
+        lotteryApp.submitApplicationFor(user2, eventId);
+    }
+
+    function test_Fail_SubmitApplicationFor_Twice() public {
+        // Setup: create a lottery and owner submits for user1
+        vm.startPrank(owner);
+        lotteryApp.createLottery(eventId, deadline);
+        lotteryApp.submitApplicationFor(user1, eventId);
+
+        // Test: owner tries to submit for user1 again
+        vm.expectRevert(LotteryApplication.AlreadySubmitted.selector);
+        lotteryApp.submitApplicationFor(user1, eventId);
+        vm.stopPrank();
+    }
+
+    function test_Fail_SubmitApplicationFor_AfterDeadline() public {
+        uint256 specificEventId = 99;
+        uint256 futureDeadline = block.timestamp + 100;
+
+        // Setup: create a lottery with a future deadline
+        vm.startPrank(owner);
+        lotteryApp.createLottery(specificEventId, futureDeadline);
+        vm.stopPrank();
+
+        // Move time to after the deadline
+        vm.warp(futureDeadline + 1);
+
+        // Test: owner tries to submit application for user1
+        vm.prank(owner);
+        vm.expectRevert(LotteryApplication.ApplicationPeriodClosed.selector);
+        lotteryApp.submitApplicationFor(user1, specificEventId);
+    }
+
+    function test_SubmitApplicationFor_MultipleUsers() public {
+        // Setup: create a lottery
+        vm.startPrank(owner);
+        lotteryApp.createLottery(eventId, deadline);
+
+        // Test: owner submits applications for multiple users
+        lotteryApp.submitApplicationFor(user1, eventId);
+        lotteryApp.submitApplicationFor(user2, eventId);
+        vm.stopPrank();
+
+        address[] memory applicants = lotteryApp.getApplicants(eventId);
+        assertEq(applicants.length, 2);
+        assertEq(applicants[0], user1);
+        assertEq(applicants[1], user2);
     }
 }

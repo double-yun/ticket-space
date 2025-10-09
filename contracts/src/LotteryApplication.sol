@@ -36,11 +36,22 @@ contract LotteryApplication is Ownable {
         Lottery storage lottery = lotteries[eventId];
         if (lottery.deadline == 0) revert InvalidEventId();
         if (block.timestamp > lottery.deadline) revert ApplicationPeriodClosed();
-        
+
         bool added = applicantsByEvent[eventId].add(msg.sender);
         if (!added) revert AlreadySubmitted();
 
         emit ApplicationSubmitted(eventId, msg.sender);
+    }
+
+    function submitApplicationFor(address user, uint256 eventId) external onlyOwner {
+        Lottery storage lottery = lotteries[eventId];
+        if (lottery.deadline == 0) revert InvalidEventId();
+        if (block.timestamp > lottery.deadline) revert ApplicationPeriodClosed();
+
+        bool added = applicantsByEvent[eventId].add(user);
+        if (!added) revert AlreadySubmitted();
+
+        emit ApplicationSubmitted(eventId, user);
     }
 
     function hasApplied(uint256 eventId, address applicant) external view returns (bool) {
