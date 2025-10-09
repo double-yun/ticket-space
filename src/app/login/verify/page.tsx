@@ -195,12 +195,8 @@ function KakaoPhoneVerificationContent() {
           setLoading(false)
           return
         }
-      } else {
-        // 웹에서는 인증 불가 안내
-        setError('인증은 모바일 앱에서만 사용 가능합니다.')
-        setLoading(false)
-        return
       }
+      // 웹에서는 키페어 없이 진행
 
       const registrationPayload: KakaoRegistrationPayload = {
         kakaoId: pendingData.kakaoData.id.toString(),

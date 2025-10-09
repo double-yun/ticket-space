@@ -47,13 +47,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 공개키 필수 검증
-    if (!publicKey) {
-      return NextResponse.json(
-        { error: 'Public key is required for biometric authentication' },
-        { status: 400 }
-      )
-    }
+    // 공개키는 선택 사항 (모바일에서만 필요)
 
     // 이미 존재하는 사용자인지 확인
     const existingUser = await prisma.user.findFirst({
@@ -109,11 +103,13 @@ export async function POST(request: NextRequest) {
         privyUserId,
         ...(privyWalletId ? { privyWalletId } : {}),
         phoneVerified: true,
-        // 비대칭 키 인증 필드
-        publicKey,
-        keyAlgorithm: keyAlgorithm || 'ECDSA_P256',
-        keyCreatedAt: new Date(),
-        deviceInfo: deviceInfo || null,
+        // 비대칭 키 인증 필드 (모바일에서만)
+        ...(publicKey ? {
+          publicKey,
+          keyAlgorithm: keyAlgorithm || 'ECDSA_P256',
+          keyCreatedAt: new Date(),
+          deviceInfo: deviceInfo || null,
+        } : {}),
       }
     })
 
