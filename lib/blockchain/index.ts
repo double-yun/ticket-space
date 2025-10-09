@@ -15,6 +15,7 @@ const chainsById: Record<SupportedChainId, Chain> = {
 }
 
 let cachedTicketAddress: string | null = null
+let cachedLotteryAddress: string | null = null
 
 function isSupportedChainId(chainId: number): chainId is SupportedChainId {
   return chainId === SEPOLIA_CHAIN_ID || chainId === MAINNET_CHAIN_ID
@@ -155,6 +156,43 @@ export function getRpcUrl() {
   return rpcUrl
 }
 
+export async function getLotteryContractAddress(): Promise<string> {
+  if (cachedLotteryAddress) {
+    return cachedLotteryAddress
+  }
+
+  const envContractAddress =
+    process.env.LOTTERY_CONTRACT_ADDRESS ??
+    process.env.NEXT_PUBLIC_LOTTERY_CONTRACT_ADDRESS
+
+  if (envContractAddress) {
+    cachedLotteryAddress = envContractAddress
+    return cachedLotteryAddress
+  }
+
+  const configuredAddress = networkConfig?.contracts?.Lottery?.address
+  if (configuredAddress) {
+    cachedLotteryAddress = configuredAddress
+    return cachedLotteryAddress
+  }
+
+  const shouldAutoDiscover = Boolean(networkConfig?.contracts?.Lottery?.autoDiscover)
+
+  if (shouldAutoDiscover) {
+    console.log('Auto-discovering Lottery contract...')
+    const discoveredAddress = await discoverContractByType('Lottery')
+
+    if (discoveredAddress) {
+      cachedLotteryAddress = discoveredAddress
+      console.log(`Lottery contract discovered at: ${discoveredAddress}`)
+      return cachedLotteryAddress
+    }
+  }
+
+  throw new Error('Lottery contract address not configured. Please set the LOTTERY_CONTRACT_ADDRESS environment variable.')
+}
+
 export function resetContractCache() {
   cachedTicketAddress = null
+  cachedLotteryAddress = null
 }

@@ -100,7 +100,7 @@ model LotteryApplication {
   userId            String
   walletAddress     String?
   priority          Int?
-  applicationTxHash String            @unique
+  applicationTxHash String?           @unique
   status            ApplicationStatus @default(APPLIED)
   paymentStatus     PaymentStatus     @default(PENDING)
   paymentDeadline   DateTime?
