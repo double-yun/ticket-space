@@ -142,6 +142,8 @@ id, userId, amount, type, description
 
 - 마감 시간 이후 백엔드가 Lottery 신청자 대상으로 우선순위 부여 추첨
 - 당첨자 자동 결제 후 minting
+- PassKey 기기 인증 -> 암표나 양도 방지
+- 추첨 후 해시값 등록하는 로직 보완 -> 공평성, 투명성
 
 ### P1
 
