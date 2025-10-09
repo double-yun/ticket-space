@@ -4,8 +4,48 @@ import { getAuthenticatedUser } from '@/lib/auth/server'
 import { privateKeyToAccount } from 'viem/accounts'
 import { getLotteryContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
 import lotteryAbiJson from '@/lib/blockchain/lottery-abi.json'
+import type { Account, PublicClient, WalletClient } from 'viem'
 
 const lotteryAbi = lotteryAbiJson as const
+
+// 백그라운드에서 블록체인에 신청 제출
+async function submitApplicationToBlockchain(
+  applicationId: string,
+  walletAddress: string,
+  eventId: number,
+  lotteryContractAddress: `0x${string}`,
+  serverAccount: Account,
+  publicClient: PublicClient,
+  walletClient: WalletClient
+) {
+  try {
+    console.log(`[Background] Submitting application ${applicationId} for user: ${walletAddress}, eventId: ${eventId}`)
+
+    const { request: contractRequest } = await publicClient.simulateContract({
+      account: serverAccount,
+      address: lotteryContractAddress,
+      abi: lotteryAbi,
+      functionName: 'submitApplicationFor',
+      args: [walletAddress as `0x${string}`, BigInt(eventId)],
+    })
+
+    const txHash = await walletClient.writeContract(contractRequest)
+
+    // 트랜잭션 완료 대기
+    await publicClient.waitForTransactionReceipt({ hash: txHash })
+
+    // DB에 txHash 업데이트
+    await prisma.lotteryApplication.update({
+      where: { id: applicationId },
+      data: { applicationTxHash: txHash },
+    })
+
+    console.log(`[Background] Application ${applicationId} submitted successfully. TxHash: ${txHash}`)
+  } catch (error) {
+    console.error(`[Background] Failed to submit application ${applicationId} to blockchain:`, error)
+    // 실패 시 별도 처리 가능 (예: 재시도, 알림 등)
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -136,54 +176,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. 블록체인에 submitApplicationFor 호출
-    let txHash: `0x${string}`
-    try {
-      console.log(`Submitting application for user: ${user.walletAddress}, eventId: ${round.eventId}`)
-
-      const { request: contractRequest } = await publicClient.simulateContract({
-        account: serverAccount,
-        address: lotteryContractAddress,
-        abi: lotteryAbi,
-        functionName: 'submitApplicationFor',
-        args: [user.walletAddress as `0x${string}`, BigInt(round.eventId)],
-      })
-
-      txHash = await walletClient.writeContract(contractRequest)
-
-      // 트랜잭션 완료 대기
-      await publicClient.waitForTransactionReceipt({ hash: txHash })
-
-      console.log(`Application submitted successfully. TxHash: ${txHash}`)
-    } catch (error) {
-      console.error('Blockchain transaction error:', error)
-      return NextResponse.json(
-        { error: '블록체인 트랜잭션 실패했습니다.' },
-        { status: 500 }
-      )
-    }
-
-    // 8. DB에 LotteryApplication 저장
+    // 7. DB에 LotteryApplication 먼저 저장 (txHash는 null)
     const application = await prisma.lotteryApplication.create({
       data: {
         roundId: round.id,
         userId: user.id,
         walletAddress: user.walletAddress,
-        applicationTxHash: txHash,
+        applicationTxHash: null,
         status: 'APPLIED',
         paymentStatus: 'PENDING',
       },
     })
 
-    return NextResponse.json({
+    // 8. 즉시 응답 반환 (유저는 대기하지 않음)
+    const response = NextResponse.json({
       success: true,
       application: {
         id: application.id,
         roundId: application.roundId,
         status: application.status,
-        txHash: txHash,
       },
     })
+
+    // 9. 블록체인 트랜잭션을 백그라운드에서 실행 (await 하지 않음)
+    submitApplicationToBlockchain(
+      application.id,
+      user.walletAddress,
+      round.eventId,
+      lotteryContractAddress,
+      serverAccount,
+      publicClient,
+      walletClient
+    ).catch((error) => {
+      console.error(`Background blockchain submission failed for application ${application.id}:`, error)
+    })
+
+    return response
   } catch (error) {
     console.error('Lottery application error:', error)
     return NextResponse.json(
