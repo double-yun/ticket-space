@@ -13,13 +13,9 @@ export async function GET() {
       },
       include: {
         rounds: {
-          where: {
-            status: RoundStatus.OPEN,
-          },
           orderBy: {
             roundNumber: 'asc',
           },
-          take: 1,
         },
         _count: {
           select: {
@@ -44,12 +40,15 @@ export async function GET() {
       }
 
       if (event.rounds.length > 0) {
-        const round = event.rounds[0]
-        lotteryEvents.push({
-          ...base,
-          roundId: round.id,
-          applicationDeadline: round.applicationDeadline,
-        })
+        const openRound = event.rounds.find((r) => r.status === RoundStatus.OPEN)
+        
+		if (openRound) {
+          lotteryEvents.push({
+            ...base,
+            roundId: openRound.id,
+            applicationDeadline: openRound.applicationDeadline,
+          })
+		}
       } else {
         directPurchaseEvents.push(base)
       }

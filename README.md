@@ -1,111 +1,104 @@
 # Ticket Space
 
-Blockchain Ticketing system with Next.js and Capacitor
+Next\.js와 Capacitor 기반의 블록체인 티켓팅 시스템입니다\.
 
-## Prerequisites
+## 🛠️ 기술 스택
 
-- **Node.js** (v20 or up)
-- **pnpm**
-- **Xcode** (for iOS)
-- **Android Studio** (for Android)
-
-## Get started
-
-### 1. Install dependencies
-
-```bash
-pnpm install
-```
-
-### 2. Fill in environment variables
-
-```bash
-cp .env.sample .env
-```
-
-CAPACITOR_SERVER_URL은 다음과 같은 방법으로 설정할 수 있습니다:
-- macOS / Linux: `ifconfig | grep "inet " | grep -v 127.0.0.1`
-- Windows: `ipconfig`
-
-### 3. Set database
-
-```bash
-pnpm db:migrate
-pnpm db:seed
-
-# or
-pnpm exec prisma db push
-```
-
-### 4. Run development server
-
-```bash
-pnpm dev
-```
-
-## Mobile Development
-
-### iOS
-
-1. **개발 서버 설정**
-
-`.env` 파일의 `CAPACITOR_SERVER_URL`을 노트북의 IP 주소로 지정합니다:
-
-```env
-CAPACITOR_SERVER_URL=http://192.168.0.27:3000
-```
-
-2. **iOS 프로젝트와 동기화**
-
-```bash
-pnpm build
-pnpm exec cap sync ios
-```
-
-3. **Xcode 열기**
-
-```bash
-pnpm exec cap open ios
-```
-
-### Android
-
-1. **Android 프로젝트와 동기화**
-
-```bash
-pnpm build
-pnpm exec cap sync android
-```
-
-2. **Android Studio 열기**
-
-```bash
-pnpm exec cap open android
-```
-
-## 사용 가능한 명령어
-
-| 명령어 | 설명 |
-|--------|------|
-| `pnpm dev` | 개발 서버 실행 |
-| `pnpm build` | 프로덕션 빌드 생성 |
-| `pnpm start` | 프로덕션 서버 실행 |
-| `pnpm lint` | ESLint 검사 |
-| `pnpm db:migrate` | Prisma 마이그레이션 실행 |
-| `pnpm db:seed` | 초기 데이터 삽입 |
-| `pnpm db:studio` | Prisma Studio 실행 |
-
-## 기술 스택
-
-- **Frontend**: Next.js 15, React 19, TailwindCSS, Material-UI
+- **Frontend**: Next\.js 15, React 19, TailwindCSS, Material\-UI
 - **Mobile**: Capacitor 7
 - **Database**: PostgreSQL, Prisma
-- **Blockchain**: Alchemy, ethers.js, viem
+- **Blockchain**: Alchemy, ethers\.js, viem
 - **Authentication**: Kakao OAuth
 - **Payment**: PortOne
 
-## 개발 팁
+## 📋 사전 준비
 
-- 모바일 기기와 노트북이 같은 네트워크에 연결되어 있어야 합니다
-- Kakao OAuth의 Redirect URI는 Next.js 설정 및 Kakao 개발자 콘솔 모두 동일해야 합니다
-- `.env`의 `CAPACITOR_SERVER_URL`이 올바르지 않으면 모바일에서 서버에 연결되지 않습니다
+- Node\.js \(v20 이상\)
+- pnpm
+- Xcode \(iOS 개발용\)
+- Android Studio \(Android 개발용\)
+
+## 🚀 시작하기
+
+1. **의존성 설치**
+
+```
+pnpm install
+```
+
+2. **환경 변수 설정** `.env.sample` 파일을 복사하여 `.env` 파일을 만들고, 환경에 맞게 변수를 채워주세요\.
+
+```
+cp .env.sample .env
+```
+
+> **Tip:** `CAPACITOR_SERVER_URL`은 모바일 개발 시 필요하며, 개발용 PC의 IP 주소를 입력해야 합니다\. \(예: `http://192.168.0.10:3000`\)  
+>   
+>   
+> **데이터베이스 설정**
+
+- **초기 설정 시:** 스키마를 적용하고 초기 데이터를 삽입합니다\.
+
+```
+# 스키마 적용
+pnpm db:push
+
+# 초기 데이터 삽입
+pnpm db:seed
+```
+
+4. **스키마 변경 후:** `prisma/schema.prisma` 수정 후, 마이그레이션 파일을 생성하고 적용합니다\.
+
+```
+pnpm db:migrate
+```
+
+## 💻 개발
+
+### 웹 개발 서버 실행
+
+```
+pnpm dev
+```
+
+이제 브라우저에서 `http://localhost:3000`으로 접속할 수 있습니다\.
+
+### 모바일 앱 개발
+
+모바일 앱을 개발하려면 웹 서버\(`pnpm dev`\)가 실행 중이어야 합니다\.
+
+1. **프로젝트 빌드 및 동기화**
+
+```
+# 공통
+pnpm build
+
+# iOS
+pnpm exec cap sync ios
+
+# Android
+pnpm exec cap sync android
+```
+
+2. **네이티브 IDE 실행**
+
+```
+# iOS (Xcode)
+pnpm exec cap open ios
+
+# Android (Android Studio)
+pnpm exec cap open android
+```
+
+## 📜 주요 명령어
+
+|  | 명령어설명 |
+| --- | --- |
+| `pnpm dev` | 개발 서버를 실행합니다\. |
+| `pnpm build` | 프로덕션용으로 프로젝트를 빌드합니다\. |
+| `pnpm start` | 빌드된 프로덕션 서버를 실행합니다\. |
+| `pnpm lint` | ESLint로 코드를 검사합니다\. |
+| `pnpm db:migrate` | Prisma 데이터베이스 마이그레이션을 실행합니다\. |
+| `pnpm db:push` | Prisma 스키마를 DB에 푸시합니다\. \(개발용\) |
+| `pnpm db:seed` | 데이터베이스에 초기 데이터를 삽입합니다\. |
+| `pnpm db:studio` | Prisma Studio를 실행합니다\. |

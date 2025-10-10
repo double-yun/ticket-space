@@ -76,27 +76,9 @@ async function mintSBTInBackground(
   } catch (error) {
     console.error(`[Background] Failed to mint SBT for ticket ${ticketId}:`, error)
 
-    // 실패 시 포인트 환불 및 티켓 삭제
-    try {
-      const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } })
-      if (ticket) {
-        await prisma.$transaction([
-          prisma.ticket.delete({
-            where: { id: ticketId },
-          }),
-          prisma.user.update({
-            where: { id: ticket.userId },
-            data: { pointBalance: { increment: eventPrice } },
-          }),
-          prisma.pointHistory.delete({
-            where: { id: pointHistoryId },
-          }),
-        ])
-        console.log(`[Background] Refunded points and deleted ticket ${ticketId} due to SBT minting failure`)
-      }
-    } catch (rollbackError) {
-      console.error(`[Background] Failed to rollback ticket ${ticketId}:`, rollbackError)
-    }
+    // 티켓은 유지하고 에러만 로깅 (관리자가 수동으로 처리하거나 재시도 필요)
+    // 추첨 시스템의 경우 티켓을 삭제하면 안 되므로 롤백하지 않음
+    console.error(`[Background] Ticket ${ticketId} created but SBT minting failed. Manual intervention required.`)
   }
 }
 
@@ -137,19 +119,10 @@ export async function purchaseTicketWithPoints({
 }: PurchaseOptions): Promise<PurchaseTicketResult> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    include: {
-      _count: {
-        select: { tickets: true },
-      },
-    },
   })
 
   if (!event) {
     throw new PurchaseTicketError('EVENT_NOT_FOUND', '이벤트를 찾을 수 없습니다.')
-  }
-
-  if (event._count.tickets >= event.ticketCount) {
-    throw new PurchaseTicketError('SOLD_OUT', '티켓이 매진되었습니다.')
   }
 
   const user = await prisma.user.findUnique({
@@ -175,24 +148,36 @@ export async function purchaseTicketWithPoints({
     description ?? (applicationId ? `티켓 추첨 자동결제: ${event.title}` : `티켓 구매: ${event.title}`)
 
   // 1. 포인트 차감 및 DB에 티켓 먼저 생성 (txHash, tokenId는 null)
-  const [updatedUser, pointHistory, ticket] = await prisma.$transaction([
-    prisma.user.update({
+  // 트랜잭션 내에서 티켓 수 체크 (race condition 방지)
+  const [updatedUser, pointHistory, ticket, ticketCount] = await prisma.$transaction(async (tx) => {
+    // 트랜잭션 내에서 티켓 수 확인
+    const currentTicketCount = await tx.ticket.count({
+      where: { eventId: event.id },
+    })
+
+    if (currentTicketCount >= event.ticketCount) {
+      throw new PurchaseTicketError('SOLD_OUT', '티켓이 매진되었습니다.')
+    }
+
+    const updatedUser = await tx.user.update({
       where: { id: user.id },
       data: {
         pointBalance: {
           decrement: event.price,
         },
       },
-    }),
-    prisma.pointHistory.create({
+    })
+
+    const pointHistory = await tx.pointHistory.create({
       data: {
         userId: user.id,
         amount: -event.price,
         type: 'USE',
         description: pointDescription,
       },
-    }),
-    prisma.ticket.create({
+    })
+
+    const ticket = await tx.ticket.create({
       data: {
         eventId: event.id,
         userId: user.id,
@@ -200,8 +185,10 @@ export async function purchaseTicketWithPoints({
         txHash: null,
         ...(applicationId ? { applicationId } : {}),
       },
-    }),
-  ])
+    })
+
+    return [updatedUser, pointHistory, ticket, currentTicketCount + 1]
+  })
 
   // 2. 블록체인 트랜잭션을 백그라운드에서 실행 (await 하지 않음)
   mintSBTInBackground(ticket.id, user.walletAddress, eventId, event.price, pointHistory.id).catch((error) => {
