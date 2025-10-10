@@ -74,20 +74,20 @@ pnpm dev
 pnpm build
 
 # iOS
-pnpm exec cap sync ios
+pnpm sync:ios
 
 # Android
-pnpm exec cap sync android
+pnpm sync:android
 ```
 
 2. **네이티브 IDE 실행**
 
 ```
 # iOS (Xcode)
-pnpm exec cap open ios
+pnpm open:ios
 
 # Android (Android Studio)
-pnpm exec cap open android
+pnpm open:android
 ```
 
 ## 📜 주요 명령어

@@ -11,7 +11,11 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
-    "test:lottery": "tsx scripts/test-lottery.ts"
+    "test:lottery": "tsx scripts/test-lottery.ts",
+	"sync:ios": "npx cap sync ios",
+	"sync:android": "npx cap sync android",
+	"open:ios": "npx cap open ios",
+	"open:android": "npx cap open android"
   },
   "dependencies": {
     "@alchemy/aa-alchemy": "^3.19.0",
