@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import { privateKeyToAccount } from 'viem/accounts'
-import { getLotteryContractAddress, getPublicClient, getWalletClient } from '../lib/blockchain'
-import lotteryAbiJson from '../lib/blockchain/lottery-abi.json'
+import { getLotteryContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
+import lotteryAbiJson from '@/lib/blockchain/lottery-abi.json'
 
-const lotteryAbi = lotteryAbiJson as const
+const lotteryAbi = lotteryAbiJson
 const prisma = new PrismaClient()
 
 /**

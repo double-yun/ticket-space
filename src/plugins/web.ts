@@ -28,7 +28,7 @@ export class SecureKeyWeb extends WebPlugin implements SecureKeyPlugin {
 
   async isBiometricAvailable(): Promise<{
     available: boolean
-    biometryType: 'fingerprint' | 'face' | 'iris' | 'none'
+    biometryType: 'fingerprint' | 'face' | 'none'
   }> {
     // 웹에서는 생체 인증 불가
     return { available: false, biometryType: 'none' }

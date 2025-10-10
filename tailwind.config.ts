@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss'
-import konstaConfig from 'konsta/config'
+// import konstaConfig from 'konsta/config'
 
 const config: Config = {
   content: [
@@ -19,4 +19,4 @@ const config: Config = {
   plugins: [],
 }
 
-export default konstaConfig(config)
+export default config // konstaConfig(config)

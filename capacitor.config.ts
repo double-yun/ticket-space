@@ -35,9 +35,6 @@ const config: CapacitorConfig = {
     KakaoLogin: {
       kakaoAppKey: '9276367f0f032290567277690d083805'
     },
-    App: {
-      urlSchemes: ['ticketspace']
-    },
     SecureKey: {
       // SecureKey plugin configuration
     }

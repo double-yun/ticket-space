@@ -5,7 +5,7 @@ import lotteryAbiJson from '@/lib/blockchain/lottery-abi.json'
 import { keccak256, encodeAbiParameters } from 'viem'
 import { purchaseTicketWithPoints, PurchaseTicketError } from '@/lib/tickets/purchaseWithPoints'
 
-const lotteryAbi = lotteryAbiJson as const
+const lotteryAbi = lotteryAbiJson
 
 /**
  * Fisher-Yates shuffle algorithm for fair random shuffling
@@ -45,6 +45,10 @@ export async function executeDraw(roundId: string) {
       throw new Error(`Round not found: ${roundId}`)
     }
 
+    if (round.status === 'DRAWN') {
+      throw new Error('Draw has already been completed for this round')
+    }
+
     if (round.status !== 'CLOSED') {
       throw new Error(`Round is not closed. Current status: ${round.status}`)
     }
@@ -53,11 +57,6 @@ export async function executeDraw(roundId: string) {
     const now = new Date()
     if (now <= round.applicationDeadline) {
       throw new Error('Application deadline has not passed yet')
-    }
-
-    // 이미 추첨이 완료되었는지 확인
-    if (round.status === 'DRAWN') {
-      throw new Error('Draw has already been completed for this round')
     }
 
     // 2. 블록체인 설정
