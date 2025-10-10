@@ -2,7 +2,7 @@ import { createPublicClient, createWalletClient, http, type Chain } from 'viem'
 import { mainnet, sepolia } from 'viem/chains'
 import type { Account } from 'viem'
 import { discoverContractByType } from './contract-registry'
-import contractsConfig from '../../config/contracts.json'
+import contractsConfig from '../../../config/contracts.json'
 
 const SEPOLIA_CHAIN_ID = 11155111 as const
 const MAINNET_CHAIN_ID = 1 as const
@@ -55,7 +55,7 @@ if (!activeChain) {
   throw new Error(`Unsupported chainId ${chainId} resolved at runtime.`)
 }
 
-const networkConfig = contractsConfig.networks?.[chainId.toString()]
+const networkConfig = (contractsConfig.networks as Record<string, any>)?.[chainId.toString()]
 
 function resolveRpcUrl(): string {
   const explicitRpcUrl = process.env.RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL
@@ -116,7 +116,7 @@ export function getWalletClient(account: Account) {
 
 export async function getContractAddress(): Promise<string> {
   if (cachedTicketAddress) {
-    return cachedTicketAddress
+    return cachedTicketAddress!
   }
 
   const envContractAddress =
@@ -127,13 +127,13 @@ export async function getContractAddress(): Promise<string> {
 
   if (envContractAddress) {
     cachedTicketAddress = envContractAddress
-    return cachedTicketAddress
+    return cachedTicketAddress!
   }
 
   const configuredAddress = networkConfig?.contracts?.Ticket?.address
   if (configuredAddress) {
     cachedTicketAddress = configuredAddress
-    return cachedTicketAddress
+    return cachedTicketAddress!
   }
 
   const shouldAutoDiscover = Boolean(networkConfig?.contracts?.Ticket?.autoDiscover)
@@ -145,7 +145,7 @@ export async function getContractAddress(): Promise<string> {
     if (discoveredAddress) {
       cachedTicketAddress = discoveredAddress
       console.log(`Ticket contract discovered at: ${discoveredAddress}`)
-      return cachedTicketAddress
+      return discoveredAddress!
     }
   }
 
@@ -158,7 +158,7 @@ export function getRpcUrl() {
 
 export async function getLotteryContractAddress(): Promise<string> {
   if (cachedLotteryAddress) {
-    return cachedLotteryAddress
+    return cachedLotteryAddress!
   }
 
   const envContractAddress =
@@ -167,13 +167,13 @@ export async function getLotteryContractAddress(): Promise<string> {
 
   if (envContractAddress) {
     cachedLotteryAddress = envContractAddress
-    return cachedLotteryAddress
+    return cachedLotteryAddress!
   }
 
   const configuredAddress = networkConfig?.contracts?.Lottery?.address
   if (configuredAddress) {
     cachedLotteryAddress = configuredAddress
-    return cachedLotteryAddress
+    return cachedLotteryAddress!
   }
 
   const shouldAutoDiscover = Boolean(networkConfig?.contracts?.Lottery?.autoDiscover)
@@ -185,7 +185,7 @@ export async function getLotteryContractAddress(): Promise<string> {
     if (discoveredAddress) {
       cachedLotteryAddress = discoveredAddress
       console.log(`Lottery contract discovered at: ${discoveredAddress}`)
-      return cachedLotteryAddress
+      return discoveredAddress!
     }
   }
 

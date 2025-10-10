@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as PortOne from '@portone/browser-sdk/v2';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 const PORTONE_STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
 const PORTONE_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
@@ -84,7 +85,7 @@ function PaymentPageContent() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+        <LoadingSpinner size={48} />
         <p className="text-lg">결제 페이지로 이동 중...</p>
       </div>
     </div>
@@ -97,7 +98,7 @@ export default function PaymentPage() {
       fallback={
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <LoadingSpinner size={48} />
             <p className="text-lg">결제 페이지로 이동 중...</p>
           </div>
         </div>

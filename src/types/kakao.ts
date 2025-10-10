@@ -31,4 +31,7 @@ export interface KakaoRegistrationPayload {
   accessToken: string
   refreshToken?: string
   phoneVerified: true
+  publicKey?: string
+  keyAlgorithm?: string
+  deviceInfo?: string
 }

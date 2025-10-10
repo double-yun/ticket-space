@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 type ApplicationStatus = 'APPLIED' | 'WON' | 'PAID' | 'EXPIRED' | 'CANCELLED'
 type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
@@ -155,16 +156,16 @@ export default function LotteryApplicationsPage() {
   }, [applications])
 
   return (
-    <div className="bg-gray-50 min-h-screen overflow-hidden">
+    <div className="bg-gray-50 h-screen">
       <TopBar title="추첨 신청 내역" />
 
-      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
         {isRefreshing && (
           <div className="text-center py-2">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="pb-20 px-4 pt-6 space-y-8">
+        <div className="px-4 pt-6 space-y-8">
           <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100">
             <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
               <span className="text-xl">💡</span> 자동 결제 안내
@@ -212,7 +213,7 @@ export default function LotteryApplicationsPage() {
             <div className="text-center text-red-500 text-sm py-8">{error}</div>
           )}
         </div>
-      </div>
+      </main>
 
       <TabNavigation />
     </div>

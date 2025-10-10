@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/contexts/AuthContext'
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 // QR 스캐너를 동적으로 로드 (SSR 방지)
 const QrScanner = dynamic(() => import('@/components/QrScanner'), {
   ssr: false,
   loading: () => (
     <div className="flex justify-center items-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <LoadingSpinner size={48} />
     </div>
   ),
 })
@@ -97,7 +98,7 @@ export default function ScanPage() {
   if (loading) {
     return (
       <div className="bg-gray-50 min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <LoadingSpinner size={48} />
       </div>
     )
   }

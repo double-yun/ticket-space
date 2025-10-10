@@ -7,6 +7,7 @@ import usePullToRefresh from '@/hooks/usePullToRefresh'
 import TopBar from '@/components/TopBar'
 import TabNavigation from '@/components/TabNavigation'
 import { Settings, Bell, HelpCircle, LogOut, User } from 'lucide-react'
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface Purchase {
   id: string
@@ -95,22 +96,22 @@ export default function ProfilePage() {
   if (authLoading || !user) {
     return (
       <div className="bg-gray-50 min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <LoadingSpinner size={48} />
       </div>
     )
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen overflow-hidden">
+    <div className="bg-gray-50 h-screen">
       <TopBar title="프로필" />
 
-      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
         {isRefreshing && (
           <div className="text-center py-2">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="pb-20 px-4 pt-6 space-y-6">
+        <div className="px-4 pt-6 space-y-6">
           <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl p-6 shadow-xl shadow-blue-500/20">
             <div className="flex items-center space-x-4 mb-6">
               <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-4 ring-white/30">
@@ -182,7 +183,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       <TabNavigation />
     </div>

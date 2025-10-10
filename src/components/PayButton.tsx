@@ -7,9 +7,11 @@ interface PayButtonProps {
   eventId: string
   disabled?: boolean
   onSuccess?: () => void
+  className?: string
+  buttonText?: string
 }
 
-export default function PayButton({ eventId, disabled, onSuccess }: PayButtonProps) {
+export default function PayButton({ eventId, disabled, onSuccess, className, buttonText = '구매하기' }: PayButtonProps) {
   const { token } = useAuth()
   const [processing, setProcessing] = useState(false)
 
@@ -55,11 +57,11 @@ export default function PayButton({ eventId, disabled, onSuccess }: PayButtonPro
     <button
       onClick={handleClick}
       disabled={disabled || processing}
-      className={`bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+      className={className || `bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
         disabled || processing ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'
       }`}
     >
-      {processing ? '결제 중...' : '결제하기'}
+      {processing ? '처리 중...' : buttonText}
     </button>
   )
 }

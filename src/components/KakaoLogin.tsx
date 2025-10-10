@@ -24,7 +24,14 @@ export interface KakaoLoginInterface {
 }
 
 // 플러그인 사용
-const KakaoLoginNative = KakaoPlugin as KakaoLoginInterface
+const KakaoLoginNative: KakaoLoginInterface = {
+  goLogin: KakaoPlugin.goLogin,
+  getUserInfo: async () => {
+    const result = await KakaoPlugin.getUserInfo();
+    return result.value as KakaoProfile;
+  },
+  goLogout: KakaoPlugin.goLogout,
+};
 
 export default function KakaoLogin() {
   const [isLoading, setIsLoading] = useState(false)

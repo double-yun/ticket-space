@@ -6,7 +6,7 @@ import { getLotteryContractAddress, getPublicClient, getWalletClient } from '@/l
 import lotteryAbiJson from '@/lib/blockchain/lottery-abi.json'
 import type { Account, PublicClient, WalletClient } from 'viem'
 
-const lotteryAbi = lotteryAbiJson as const
+const lotteryAbi = lotteryAbiJson
 
 // 백그라운드에서 블록체인에 신청 제출
 async function submitApplicationToBlockchain(

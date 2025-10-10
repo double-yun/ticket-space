@@ -45,7 +45,9 @@ export const verifySMSCode = async (
 ): Promise<{ phoneNumber: string; uid: string }> => {
   try {
     const result = await confirmationResult.confirm(code)
-    // Firebase 사용자 정보 (우리는 인증만 사용)
+    if (!result.user.phoneNumber) {
+      throw new Error('Firebase verification did not return a phone number.')
+    }
     return {
       phoneNumber: result.user.phoneNumber,
       uid: result.user.uid

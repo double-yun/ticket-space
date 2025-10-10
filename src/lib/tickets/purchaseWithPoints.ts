@@ -5,7 +5,7 @@ import { getContractAddress, getPublicClient, getWalletClient } from '@/lib/bloc
 import ticketAbiJson from '@/lib/blockchain/ticket-abi.json'
 import type { Ticket } from '@prisma/client'
 
-const ticketAbi = ticketAbiJson as const
+const ticketAbi = ticketAbiJson
 
 // 백그라운드에서 SBT 발급
 async function mintSBTInBackground(
