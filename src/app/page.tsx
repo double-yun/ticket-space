@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import PayButton from '@/components/PayButton'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
@@ -11,7 +10,7 @@ import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import { App } from '@capacitor/app'
 import { useAuth } from '@/contexts/AuthContext'
-import 'swiper/css'
+import EventCard from '@/components/EventCard';
 
 interface AuthUser {
   id: string
@@ -237,35 +236,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-4 text-gray-900">바로 구매 가능한 이벤트</h2>
             <div className="space-y-4">
               {directTickets.map((ticket) => (
-                <div key={ticket.id} className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                  <div className="flex items-start gap-5">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
-                      <span className="text-white text-4xl">🎫</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-900 mb-1.5">{ticket.name}</h3>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{ticket.description}</p>
-                      <div className="flex items-center justify-between">
-                        <div className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                          ticket.currentSupply >= ticket.maxSupply ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                        }`}>
-                          남은 수량: {ticket.maxSupply - ticket.currentSupply}개
-                        </div>
-                        <p className="text-xl font-bold text-blue-600">
-                          {ticket.price.toLocaleString()}P
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <PayButton
-                      eventId={ticket.id}
-                      disabled={ticket.currentSupply >= ticket.maxSupply}
-                      onSuccess={fetchAllData}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition-all duration-200 disabled:bg-gray-300"
-                    />
-                  </div>
-                </div>
+                <EventCard key={ticket.id} ticket={ticket} type="direct" onSuccess={fetchAllData} />
               ))}
               {!loading && directTickets.length === 0 && (
                 <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
@@ -282,35 +253,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-4 text-gray-900">추첨 이벤트</h2>
             <div className="space-y-4">
               {lotteryTickets.map((ticket) => (
-                <div key={`${ticket.id}-${ticket.roundId}`} className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                  <div className="flex items-start gap-5">
-                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
-                      <span className="text-white text-4xl">✨</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-900 mb-1.5">{ticket.name}</h3>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{ticket.description}</p>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                        <span className="inline-flex items-center bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-semibold">
-                          <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd"></path></svg>
-                          마감: {new Date(ticket.applicationDeadline).toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-xl font-bold text-emerald-600">
-                      {ticket.price.toLocaleString()}P
-                      <span className="text-sm font-normal text-gray-500 ml-1">(당첨 시)</span>
-                    </p>
-                    <button
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200 disabled:bg-gray-300 active:scale-95"
-                      onClick={() => router.push(`/lottery/${ticket.roundId}`)}
-                    >
-                      추첨 신청하기
-                    </button>
-                  </div>
-                </div>
+                <EventCard key={`${ticket.id}-${ticket.roundId}`} ticket={ticket} type="lottery" onSuccess={fetchAllData} />
               ))}
               {!loading && lotteryTickets.length === 0 && (
                 <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
