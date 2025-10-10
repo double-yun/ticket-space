@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/contexts/AuthContext';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface PaymentInfo {
   status?: string;
@@ -130,7 +131,7 @@ function PaymentRedirectContent() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <LoadingSpinner size={48} />
           <p className="text-lg">결제 정보를 확인하고 있습니다...</p>
         </div>
       </div>
@@ -220,7 +221,7 @@ export default function PaymentRedirectPage() {
       fallback={
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <LoadingSpinner size={48} />
             <p className="text-lg">결제 정보를 확인하고 있습니다...</p>
           </div>
         </div>

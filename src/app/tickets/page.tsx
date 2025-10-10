@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface Purchase {
   id: string
@@ -181,24 +182,24 @@ export default function MyTicketsPage() {
   if (loading) {
     return (
       <div className="bg-gray-50 min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <LoadingSpinner size={48} />
       </div>
     )
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen overflow-hidden">
+    <div className="bg-gray-50 h-screen">
       <TopBar title="내 티켓" />
 
-      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
         {isRefreshing && (
           <div className="text-center py-2">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="pb-20 px-4 pt-6">
+        <div className="px-4 pt-6">
           {purchases.length === 0 ? (
-            <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100 mt-10">
+            <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
               <span className="text-6xl opacity-40 block mb-4">🎫</span>
               <h2 className="text-xl font-bold text-gray-800 mb-2">보유한 티켓이 없습니다</h2>
               <p className="text-gray-600 mb-6">홈에서 새로운 이벤트를 확인하고 티켓을 구매해보세요!</p>
@@ -237,7 +238,7 @@ export default function MyTicketsPage() {
                 {qrCodeDataURL ? (
                   <img src={qrCodeDataURL} alt="티켓 QR 코드" className="w-full h-full rounded-xl shadow-sm" />
                 ) : (
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                  <LoadingSpinner size={40} />
                 )}
               </div>
 
@@ -264,7 +265,7 @@ export default function MyTicketsPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
 
       <TabNavigation />
     </div>

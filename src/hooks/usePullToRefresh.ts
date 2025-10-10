@@ -18,7 +18,7 @@ export default function usePullToRefresh(onRefresh: () => Promise<void>) {
 
     const handleTouchStart = (e: TouchEvent) => {
       // 스크롤이 최상단에 있을 때만 pull-to-refresh 활성화
-      if (container.scrollTop === 0) {
+      if (container.scrollTop < 1) {
         touchStartY = e.touches[0].clientY
         startY.current = touchStartY
         isPulling = true
@@ -32,7 +32,9 @@ export default function usePullToRefresh(onRefresh: () => Promise<void>) {
       const diff = currentY - touchStartY
 
       // 아래로 당길 때만 (diff > 0)
-      if (diff > 0 && container.scrollTop === 0) {
+      if (diff > 0 && container.scrollTop < 1) {
+        // 브라우저 기본 스크롤 동작 방지
+        e.preventDefault();
         pullDistance.current = Math.min(diff, 100) // 최대 100px
         container.style.transform = `translateY(${pullDistance.current}px)`
         container.style.transition = 'none'
@@ -43,8 +45,8 @@ export default function usePullToRefresh(onRefresh: () => Promise<void>) {
       if (!isPulling) return
       isPulling = false
 
-      // 70px 이상 당겼을 때 새로고침 트리거
-      if (pullDistance.current > 70 && !isRefreshing) {
+      // 50px 이상 당겼을 때 새로고침 트리거
+      if (pullDistance.current > 50 && !isRefreshing) {
         setIsRefreshing(true)
         try {
           await onRefresh()
@@ -60,7 +62,7 @@ export default function usePullToRefresh(onRefresh: () => Promise<void>) {
     }
 
     container.addEventListener('touchstart', handleTouchStart, { passive: true })
-    container.addEventListener('touchmove', handleTouchMove, { passive: true })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
     container.addEventListener('touchend', handleTouchEnd, { passive: true })
 
     return () => {

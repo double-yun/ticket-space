@@ -11,6 +11,7 @@ import { Browser } from '@capacitor/browser'
 import { App } from '@capacitor/app'
 import { useAuth } from '@/contexts/AuthContext'
 import EventCard from '@/components/EventCard';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface AuthUser {
   id: string
@@ -186,16 +187,16 @@ export default function Home() {
   if (!authUser) return null
 
   return (
-    <div className="bg-gray-50 min-h-screen overflow-hidden">
+    <div className="bg-gray-50 h-screen">
       <TopBar title="티켓팅" />
 
-      <div ref={containerRef} className="h-[calc(100vh-60px)] overflow-y-auto pt-[60px]">
+      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
         {isRefreshing && (
-          <div className="fixed top-16 left-0 right-0 flex justify-center py-2 z-10">
-            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <div className="fixed top-28 left-0 right-0 flex justify-center py-2 z-10">
+            <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="pb-20 px-4 pt-6 space-y-8">
+        <div className="px-4 pt-6 space-y-8 pb-8">
           {/* 지갑 정보 */}
           <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl p-6 shadow-xl shadow-blue-500/20">
             <div className="flex items-start justify-between text-white mb-4">
@@ -265,7 +266,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       <TabNavigation />
     </div>

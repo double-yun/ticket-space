@@ -13,6 +13,7 @@ import type { KakaoUserInfo } from '@/types/kakao'
 import { useAuth } from '@/contexts/AuthContext'
 import { hasPrivateKey } from '@/lib/crypto/key-manager'
 import { biometricLogin } from '@/lib/crypto/auth-signer'
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 function LoginPageContent() {
   const router = useRouter()
@@ -392,7 +393,7 @@ function LoginPageContent() {
                 >
                   {demoLoading === demo.variant ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <LoadingSpinner size={16} color="inherit" />
                       로그인 중...
                     </span>
                   ) : (
@@ -460,7 +461,7 @@ export default function LoginPage() {
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
+            <LoadingSpinner size={48} />
             <p className="text-gray-600">로그인 준비 중...</p>
           </div>
         </div>
