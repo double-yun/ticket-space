@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner'
+import { Info, PartyPopper, Folder, Clock, Ticket } from 'lucide-react'
 
 type ApplicationStatus = 'APPLIED' | 'WON' | 'PAID' | 'EXPIRED' | 'CANCELLED'
 type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
@@ -156,19 +157,22 @@ export default function LotteryApplicationsPage() {
   }, [applications])
 
   return (
-    <div className="bg-gray-50 h-screen">
-      <TopBar title="추첨 신청 내역" />
+    <div className="bg-gradient-to-b from-emerald-50/30 via-white to-blue-50/30 h-screen flex flex-col">
+      <TopBar title="추첨 내역" />
 
-      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
+      <main ref={containerRef} className="flex-1 overflow-y-auto">
         {isRefreshing && (
           <div className="text-center py-2">
             <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="px-4 pt-6 space-y-8">
-          <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100">
+        <div className="px-4 py-6 space-y-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50">
             <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-              <span className="text-xl">💡</span> 자동 결제 안내
+              <div className="w-8 h-8 bg-blue-500/10 backdrop-blur-xl border border-blue-200/30 rounded-lg flex items-center justify-center">
+                <Info size={18} className="text-blue-600" />
+              </div>
+              자동 결제 안내
             </h2>
             <p className="text-sm text-gray-600 leading-6">
               추첨에 당첨되면 포인트가 자동으로 차감되고 SBT 티켓이 발급돼요. 잔액이 부족하면 결제가 실패할 수 있으니 여유 있게 충전해 주세요.
@@ -182,8 +186,12 @@ export default function LotteryApplicationsPage() {
                 <ApplicationCard key={application.id} application={application} />
               ))}
               {!loading && pendingApplications.length === 0 && (
-                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
-                  <span className="text-5xl opacity-40 block mb-4">🎉</span>
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 bg-emerald-500/5 backdrop-blur-xl border border-emerald-200/30 rounded-2xl flex items-center justify-center">
+                      <PartyPopper size={40} className="text-emerald-400" strokeWidth={2} />
+                    </div>
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-800">진행 중인 추첨이 없습니다</h3>
                   <p className="text-sm text-gray-500 mt-2">새로운 추첨 이벤트를 기대해주세요!</p>
                 </div>
@@ -198,8 +206,12 @@ export default function LotteryApplicationsPage() {
                 <ApplicationCard key={application.id} application={application} />
               ))}
               {!loading && completedApplications.length === 0 && (
-                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
-                  <span className="text-5xl opacity-40 block mb-4">📂</span>
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 bg-gray-500/5 backdrop-blur-xl border border-gray-200/30 rounded-2xl flex items-center justify-center">
+                      <Folder size={40} className="text-gray-400" strokeWidth={2} />
+                    </div>
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-800">지난 추첨 내역이 없습니다</h3>
                 </div>
               )}
@@ -230,26 +242,34 @@ function ApplicationCard({ application }: { application: LotteryApplication }) {
   const drawTime = formatDate(application.round?.drawnAt ?? null)
   const createdAt = formatDate(application.createdAt)
 
-  const getCardGradient = (status: ApplicationStatus) => {
+  const getCardStyle = (status: ApplicationStatus) => {
     switch (status) {
       case 'APPLIED':
-        return 'from-blue-400 to-purple-500'
+        return { bg: 'bg-blue-500/10 backdrop-blur-xl border border-blue-200/30', icon: 'text-blue-600' }
       case 'WON':
-        return 'from-emerald-400 to-cyan-500'
+        return { bg: 'bg-emerald-500/10 backdrop-blur-xl border border-emerald-200/30', icon: 'text-emerald-600' }
       case 'PAID':
-        return 'from-purple-500 to-indigo-600'
+        return { bg: 'bg-purple-500/10 backdrop-blur-xl border border-purple-200/30', icon: 'text-purple-600' }
       default:
-        return 'from-gray-300 to-gray-400'
+        return { bg: 'bg-gray-500/10 backdrop-blur-xl border border-gray-200/30', icon: 'text-gray-500' }
     }
   }
 
+  const cardStyle = getCardStyle(application.status)
+
   return (
-    <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 transition-transform duration-200">
       <div className="flex items-start gap-5 mb-4">
-        <div className={`w-20 h-20 bg-gradient-to-br ${getCardGradient(application.status)} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md`}>
-          <span className="text-white text-4xl">
-            {application.status === 'APPLIED' ? '⏳' : application.status === 'WON' ? '🎉' : application.status === 'PAID' ? '🎫' : '📁'}
-          </span>
+        <div className={`w-20 h-20 ${cardStyle.bg} rounded-2xl flex items-center justify-center flex-shrink-0`}>
+          {application.status === 'APPLIED' ? (
+            <Clock size={40} className={cardStyle.icon} strokeWidth={2} />
+          ) : application.status === 'WON' ? (
+            <PartyPopper size={40} className={cardStyle.icon} strokeWidth={2} />
+          ) : application.status === 'PAID' ? (
+            <Ticket size={40} className={cardStyle.icon} strokeWidth={2} />
+          ) : (
+            <Folder size={40} className={cardStyle.icon} strokeWidth={2} />
+          )}
         </div>
         <div className="flex-1">
           <div className="flex justify-between items-start mb-1.5">

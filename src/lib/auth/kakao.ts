@@ -39,9 +39,9 @@ const KAKAO_TOKEN_URL = 'https://kauth.kakao.com/oauth/token'
 const KAKAO_PROFILE_URL = 'https://kapi.kakao.com/v2/user/me'
 
 export function getKakaoOAuthConfig(): FetchConfig {
-  const clientId = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID
+  const clientId = process.env.KAKAO_CLIENT_ID
   const clientSecret = process.env.KAKAO_CLIENT_SECRET
-  const redirectUri = process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI
+  const redirectUri = process.env.KAKAO_REDIRECT_URI
 
   if (!clientId || !clientSecret) {
     throw new KakaoOAuthError('server_error', 'Kakao OAuth credentials are not configured.')
