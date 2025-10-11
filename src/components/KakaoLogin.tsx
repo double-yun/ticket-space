@@ -5,6 +5,7 @@ import { Button } from '@mui/material'
 import { Capacitor } from '@capacitor/core'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import toast from 'react-hot-toast'
 
 // Capacitor 카카오 로그인 플러그인 직접 import
 import { KakaoLoginPlugin as KakaoPlugin } from 'capacitor-kakao-login-plugin'
@@ -165,9 +166,9 @@ export default function KakaoLogin() {
     } catch (error) {
       console.error('카카오 사용자 처리 실패:', error)
       if (error instanceof Error) {
-        alert(error.message)
+        toast.error(error.message)
       } else {
-        alert('카카오 로그인 정보를 처리하지 못했습니다. 다시 시도해주세요.')
+        toast.error('카카오 로그인 정보를 처리하지 못했습니다. 다시 시도해주세요.')
       }
     }
   }, [normalizePhoneNumber, router, setAuthToken])
@@ -238,9 +239,9 @@ export default function KakaoLogin() {
     } catch (error) {
       console.error('카카오 로그인 실패:', error)
       if (error instanceof Error) {
-        alert(`로그인 실패: ${error.message}`)
+        toast.error(`로그인 실패: ${error.message}`)
       } else {
-        alert('로그인에 실패했습니다. 다시 시도해주세요.')
+        toast.error('로그인에 실패했습니다. 다시 시도해주세요.')
       }
     } finally {
       setIsLoading(false)

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import TopBar from '@/components/TopBar'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { ChevronLeft } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 // QR 스캐너를 동적으로 로드 (SSR 방지)
 const QrScanner = dynamic(() => import('@/components/QrScanner'), {
@@ -89,7 +90,7 @@ export default function ScanPage() {
 
   const handleError = (error: Error) => {
     console.error('QR 스캔 에러:', error)
-    alert('카메라 접근에 실패했습니다. 카메라 권한을 확인해주세요.')
+    toast.error('카메라 접근에 실패했습니다. 카메라 권한을 확인해주세요.')
   }
 
   const startScanning = () => {

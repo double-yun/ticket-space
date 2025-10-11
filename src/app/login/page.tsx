@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { hasPrivateKey } from '@/lib/crypto/key-manager'
 import { biometricLogin } from '@/lib/crypto/auth-signer'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import toast from 'react-hot-toast'
 import { Ticket, Shield, Gem, Zap } from 'lucide-react'
 
 function LoginPageContent() {
@@ -84,7 +85,7 @@ function LoginPageContent() {
       const code = urlObj.searchParams.get('code')
 
       if (!code) {
-        alert('카카오 로그인 코드를 받지 못했습니다.')
+        toast.error('카카오 로그인 코드를 받지 못했습니다.')
         return
       }
 
@@ -119,7 +120,7 @@ function LoginPageContent() {
           } catch (error) {
             console.error('Biometric login failed:', error)
             const errorMessage = error instanceof Error ? error.message : '생체 인증 로그인에 실패했습니다'
-            alert(errorMessage)
+            toast.error(errorMessage)
             return
           }
         }
@@ -138,7 +139,7 @@ function LoginPageContent() {
 
           if (userCheckData.userExists) {
             // 계정은 있지만 이 기기에 개인키 없음 → 다른 기기에서 생성됨
-            alert('이 계정은 다른 기기에서 생성되었습니다.\n계정을 생성한 기기에서만 로그인할 수 있습니다.')
+            toast.error('이 계정은 다른 기기에서 생성되었습니다.\n계정을 생성한 기기에서만 로그인할 수 있습니다.')
             return
           }
         }
@@ -152,11 +153,11 @@ function LoginPageContent() {
         })
         setShowPhoneVerification(true)
       } else {
-        alert('카카오 로그인에 실패했습니다.')
+        toast.error('카카오 로그인에 실패했습니다.')
       }
     } catch (error) {
       console.error('카카오 앱 콜백 처리 실패:', error)
-      alert('카카오 로그인 처리 중 오류가 발생했습니다.')
+      toast.error('카카오 로그인 처리 중 오류가 발생했습니다.')
     }
   }
 
@@ -204,7 +205,7 @@ function LoginPageContent() {
           } catch (error) {
             console.error('Biometric login failed:', error)
             const errorMessage = error instanceof Error ? error.message : '생체 인증 로그인에 실패했습니다'
-            alert(errorMessage)
+            toast.error(errorMessage)
             return
           }
         }
@@ -220,7 +221,7 @@ function LoginPageContent() {
         console.log('[DEBUG] Demo login: biometryType =', biometric.biometryType)
 
         if (!biometric.available) {
-          alert('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
+          toast.error('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
           return
         }
 
@@ -278,7 +279,7 @@ function LoginPageContent() {
     } catch (error) {
       console.error('[DEBUG] Demo login error:', error)
       const message = error instanceof Error ? error.message : '로그인 중 문제가 발생했습니다.'
-      alert(message)
+      toast.error(message)
     } finally {
       setDemoLoading(null)
     }

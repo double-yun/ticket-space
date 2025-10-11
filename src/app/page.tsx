@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import EventCard from '@/components/EventCard';
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { Gift, Ticket, Copy, Check, Plus } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface AuthUser {
   id: string
@@ -174,13 +175,13 @@ export default function Home() {
 	const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
 
     if (!storeId || !channelKey) {
-      alert('결제 설정이 필요합니다.')
+      toast.error('결제 설정이 필요합니다.')
       setFunding(false)
       return
     }
 
     if (!selectedAmount) {
-      alert('충전 금액을 선택해주세요.')
+      toast.error('충전 금액을 선택해주세요.')
       setFunding(false)
       return
     }
@@ -210,11 +211,11 @@ export default function Home() {
           redirectUrl: `${window.location.origin}/points/charge/callback?userId=${authUser?.id}`,
         })
         if (resp?.code) {
-          alert(resp.message || '결제가 취소되었습니다.')
+          toast.error(resp.message || '결제가 취소되었습니다.')
         }
       }
     } catch (error) {
-      alert('결제 처리 중 오류가 발생했습니다.')
+      toast.error('결제 처리 중 오류가 발생했습니다.')
     } finally {
       setFunding(false)
       setShowAmountModal(false)
@@ -237,7 +238,7 @@ export default function Home() {
 
   const confirmAndPay = () => {
     if (!selectedAmount) {
-      alert('충전 금액을 선택해주세요.')
+      toast.error('충전 금액을 선택해주세요.')
       return
     }
     handleFundWallet()

@@ -7,6 +7,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import PayButton from '@/components/PayButton'
 import { useAuth } from '@/contexts/AuthContext'
 import { Info, AlertTriangle, ChevronLeft, Ticket, Sparkles } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 type EventType = 'direct' | 'lottery'
 
@@ -219,7 +220,7 @@ useEffect(() => {
         throw new Error(data.error || '신청에 실패했습니다.')
       }
 
-      alert('✅ 추첨 신청이 완료되었습니다!')
+      toast.success('추첨 신청이 완료되었습니다!')
       setHasApplied(true)
       setEvent((prev) => {
         if (!prev) return prev
@@ -241,7 +242,7 @@ useEffect(() => {
       const message =
         err instanceof Error ? err.message : '신청 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
       setLotteryError(message)
-      alert(`❌ ${message}`)
+      toast.error(message)
     } finally {
       setApplying(false)
     }
