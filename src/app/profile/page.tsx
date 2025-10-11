@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
 import TopBar from '@/components/TopBar'
 import TabNavigation from '@/components/TabNavigation'
-import { Settings, Bell, HelpCircle, LogOut, User, ScanLine } from 'lucide-react'
+import { Settings, Bell, HelpCircle, LogOut, User, ScanLine, Copy, Check } from 'lucide-react'
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface Purchase {
@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const { user, token, logout, isLoading: authLoading } = useAuth()
   const [purchases, setPurchases] = useState<Purchase[]>([])
+  const [copied, setCopied] = useState(false)
 
   const fetchPurchases = useCallback(async () => {
     if (!token) return
@@ -59,6 +60,23 @@ export default function ProfilePage() {
     } finally {
       logout()
       router.push('/login')
+    }
+  }
+
+  const handleCopyAddress = async () => {
+    if (!user?.walletAddress) return
+
+    try {
+      await navigator.clipboard.writeText(user.walletAddress)
+      setCopied(true)
+      
+      // 2초 후 복사 상태 초기화
+      setTimeout(() => {
+        setCopied(false)
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to copy address:', error)
+      alert('주소 복사에 실패했습니다.')
     }
   }
 
@@ -127,6 +145,33 @@ export default function ProfilePage() {
                 <p className="text-gray-500 text-sm font-mono">{user?.email ?? 'user@example.com'}</p>
               </div>
             </div>
+
+            {/* 지갑 주소 */}
+            {user?.walletAddress && (
+              <button
+                onClick={handleCopyAddress}
+                className="w-full bg-white/60 backdrop-blur-sm border border-indigo-100/50 rounded-2xl p-4 mb-4 active:scale-[0.98] transition-all duration-150 hover:bg-white/80"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 text-left mr-3">
+                    <p className="text-xs text-gray-500 mb-1">지갑 주소</p>
+                    <p className="text-sm font-mono text-gray-800 break-all">
+                      {user.walletAddress}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    {copied ? (
+                      <div className="flex items-center gap-1 text-emerald-600">
+                        <Check size={18} />
+                        <span className="text-xs font-semibold">복사됨</span>
+                      </div>
+                    ) : (
+                      <Copy size={18} className="text-gray-400" />
+                    )}
+                  </div>
+                </div>
+              </button>
+            )}
 
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-blue-500/5 backdrop-blur-xl border border-blue-200/30 rounded-2xl p-3 text-center">

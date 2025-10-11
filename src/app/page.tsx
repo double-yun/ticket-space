@@ -12,7 +12,7 @@ import { App } from '@capacitor/app'
 import { useAuth } from '@/contexts/AuthContext'
 import EventCard from '@/components/EventCard';
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { Gift, Ticket } from 'lucide-react'
+import { Gift, Ticket, Copy, Check, Plus } from 'lucide-react'
 
 interface AuthUser {
   id: string
@@ -58,6 +58,7 @@ export default function Home() {
   const [balance, setBalance] = useState<BalanceData | null>(null)
   const [ticketCount, setTicketCount] = useState(0)
   const [funding, setFunding] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const fetchAllData = useCallback(async () => {
     if (!user || !token) return
@@ -136,6 +137,21 @@ export default function Home() {
     }
   }
 
+  const handleCopyAddress = async () => {
+    if (!authUser?.walletAddress) return
+
+    try {
+      await navigator.clipboard.writeText(authUser.walletAddress)
+      setCopied(true)
+      
+      setTimeout(() => {
+        setCopied(false)
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to copy address:', error)
+    }
+  }
+
   const generateUUID = () => {
     if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
       return window.crypto.randomUUID();
@@ -211,22 +227,23 @@ export default function Home() {
         <div className="px-4 py-6 space-y-8">
           {/* 지갑 정보 */}
           <div className="bg-gradient-to-br from-blue-500/5 to-purple-500/5 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-blue-100/50">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">내 지갑</h3>
-                <p className="text-sm text-gray-500 font-mono tracking-wider">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">내 지갑</h3>
+              <button
+                onClick={handleCopyAddress}
+                className="flex items-center gap-2 bg-white/60 backdrop-blur-sm border border-blue-100/50 rounded-xl px-3 py-2 active:scale-[0.98] transition-all"
+              >
+                <p className="text-xs font-mono text-gray-600">
                   {authUser.walletAddress?.slice(0, 6)}...{authUser.walletAddress?.slice(-4)}
                 </p>
-              </div>
-              <button
-                className="bg-blue-500/80 backdrop-blur-sm border border-blue-300/30 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-sm"
-                onClick={handleFundWallet}
-                disabled={funding}
-              >
-                {funding ? '처리 중...' : '충전'}
+                {copied ? (
+                  <Check size={14} className="text-emerald-600" />
+                ) : (
+                  <Copy size={14} className="text-gray-400" />
+                )}
               </button>
             </div>
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex items-end justify-between gap-4 mb-4">
               <div className="flex-1 bg-blue-500/5 backdrop-blur-xl border border-blue-200/30 rounded-2xl p-4">
                 <p className="text-sm text-gray-600 mb-1">보유 티켓</p>
                 <p className="text-3xl font-bold text-gray-900">
@@ -242,6 +259,25 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            
+            {/* 충전 버튼 */}
+            <button
+              onClick={handleFundWallet}
+              disabled={funding}
+              className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/50 text-blue-600 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-[0.99] hover:bg-white/90 hover:border-blue-300/60 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {funding ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <span>처리 중...</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={18} strokeWidth={2.5} />
+                  <span>포인트 충전</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* 바로 구매 가능한 티켓 */}
