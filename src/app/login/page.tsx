@@ -358,6 +358,10 @@ function LoginPageContent() {
             <p className="text-xs text-gray-500 mb-4 leading-relaxed">
               카카오 로그인 없이 바로 시작할 수 있습니다
             </p>
+            <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700 font-medium">결제 체험 모드</p>
+              <p className="text-xs text-blue-600">포인트 충전 시 실제 결제가 이루어지지 않으며, 결제 과정을 체험할 수 있습니다</p>
+            </div>
             <div className="grid grid-cols-1 gap-2.5">
               {demoUsers.map((demo) => (
                 <button

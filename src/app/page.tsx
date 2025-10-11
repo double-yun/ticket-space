@@ -356,6 +356,10 @@ export default function Home() {
             <div className="p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-gray-900">충전 금액 선택</h2>
               <p className="text-sm text-gray-500 mt-1">원하시는 금액을 선택해주세요</p>
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700 font-medium">결제 테스트 모드</p>
+                <p className="text-xs text-blue-600">실제 결제가 이루어지지 않으며, 결제 과정을 체험할 수 있습니다</p>
+              </div>
             </div>
             
             <div className="p-6 space-y-3">

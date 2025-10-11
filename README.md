@@ -11,6 +11,14 @@ Next\.js와 Capacitor 기반의 블록체인 티켓팅 시스템입니다\.
 - **Authentication**: Kakao OAuth
 - **Payment**: PortOne
 
+## 📋 개발 환경 설정
+
+이 프로젝트는 **PortOne 테스트 환경**을 사용하여 개발되었습니다.
+
+- 결제 기능은 PortOne의 테스트 API 키를 통해 작동합니다
+- 실제 결제가 이루어지지 않으며, 테스트용 결제 창만 표시됩니다
+- 프로덕션 배포 시 실제 PortOne API 키로 변경해야 합니다
+
 ## 📋 사전 준비
 
 - Node\.js \(v20 이상\)
