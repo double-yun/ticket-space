@@ -1,5 +1,6 @@
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { Toaster } from 'react-hot-toast'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,6 +16,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="ios">
         <AuthProvider>
           {children}
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#ffffff',
+                color: '#374151',
+                border: '1px solid #e5e7eb',
+                borderRadius: '16px',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                fontSize: '14px',
+                fontWeight: '500',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#ffffff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#ffffff',
+                },
+              },
+            }}
+          />
         </AuthProvider>
       </body>
     </html>

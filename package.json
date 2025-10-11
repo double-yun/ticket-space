@@ -13,10 +13,10 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "test:lottery": "tsx scripts/test-lottery.ts",
-	"sync:ios": "npx cap sync ios",
-	"sync:android": "npx cap sync android",
-	"open:ios": "npx cap open ios",
-	"open:android": "npx cap open android"
+    "sync:ios": "npx cap sync ios",
+    "sync:android": "npx cap sync android",
+    "open:ios": "npx cap open ios",
+    "open:android": "npx cap open android"
   },
   "dependencies": {
     "@alchemy/aa-alchemy": "^3.19.0",
@@ -47,6 +47,7 @@
     "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-hot-toast": "^2.6.0",
     "swiper": "^12.0.1",
     "viem": "^2.37.3"
   },
