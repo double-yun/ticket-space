@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import toast from 'react-hot-toast'
 import {
   Container,
   Typography,
@@ -94,7 +95,7 @@ export default function TransactionsPage() {
   const openTransaction = (hash: string) => {
     // 실제로는 블록 익스플로러 링크를 열어야 하지만, Anvil이므로 복사
     navigator.clipboard.writeText(hash)
-    alert('트랜잭션 해시가 복사되었습니다!')
+    toast.success('트랜잭션 해시가 복사되었습니다!')
   }
 
   if (loading) {
