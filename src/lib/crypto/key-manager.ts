@@ -46,15 +46,21 @@ export async function generateKeyPair(userId: string): Promise<string> {
  * @returns 개인키 존재 여부
  */
 export async function hasPrivateKey(userId: string): Promise<boolean> {
+  console.log('[DEBUG] hasPrivateKey - Checking for userId:', userId)
+  console.log('[DEBUG] hasPrivateKey - isNativePlatform:', Capacitor.isNativePlatform())
+
   if (!Capacitor.isNativePlatform()) {
+    console.log('[DEBUG] hasPrivateKey - Not native platform, returning false')
     return false
   }
 
   try {
     const result = await SecureKey.hasPrivateKey({ userId })
+    console.log('[DEBUG] hasPrivateKey - Result:', result)
+    console.log('[DEBUG] hasPrivateKey - Key exists:', result.exists)
     return result.exists
   } catch (error) {
-    console.error('Key existence check error:', error)
+    console.error('[DEBUG] hasPrivateKey - Error:', error)
     return false
   }
 }

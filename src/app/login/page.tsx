@@ -105,7 +105,7 @@ function LoginPageContent() {
       if (data.success) {
         const { kakaoId, nickname, email, phoneNumber } = data
 
-        // **[NEW]** 개인키 존재 확인 (기존 사용자 확인)
+        // 1. 이 기기에 개인키가 있는지 확인
         const keyExists = await hasPrivateKey(kakaoId)
 
         if (keyExists) {
@@ -117,34 +117,32 @@ function LoginPageContent() {
             return
           } catch (error) {
             console.error('Biometric login failed:', error)
-            alert('생체 인증 로그인에 실패했습니다. 다시 시도해주세요.')
+            const errorMessage = error instanceof Error ? error.message : '생체 인증 로그인에 실패했습니다'
+            alert(errorMessage)
             return
           }
         }
 
-        // 개인키 없음 → 신규 사용자 또는 다른 기기
-        // 전화번호가 있는 경우 기존 계정 확인
-        if (phoneNumber) {
-          const userCheckResponse = await fetch('/api/auth/kakao/check', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ kakaoId, phoneNumber })
-          })
+        // 2. 개인키 없음 → 서버에서 계정 존재 여부 확인
+        const userCheckResponse = await fetch('/api/auth/kakao/check', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ kakaoId })
+        })
 
-          if (userCheckResponse.ok) {
-            const userCheckData = await userCheckResponse.json()
+        if (userCheckResponse.ok) {
+          const userCheckData = await userCheckResponse.json()
 
-            if (userCheckData.userExists) {
-              // 계정은 있지만 개인키 없음 → 다른 기기
-              alert('이 계정은 다른 기기에서 생성되었습니다.\n계정을 생성한 기기에서만 로그인할 수 있습니다.')
-              return
-            }
+          if (userCheckData.userExists) {
+            // 계정은 있지만 이 기기에 개인키 없음 → 다른 기기에서 생성됨
+            alert('이 계정은 다른 기기에서 생성되었습니다.\n계정을 생성한 기기에서만 로그인할 수 있습니다.')
+            return
           }
         }
 
-        // 새 사용자인 경우 - 전화번호 인증 단계로
+        // 3. 새 사용자인 경우 - 전화번호 인증 단계로
         setKakaoUserInfo({
           kakaoId,
           nickname,
@@ -163,42 +161,16 @@ function LoginPageContent() {
 
 
   const handlePhoneVerificationSuccess = async (phoneNumber: string) => {
-    // 카카오 로그인 플로우에서만 호출됨: 인증된 전화번호로 기존 계정 확인
+    // 전화번호 인증 완료 후 계정 생성 단계로 이동
     if (!kakaoUserInfo) {
       console.error('카카오 정보 없이 전화번호 인증이 호출되었습니다.')
       return
     }
 
-    try {
-      const userCheckResponse = await fetch('/api/auth/kakao/check', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          kakaoId: kakaoUserInfo.kakaoId,
-          phoneNumber
-        })
-      })
-
-      if (userCheckResponse.ok) {
-        const userCheckData = await userCheckResponse.json()
-
-        if (userCheckData.userExists) {
-          // 기존 사용자 자동 로그인
-          router.push('/')
-          return
-        }
-      }
-
-      // 새 사용자인 경우 계정 생성 단계로
-      setKakaoUserInfo(prev => (prev ? { ...prev, phoneNumber } : prev))
-      setShowPhoneVerification(false)
-      setShowAccountCreation(true)
-    } catch (error) {
-      console.error('사용자 확인 중 오류:', error)
-      alert('사용자 확인 중 오류가 발생했습니다.')
-    }
+    // 전화번호를 추가하고 계정 생성 단계로
+    setKakaoUserInfo(prev => (prev ? { ...prev, phoneNumber } : prev))
+    setShowPhoneVerification(false)
+    setShowAccountCreation(true)
   }
 
   const handleAccountCreated = () => {
@@ -230,7 +202,8 @@ function LoginPageContent() {
             return
           } catch (error) {
             console.error('Biometric login failed:', error)
-            alert('생체 인증 로그인에 실패했습니다. 다시 시도해주세요.')
+            const errorMessage = error instanceof Error ? error.message : '생체 인증 로그인에 실패했습니다'
+            alert(errorMessage)
             return
           }
         }

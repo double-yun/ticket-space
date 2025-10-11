@@ -53,15 +53,15 @@ export default function KakaoLogin() {
   }: KakaoAuthResult) => {
     try {
       const normalizedPhone = normalizePhoneNumber(userData.kakao_account?.phone_number || '')
+      const kakaoId = userData.id.toString()
 
+      // 1. 서버에서 계정 존재 여부 확인
       const checkUserResponse = await fetch('/api/auth/kakao/check', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          kakaoId: userData.id.toString(),
-        }),
+        body: JSON.stringify({ kakaoId }),
       })
 
       if (!checkUserResponse.ok) {
@@ -69,35 +69,76 @@ export default function KakaoLogin() {
       }
 
       const checkResult = await checkUserResponse.json()
-      const isExistingUser = Boolean(checkResult.exists)
+      const isExistingUser = Boolean(checkResult.userExists)
+
+      console.log('[DEBUG] KakaoLogin - Check result:', {
+        kakaoId,
+        isExistingUser,
+        checkResult
+      })
 
       if (isExistingUser) {
-        // 기존 사용자: 즉시 로그인
-        const loginResponse = await fetch('/api/auth/kakao/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            accessToken,
-            refreshToken,
-            userData,
-          }),
-        })
+        console.log('[DEBUG] KakaoLogin - Existing user detected')
 
-        if (!loginResponse.ok) {
-          throw new Error('로그인 처리에 실패했습니다.')
+        // 기존 사용자: 패스키 검증 필요
+        if (Capacitor.isNativePlatform()) {
+          console.log('[DEBUG] KakaoLogin - Native platform detected')
+
+          // 네이티브 환경: 패스키 검증
+          const { hasPrivateKey } = await import('@/lib/crypto/key-manager')
+          const { biometricLogin } = await import('@/lib/crypto/auth-signer')
+
+          console.log('[DEBUG] KakaoLogin - Checking private key for kakaoId:', kakaoId)
+          const keyExists = await hasPrivateKey(kakaoId)
+          console.log('[DEBUG] KakaoLogin - Private key exists:', keyExists)
+
+          if (keyExists) {
+            console.log('[DEBUG] KakaoLogin - Private key found, starting biometric login')
+
+            // 개인키 있음 → 생체 인증 로그인
+            try {
+              const loginResult = await biometricLogin(kakaoId)
+              console.log('[DEBUG] KakaoLogin - Biometric login success')
+              setAuthToken(loginResult.token)
+              router.push('/')
+              return
+            } catch (error) {
+              console.error('[DEBUG] KakaoLogin - Biometric login failed:', error)
+              const errorMessage = error instanceof Error ? error.message : '생체 인증 로그인에 실패했습니다'
+              throw new Error(errorMessage)
+            }
+          } else {
+            console.log('[DEBUG] KakaoLogin - No private key, blocking login')
+
+            // 개인키 없음 → 다른 기기에서 생성된 계정
+            throw new Error('이 계정은 다른 기기에서 생성되었습니다.\n계정을 생성한 기기에서만 로그인할 수 있습니다.')
+          }
+        } else {
+          // 웹 환경: 패스키 없이 로그인 (기존 방식)
+          const loginResponse = await fetch('/api/auth/kakao/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              accessToken,
+              refreshToken,
+              userData,
+            }),
+          })
+
+          if (!loginResponse.ok) {
+            throw new Error('로그인 처리에 실패했습니다.')
+          }
+
+          const loginData = await loginResponse.json()
+
+          if (loginData.token) {
+            setAuthToken(loginData.token)
+          }
+
+          router.push('/')
         }
-
-        const loginData = await loginResponse.json()
-
-        // JWT 토큰 저장
-        if (loginData.token) {
-          setAuthToken(loginData.token)
-        }
-
-        // 로그인 성공 - 홈으로 이동
-        router.push('/')
       } else {
         // 신규 사용자: 서버에 임시 데이터 저장 후 정보 입력 페이지로 이동
         const pendingData = {
