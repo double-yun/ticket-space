@@ -1,19 +1,21 @@
 services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: >-
-      sh -c "pnpm run db:studio & pnpm exec next dev --hostname 0.0.0.0 --port 3000"
+  postgres:
+    image: postgres:16-alpine
+    container_name: ticketing-postgres
+    restart: unless-stopped
     ports:
-      - "3000:3000"
-      - "5555:5555"
-    env_file:
-      - .env
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ticketing_user
+      POSTGRES_PASSWORD: ticketing_password
+      POSTGRES_DB: ticketing_db
     volumes:
-      - .:/app
-      - pnpm-store:/root/.local/share/pnpm/store
-      - node-modules:/app/node_modules
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketing_user -d ticketing_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
-  pnpm-store:
-  node-modules:
+  postgres-data:
