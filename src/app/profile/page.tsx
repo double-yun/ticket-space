@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
 import TopBar from '@/components/TopBar'
 import TabNavigation from '@/components/TabNavigation'
-import { Settings, Bell, HelpCircle, LogOut, User } from 'lucide-react'
+import { Settings, Bell, HelpCircle, LogOut, User, ScanLine } from 'lucide-react'
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface Purchase {
@@ -70,6 +70,11 @@ export default function ProfilePage() {
   }, [purchases])
 
   const menuItems = [
+    {
+      icon: ScanLine,
+      label: '티켓 검증',
+      action: () => router.push('/admin/scan'),
+    },
     {
       icon: Settings,
       label: '설정',

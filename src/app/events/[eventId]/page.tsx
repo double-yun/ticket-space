@@ -6,7 +6,7 @@ import TopBar from '@/components/TopBar'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import PayButton from '@/components/PayButton'
 import { useAuth } from '@/contexts/AuthContext'
-import { Info, AlertTriangle } from 'lucide-react'
+import { Info, AlertTriangle, ChevronLeft, Ticket, Sparkles } from 'lucide-react'
 
 type EventType = 'direct' | 'lottery'
 
@@ -296,26 +296,73 @@ useEffect(() => {
 
   return (
     <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-screen flex flex-col">
-      <TopBar title="이벤트 상세" />
+      <TopBar 
+        title="이벤트 상세" 
+        leftButton={
+          <button
+            onClick={() => router.back()}
+            className="p-2 -ml-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+        }
+      />
 
       <main className="flex-1 overflow-y-auto pb-6 px-4">
         <div className="max-w-2xl mx-auto space-y-6 mt-6">
-          <section className="bg-white/85 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-gray-100/60">
-            <div className="flex items-start gap-4">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/80 to-purple-500/80 flex items-center justify-center text-white text-3xl font-bold">
-                {event.title.slice(0, 1)}
+          {/* 이벤트 헤더 카드 - EventCard 스타일 적용 */}
+          <section className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50">
+            {/* 배지 */}
+            <span className={`absolute top-3 right-3 ${
+              isDirectEvent 
+                ? 'bg-blue-500/10 backdrop-blur-sm border border-blue-200/50 text-blue-700' 
+                : 'bg-emerald-500/10 backdrop-blur-sm border border-emerald-200/50 text-emerald-700'
+            } text-xs font-semibold px-2.5 py-1 rounded-full`}>
+              {isDirectEvent ? '바로 구매' : '추첨 이벤트'}
+            </span>
+
+            <div className="flex items-start gap-5">
+              {/* 아이콘 */}
+              <div className={`w-20 h-20 ${
+                isDirectEvent
+                  ? 'bg-blue-500/10 backdrop-blur-xl border border-blue-200/30'
+                  : 'bg-emerald-500/10 backdrop-blur-xl border border-emerald-200/30'
+              } rounded-2xl flex items-center justify-center flex-shrink-0`}>
+                {isDirectEvent ? (
+                  <Ticket size={40} className="text-blue-600" strokeWidth={2} />
+                ) : (
+                  <Sparkles size={40} className="text-emerald-600" strokeWidth={2} />
+                )}
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold uppercase tracking-widest text-blue-500">
-                  {isDirectEvent ? '바로 구매' : '추첨 이벤트'}
-                </p>
-                <h1 className="text-2xl font-bold text-gray-900 leading-snug mt-1">
+
+              {/* 제목 및 설명 */}
+              <div className="flex-1 pt-1">
+                <h1 className="font-bold text-xl text-gray-900 mb-2 pr-20">
                   {event.title}
                 </h1>
                 {event.description && (
-                  <p className="text-sm text-gray-600 leading-6 mt-3 whitespace-pre-line">
+                  <p className="text-sm text-gray-600 leading-6 whitespace-pre-line">
                     {event.description}
                   </p>
+                )}
+              </div>
+            </div>
+
+            {/* 가격 정보 */}
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-end justify-between">
+                <div className="text-left">
+                  <p className="text-sm text-gray-500 mb-0.5">
+                    {isDirectEvent ? '구매 포인트' : '응모 포인트'}
+                  </p>
+                  <p className={`text-2xl font-bold ${isDirectEvent ? 'text-blue-600' : 'text-emerald-600'}`}>
+                    {event.price.toLocaleString()}P
+                  </p>
+                </div>
+                {isDirectEvent && remainingTickets <= 0 && (
+                  <span className="inline-block text-xs font-semibold text-gray-500 bg-gray-100/80 px-3 py-1.5 rounded-full">
+                    판매 완료
+                  </span>
                 )}
               </div>
             </div>
@@ -339,12 +386,6 @@ useEffect(() => {
                 </p>
                 <p className="text-gray-800 font-medium">
                   {isDirectEvent ? deadline ?? '마감 일정 미정' : applicationDeadline ?? '마감 일정 미정'}
-                </p>
-              </div>
-              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
-                <p className="text-xs text-gray-500 mb-1">티켓 가격</p>
-                <p className={`text-xl font-bold ${isDirectEvent ? 'text-blue-600' : 'text-emerald-600'}`}>
-                  {event.price.toLocaleString()}P
                 </p>
               </div>
               <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60 flex items-center justify-between">
@@ -440,7 +481,7 @@ useEffect(() => {
       </main>
 
       <div className="bg-white/95 backdrop-blur-md border-t border-gray-200/80">
-        <div className="max-w-2xl mx-auto px-4 py-5 space-y-2">
+        <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span>이벤트 가격</span>
             <span className={`text-lg font-bold ${isDirectEvent ? 'text-blue-600' : 'text-emerald-600'}`}>
