@@ -60,32 +60,17 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingUser) {
-      console.log('User already exists, logging in:', {
+      console.log('User already exists:', {
         existingUserId: existingUser.id,
         existingKakaoId: existingUser.kakaoId,
         existingPhoneNumber: existingUser.phoneNumber
       })
 
-      // 기존 사용자로 JWT 발급
-      const token = signToken({
-        sub: existingUser.id,
-        userId: existingUser.id,
-        walletAddress: existingUser.walletAddress || undefined,
-        kakaoId: existingUser.kakaoId || undefined,
-        phoneNumber: existingUser.phoneNumber || undefined,
-      })
-
+      // 기존 사용자는 패스키 검증을 통해 로그인해야 함
       return NextResponse.json({
-        success: true,
-        token,
-        user: {
-          id: existingUser.id,
-          name: existingUser.name,
-          email: existingUser.email,
-          phoneNumber: existingUser.phoneNumber,
-          walletAddress: existingUser.walletAddress,
-        }
-      })
+        error: 'User already exists. Please use passkey login.',
+        userExists: true
+      }, { status: 409 })
     }
 
     // 새 사용자 생성 - 지갑과 함께

@@ -88,14 +88,17 @@ public class SecureKey: CAPPlugin {
             throw NSError(domain: "SecureKeyPlugin", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to extract public key"])
         }
 
-        // 공개키를 Data로 변환 (SPKI 형식)
+        // 공개키를 SPKI 형식으로 변환
         var externalError: Unmanaged<CFError>?
         guard let publicKeyData = SecKeyCopyExternalRepresentation(publicKey, &externalError) as Data? else {
             throw externalError!.takeRetainedValue() as Error
         }
 
+        // Raw 형식(65바이트)을 SPKI DER 형식으로 변환
+        let spkiData = convertRawPublicKeyToSPKI(publicKeyData)
+
         // Base64 인코딩
-        let publicKeyBase64 = publicKeyData.base64EncodedString()
+        let publicKeyBase64 = spkiData.base64EncodedString()
         return publicKeyBase64
     }
 
@@ -249,5 +252,24 @@ public class SecureKey: CAPPlugin {
             kSecAttrApplicationTag as String: keyLabel.data(using: .utf8)!
         ]
         SecItemDelete(query as CFDictionary)
+    }
+
+    // Raw 공개키(65바이트)를 SPKI DER 형식으로 변환
+    private func convertRawPublicKeyToSPKI(_ rawPublicKey: Data) -> Data {
+        // P-256 SPKI 헤더 (ASN.1 DER 인코딩)
+        let spkiHeader: [UInt8] = [
+            0x30, 0x59, // SEQUENCE, 89 bytes
+            0x30, 0x13, // SEQUENCE, 19 bytes (algorithm identifier)
+            0x06, 0x07, // OID, 7 bytes
+            0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, // ecPublicKey OID
+            0x06, 0x08, // OID, 8 bytes
+            0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, // prime256v1 OID
+            0x03, 0x42, // BIT STRING, 66 bytes
+            0x00 // 0 unused bits
+        ]
+
+        var spkiData = Data(spkiHeader)
+        spkiData.append(rawPublicKey)
+        return spkiData
     }
 }

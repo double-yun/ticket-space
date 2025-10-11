@@ -122,9 +122,8 @@ class SecureKeyPlugin : Plugin() {
                 BiometricManager.Authenticators.DEVICE_CREDENTIAL
             )
         } else {
-            // Android 10 이하: DEVICE_CREDENTIAL만 사용 (생체 인증 + PIN/패턴/비밀번호 모두 허용)
-            @Suppress("DEPRECATION")
-            promptInfoBuilder.setDeviceCredentialAllowed(true)
+            // Android 10 이하: 생체 인증만 허용 (키 설정의 -1과 일치)
+            promptInfoBuilder.setNegativeButtonText("취소")
         }
 
         val promptInfo = promptInfoBuilder.build()
@@ -255,65 +254,72 @@ class SecureKeyPlugin : Plugin() {
             return
         }
 
-        // Android 버전별로 다른 PromptInfo 빌드
-        val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("인증 필요")
-            .setSubtitle(promptMessage)
+        try {
+            // Signature 객체 초기화 (Android 10 이하에서 CryptoObject 필요)
+            val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
+            keyStore.load(null)
+            val privateKey = keyStore.getKey(keyAlias, null) as java.security.PrivateKey
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+: BIOMETRIC_STRONG | DEVICE_CREDENTIAL 지원
-            promptInfoBuilder.setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_STRONG or
-                BiometricManager.Authenticators.DEVICE_CREDENTIAL
-            )
-        } else {
-            // Android 10 이하: DEVICE_CREDENTIAL만 사용 (생체 인증 + PIN/패턴/비밀번호 모두 허용)
-            @Suppress("DEPRECATION")
-            promptInfoBuilder.setDeviceCredentialAllowed(true)
-        }
+            val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
+            signature.initSign(privateKey)
 
-        val promptInfo = promptInfoBuilder.build()
+            // Android 버전별로 다른 PromptInfo 빌드
+            val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
+                .setTitle("인증 필요")
+                .setSubtitle(promptMessage)
 
-        biometricPrompt = BiometricPrompt(activity, executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    super.onAuthenticationError(errorCode, errString)
-                    call.reject("Authentication error: $errString")
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // Android 11+: BIOMETRIC_STRONG | DEVICE_CREDENTIAL 지원
+                promptInfoBuilder.setAllowedAuthenticators(
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                )
+            } else {
+                // Android 10 이하: 생체 인증만 허용 (키 설정의 -1과 일치)
+                promptInfoBuilder.setNegativeButtonText("취소")
+            }
 
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    super.onAuthenticationSucceeded(result)
-                    try {
-                        val signature = doSign(keyAlias, data)
-                        val ret = JSObject()
-                        ret.put("signature", signature)
-                        call.resolve(ret)
-                    } catch (e: Exception) {
-                        call.reject("Failed to sign: ${e.message}", e)
+            val promptInfo = promptInfoBuilder.build()
+
+            biometricPrompt = BiometricPrompt(activity, executor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        super.onAuthenticationError(errorCode, errString)
+                        call.reject("Authentication error: $errString")
                     }
-                }
 
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-                    call.reject("Authentication failed")
-                }
-            })
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        super.onAuthenticationSucceeded(result)
+                        try {
+                            // 인증된 signature 객체로 서명
+                            val authenticatedSignature = result.cryptoObject?.signature ?: signature
+                            authenticatedSignature.update(data.toByteArray(Charsets.UTF_8))
+                            val signatureBytes = authenticatedSignature.sign()
 
-        biometricPrompt.authenticate(promptInfo)
-    }
+                            val ret = JSObject()
+                            ret.put("signature", Base64.encodeToString(signatureBytes, Base64.NO_WRAP))
+                            call.resolve(ret)
+                        } catch (e: Exception) {
+                            call.reject("Failed to sign: ${e.message}", e)
+                        }
+                    }
 
-    private fun doSign(keyAlias: String, data: String): String {
-        val keyStore = KeyStore.getInstance(KEYSTORE_PROVIDER)
-        keyStore.load(null)
+                    override fun onAuthenticationFailed() {
+                        super.onAuthenticationFailed()
+                        call.reject("Authentication failed")
+                    }
+                })
 
-        val privateKey = keyStore.getKey(keyAlias, null) as java.security.PrivateKey
-
-        val signature = Signature.getInstance(SIGNATURE_ALGORITHM)
-        signature.initSign(privateKey)
-        signature.update(data.toByteArray(Charsets.UTF_8))
-
-        val signatureBytes = signature.sign()
-        return Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
+            // Android 10 이하에서는 CryptoObject 전달 필수
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                val cryptoObject = BiometricPrompt.CryptoObject(signature)
+                biometricPrompt.authenticate(promptInfo, cryptoObject)
+            } else {
+                biometricPrompt.authenticate(promptInfo)
+            }
+        } catch (e: Exception) {
+            call.reject("Failed to initialize signature: ${e.message}", e)
+        }
     }
 
     @PluginMethod

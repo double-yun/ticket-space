@@ -19,19 +19,29 @@ export async function verifySignature(
     const signatureBuffer = Buffer.from(signature, 'base64')
     const publicKeyBuffer = Buffer.from(publicKey, 'base64')
 
-    // 공개키 객체 생성 (SPKI 형식)
+    // 챌린지를 UTF-8 바이트로 변환 (해싱 안 함 - iOS/Android에서 이미 해싱됨)
+    const messageBuffer = Buffer.from(challenge, 'utf8')
+
+    // 공개키를 SPKI 형식으로 PEM 변환
+    const publicKeyPem = `-----BEGIN PUBLIC KEY-----\n${publicKeyBuffer.toString('base64').match(/.{1,64}/g)?.join('\n')}\n-----END PUBLIC KEY-----`
+
     const publicKeyObject = crypto.createPublicKey({
-      key: publicKeyBuffer,
-      format: 'der',
+      key: publicKeyPem,
+      format: 'pem',
       type: 'spki'
     })
 
-    // 서명 검증
-    const verify = crypto.createVerify('SHA256')
-    verify.update(challenge)
-    verify.end()
+    // ECDSA 서명 검증 (DER 형식, SHA256 알고리즘)
+    const isValid = crypto.verify(
+      'sha256', // iOS/Android가 SHA256 해싱하므로 알고리즘 지정
+      messageBuffer,
+      {
+        key: publicKeyObject,
+        dsaEncoding: 'der' // DER (ASN.1) 형식 - iOS/Android와 일치
+      },
+      signatureBuffer
+    )
 
-    const isValid = verify.verify(publicKeyObject, signatureBuffer)
     return isValid
   } catch (error) {
     console.error('Signature verification error:', error)

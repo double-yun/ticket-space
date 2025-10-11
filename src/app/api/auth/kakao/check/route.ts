@@ -12,14 +12,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 기존 사용자 확인
+    // kakaoId로 기존 사용자 확인
     const user = await prisma.user.findUnique({
-      where: { kakaoId: kakaoId.toString() }
+      where: { kakaoId: kakaoId.toString() },
+      select: {
+        id: true,
+        publicKey: true,
+        deviceInfo: true
+      }
     })
 
     return NextResponse.json({
-      exists: !!user,
-      userId: user?.id || null
+      userExists: !!user,
+      userId: user?.id || null,
+      hasPublicKey: !!user?.publicKey,
+      deviceInfo: user?.deviceInfo || null
     })
   } catch (error) {
     console.error('Check user error:', error)
