@@ -230,7 +230,7 @@ export default function ProfilePage() {
               <div className="h-px bg-gray-100" />
               <div className="flex justify-between items-center py-1">
                 <span className="text-gray-600">개발자</span>
-                <span className="font-semibold text-gray-900">Ticketing Team</span>
+                <span className="font-semibold text-gray-900">Double-Yun</span>
               </div>
             </div>
           </div>
