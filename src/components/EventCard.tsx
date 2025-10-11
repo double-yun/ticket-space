@@ -2,6 +2,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { Ticket, Sparkles } from 'lucide-react'
 import PayButton from './PayButton'
 
 interface TicketData {
@@ -47,18 +48,20 @@ export default function EventCard({ ticket, type, onSuccess }: EventCardProps) {
     )
   }
 
-  const iconBgClass = type === 'direct' 
-    ? 'from-blue-400 to-purple-500' 
+  const iconBgClass = type === 'direct'
+    ? 'from-blue-400 to-purple-500'
     : 'from-emerald-400 to-cyan-500';
-  
-  const icon = type === 'direct' ? '🎫' : '✨';
 
   return (
     <div className="relative bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
       <Badge />
       <div className="flex items-start gap-5">
         <div className={`w-20 h-20 bg-gradient-to-br ${iconBgClass} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md`}>
-          <span className="text-white text-4xl">{icon}</span>
+          {type === 'direct' ? (
+            <Ticket size={40} className="text-white" strokeWidth={2} />
+          ) : (
+            <Sparkles size={40} className="text-white" strokeWidth={2} />
+          )}
         </div>
         <div className="flex-1 pt-1">
           <h3 className="font-bold text-lg text-gray-900 mb-1.5 pr-16">

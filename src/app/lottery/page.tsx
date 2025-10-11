@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner'
+import { Info, PartyPopper, Folder, Clock, Ticket } from 'lucide-react'
 
 type ApplicationStatus = 'APPLIED' | 'WON' | 'PAID' | 'EXPIRED' | 'CANCELLED'
 type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED'
@@ -157,7 +158,7 @@ export default function LotteryApplicationsPage() {
 
   return (
     <div className="bg-gray-50 h-screen">
-      <TopBar title="추첨 신청 내역" />
+      <TopBar title="추첨 내역" />
 
       <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
         {isRefreshing && (
@@ -168,7 +169,7 @@ export default function LotteryApplicationsPage() {
         <div className="px-4 pt-6 space-y-8">
           <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100">
             <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-              <span className="text-xl">💡</span> 자동 결제 안내
+              <Info size={24} className="text-blue-500" /> 자동 결제 안내
             </h2>
             <p className="text-sm text-gray-600 leading-6">
               추첨에 당첨되면 포인트가 자동으로 차감되고 SBT 티켓이 발급돼요. 잔액이 부족하면 결제가 실패할 수 있으니 여유 있게 충전해 주세요.
@@ -183,7 +184,9 @@ export default function LotteryApplicationsPage() {
               ))}
               {!loading && pendingApplications.length === 0 && (
                 <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
-                  <span className="text-5xl opacity-40 block mb-4">🎉</span>
+                  <div className="flex justify-center mb-4">
+                    <PartyPopper size={64} className="text-gray-300" strokeWidth={1.5} />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-800">진행 중인 추첨이 없습니다</h3>
                   <p className="text-sm text-gray-500 mt-2">새로운 추첨 이벤트를 기대해주세요!</p>
                 </div>
@@ -199,7 +202,9 @@ export default function LotteryApplicationsPage() {
               ))}
               {!loading && completedApplications.length === 0 && (
                 <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
-                  <span className="text-5xl opacity-40 block mb-4">📂</span>
+                  <div className="flex justify-center mb-4">
+                    <Folder size={64} className="text-gray-300" strokeWidth={1.5} />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-800">지난 추첨 내역이 없습니다</h3>
                 </div>
               )}
@@ -247,9 +252,15 @@ function ApplicationCard({ application }: { application: LotteryApplication }) {
     <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
       <div className="flex items-start gap-5 mb-4">
         <div className={`w-20 h-20 bg-gradient-to-br ${getCardGradient(application.status)} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md`}>
-          <span className="text-white text-4xl">
-            {application.status === 'APPLIED' ? '⏳' : application.status === 'WON' ? '🎉' : application.status === 'PAID' ? '🎫' : '📁'}
-          </span>
+          {application.status === 'APPLIED' ? (
+            <Clock size={40} className="text-white" strokeWidth={2} />
+          ) : application.status === 'WON' ? (
+            <PartyPopper size={40} className="text-white" strokeWidth={2} />
+          ) : application.status === 'PAID' ? (
+            <Ticket size={40} className="text-white" strokeWidth={2} />
+          ) : (
+            <Folder size={40} className="text-white" strokeWidth={2} />
+          )}
         </div>
         <div className="flex-1">
           <div className="flex justify-between items-start mb-1.5">

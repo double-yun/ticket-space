@@ -14,7 +14,7 @@ export default function TopBar({ title, leftButton, rightButton }: TopBarProps) 
     <div 
       className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-lg z-40 border-b border-gray-200/80"
     >
-      <div className="relative flex items-center h-14 px-4">
+      <div className="relative flex items-center h-14 px-6">
         {leftButton && (
           <div className="mr-2 -ml-2 transition-transform active:scale-90 duration-150">
             {leftButton}

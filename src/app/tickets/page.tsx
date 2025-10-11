@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner'
+import { Ticket, Star } from 'lucide-react'
 
 interface Purchase {
   id: string
@@ -200,7 +201,9 @@ export default function MyTicketsPage() {
         <div className="px-4 pt-6">
           {purchases.length === 0 ? (
             <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
-              <span className="text-6xl opacity-40 block mb-4">🎫</span>
+              <div className="flex justify-center mb-4">
+                <Ticket size={80} className="text-gray-300" strokeWidth={1.5} />
+              </div>
               <h2 className="text-xl font-bold text-gray-800 mb-2">보유한 티켓이 없습니다</h2>
               <p className="text-gray-600 mb-6">홈에서 새로운 이벤트를 확인하고 티켓을 구매해보세요!</p>
               <button
@@ -228,7 +231,7 @@ export default function MyTicketsPage() {
             <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-2xl p-8 text-center">
               <div className="mb-6">
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <span className="text-4xl text-white">🎫</span>
+                  <Ticket size={40} className="text-white" strokeWidth={2} />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedTicket.ticket.name}</h2>
                 <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
@@ -277,9 +280,11 @@ function TicketCard({ purchase, onShowQR }: { purchase: Purchase; onShowQR: (p: 
     <div className={`bg-white rounded-3xl p-5 shadow-lg border border-gray-100 transition-all duration-300 ${purchase.used ? 'opacity-60' : 'hover:shadow-xl'}`}>
       <div className="flex items-start gap-5">
         <div className={`w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${purchase.used ? 'bg-gray-200' : 'bg-gradient-to-br from-blue-400 to-purple-500'}`}>
-          <span className={`text-4xl ${purchase.used ? 'text-gray-500' : 'text-white'}`}>
-            {purchase.ticket.name.includes('VIP') ? '🌟' : '🎟️'}
-          </span>
+          {purchase.ticket.name.includes('VIP') ? (
+            <Star size={40} className={purchase.used ? 'text-gray-500' : 'text-white'} strokeWidth={2} fill="currentColor" />
+          ) : (
+            <Ticket size={40} className={purchase.used ? 'text-gray-500' : 'text-white'} strokeWidth={2} />
+          )}
         </div>
         <div className="flex-1">
           <div className="flex justify-between items-start">

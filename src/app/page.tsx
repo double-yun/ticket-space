@@ -11,7 +11,8 @@ import { Browser } from '@capacitor/browser'
 import { App } from '@capacitor/app'
 import { useAuth } from '@/contexts/AuthContext'
 import EventCard from '@/components/EventCard';
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner'
+import { Gift, Ticket } from 'lucide-react'
 
 interface AuthUser {
   id: string
@@ -199,7 +200,7 @@ export default function Home() {
 
   return (
     <div className="bg-gray-50 h-screen">
-      <TopBar title="티켓팅" />
+      <TopBar title="홈" />
 
       <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
         {isRefreshing && (
@@ -252,7 +253,9 @@ export default function Home() {
               ))}
               {!loading && directTickets.length === 0 && (
                 <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
-                  <span className="text-5xl opacity-40 block mb-4">🎟️</span>
+                  <div className="flex justify-center mb-4">
+                    <Ticket size={64} className="text-gray-300" strokeWidth={1.5} />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-800">진행중인 이벤트가 없습니다</h3>
                   <p className="text-sm text-gray-500 mt-2">곧 새로운 이벤트로 찾아올게요!</p>
                 </div>
@@ -269,7 +272,9 @@ export default function Home() {
               ))}
               {!loading && lotteryTickets.length === 0 && (
                 <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
-                  <span className="text-5xl opacity-40 block mb-4">🎁</span>
+                  <div className="flex justify-center mb-4">
+                    <Gift size={64} className="text-gray-300" strokeWidth={1.5} />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-800">진행중인 추첨이 없습니다</h3>
                   <p className="text-sm text-gray-500 mt-2">곧 새로운 추첨 이벤트로 찾아올게요!</p>
                 </div>

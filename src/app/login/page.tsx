@@ -13,7 +13,8 @@ import type { KakaoUserInfo } from '@/types/kakao'
 import { useAuth } from '@/contexts/AuthContext'
 import { hasPrivateKey } from '@/lib/crypto/key-manager'
 import { biometricLogin } from '@/lib/crypto/auth-signer'
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner'
+import { Ticket, Shield, Gem, Zap } from 'lucide-react'
 
 function LoginPageContent() {
   const router = useRouter()
@@ -320,7 +321,7 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-white min-h-screen relative overflow-hidden">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-white min-h-screen relative overflow-y-auto">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
@@ -329,13 +330,13 @@ function LoginPageContent() {
         {/* 로고 영역 */}
         <div className="text-center mb-10 flex-shrink-0 animate-fade-in">
           <div className="w-28 h-28 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/30 transform hover:scale-105 transition-transform duration-300">
-            <span className="text-5xl">🎫</span>
+            <Ticket size={56} className="text-white" strokeWidth={2} />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">
-            티켓팅
+            Ticket Space
           </h1>
           <p className="text-base text-gray-600 font-medium">
-            NFT 기반 안전한 티켓 거래 플랫폼
+            SBT 기반 블록체인 티켓팅 시스템
           </p>
         </div>
 
@@ -383,7 +384,7 @@ function LoginPageContent() {
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="p-4 flex items-center gap-4 hover:bg-blue-50/50 transition-colors">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                <span className="text-xl">🔐</span>
+                <Shield size={28} className="text-white" strokeWidth={2} />
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-gray-900 text-sm mb-0.5">개인 전용 블록체인 지갑</h4>
@@ -395,10 +396,10 @@ function LoginPageContent() {
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="p-4 flex items-center gap-4 hover:bg-purple-50/50 transition-colors">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                <span className="text-xl">💎</span>
+                <Gem size={28} className="text-white" strokeWidth={2} />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-gray-900 text-sm mb-0.5">NFT 티켓 소유권</h4>
+                <h4 className="font-bold text-gray-900 text-sm mb-0.5">SBT 티켓 소유권</h4>
                 <p className="text-xs text-gray-600">블록체인으로 보장되는 진위성</p>
               </div>
             </div>
@@ -407,7 +408,7 @@ function LoginPageContent() {
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div className="p-4 flex items-center gap-4 hover:bg-green-50/50 transition-colors">
               <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                <span className="text-xl">⚡</span>
+                <Zap size={28} className="text-white" strokeWidth={2} />
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-gray-900 text-sm mb-0.5">빠르고 안전한 거래</h4>
