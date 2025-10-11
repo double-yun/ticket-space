@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import toast from 'react-hot-toast'
 
 interface PayButtonProps {
   eventId: string
@@ -19,7 +20,7 @@ export default function PayButton({ eventId, disabled, onSuccess, className, but
     if (processing || disabled) return
 
     if (!token) {
-      alert('로그인이 필요합니다. 다시 로그인해 주세요.')
+      toast.error('로그인이 필요합니다. 다시 로그인해 주세요.')
       return
     }
 
@@ -39,15 +40,15 @@ export default function PayButton({ eventId, disabled, onSuccess, className, but
 
       if (!response.ok || !data.success) {
         const message = data?.error ?? '티켓 결제에 실패했습니다.'
-        alert(`❌ ${message}`)
+        toast.error(message)
         return
       }
 
-      alert('🎉 티켓 결제 및 발급이 완료되었습니다!')
+      toast.success('티켓 결제 및 발급이 완료되었습니다!')
       onSuccess?.()
     } catch (error) {
       console.error('Ticket purchase failed.', error)
-      alert('❌ 결제를 처리하는 중 오류가 발생했습니다.')
+      toast.error('결제를 처리하는 중 오류가 발생했습니다.')
     } finally {
       setProcessing(false)
     }

@@ -7,7 +7,8 @@ import usePullToRefresh from '@/hooks/usePullToRefresh'
 import TopBar from '@/components/TopBar'
 import TabNavigation from '@/components/TabNavigation'
 import { Settings, Bell, HelpCircle, LogOut, User, ScanLine, Copy, Check } from 'lucide-react'
-import LoadingSpinner from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner'
+import toast from 'react-hot-toast';
 
 interface Purchase {
   id: string
@@ -76,7 +77,7 @@ export default function ProfilePage() {
       }, 2000)
     } catch (error) {
       console.error('Failed to copy address:', error)
-      alert('주소 복사에 실패했습니다.')
+      toast.error('주소 복사에 실패했습니다.')
     }
   }
 
@@ -230,7 +231,7 @@ export default function ProfilePage() {
               <div className="h-px bg-gray-100" />
               <div className="flex justify-between items-center py-1">
                 <span className="text-gray-600">개발자</span>
-                <span className="font-semibold text-gray-900">Ticketing Team</span>
+                <span className="font-semibold text-gray-900">Double-Yun</span>
               </div>
             </div>
           </div>

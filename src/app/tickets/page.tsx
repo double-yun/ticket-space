@@ -8,6 +8,7 @@ import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { Ticket, Star } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface Purchase {
   id: string
@@ -104,7 +105,7 @@ export default function MyTicketsPage() {
       setQrCodeDataURL(qrDataURL)
     } catch (error) {
       console.error('QR 코드 생성 실패:', error)
-      alert('QR 코드 생성에 실패했습니다.')
+      toast.error('QR 코드 생성에 실패했습니다.')
     }
   }
 
@@ -327,7 +328,7 @@ function TicketCard({ purchase, onShowQR }: { purchase: Purchase; onShowQR: (p: 
             className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-2xl transition-all duration-200 flex items-center justify-center gap-2"
             onClick={() => {
               navigator.clipboard.writeText(purchase.transactionHash)
-              alert('트랜잭션 해시가 복사되었습니다.')
+              toast.success('트랜잭션 해시가 복사되었습니다.')
             }}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z"></path><path d="M3 5a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"></path></svg>

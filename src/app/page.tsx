@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import EventCard from '@/components/EventCard';
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { Gift, Ticket, Copy, Check, Plus } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface AuthUser {
   id: string
@@ -59,6 +60,8 @@ export default function Home() {
   const [ticketCount, setTicketCount] = useState(0)
   const [funding, setFunding] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [showAmountModal, setShowAmountModal] = useState(false)
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
 
   const fetchAllData = useCallback(async () => {
     if (!user || !token) return
@@ -172,7 +175,13 @@ export default function Home() {
 	const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY;
 
     if (!storeId || !channelKey) {
-      alert('결제 설정이 필요합니다.')
+      toast.error('결제 설정이 필요합니다.')
+      setFunding(false)
+      return
+    }
+
+    if (!selectedAmount) {
+      toast.error('충전 금액을 선택해주세요.')
       setFunding(false)
       return
     }
@@ -184,7 +193,7 @@ export default function Home() {
         paymentUrl.searchParams.set('storeId', storeId)
         paymentUrl.searchParams.set('channelKey', channelKey)
         paymentUrl.searchParams.set('orderName', '포인트 충전')
-        paymentUrl.searchParams.set('totalAmount', '1000')
+        paymentUrl.searchParams.set('totalAmount', selectedAmount.toString())
         paymentUrl.searchParams.set('from_app', 'true')
         if (authUser?.id) {
           paymentUrl.searchParams.set('userId', authUser.id)
@@ -196,20 +205,43 @@ export default function Home() {
           channelKey,
           paymentId,
           orderName: '포인트 충전',
-          totalAmount: 1000,
+          totalAmount: selectedAmount,
           currency: 'KRW',
           payMethod: 'CARD',
           redirectUrl: `${window.location.origin}/points/charge/callback?userId=${authUser?.id}`,
         })
         if (resp?.code) {
-          alert(resp.message || '결제가 취소되었습니다.')
+          toast.error(resp.message || '결제가 취소되었습니다.')
         }
       }
     } catch (error) {
-      alert('결제 처리 중 오류가 발생했습니다.')
+      toast.error('결제 처리 중 오류가 발생했습니다.')
     } finally {
       setFunding(false)
+      setShowAmountModal(false)
+      setSelectedAmount(null)
     }
+  }
+
+  const openAmountModal = () => {
+    setShowAmountModal(true)
+  }
+
+  const closeAmountModal = () => {
+    setShowAmountModal(false)
+    setSelectedAmount(null)
+  }
+
+  const handleAmountSelect = (amount: number) => {
+    setSelectedAmount(amount)
+  }
+
+  const confirmAndPay = () => {
+    if (!selectedAmount) {
+      toast.error('충전 금액을 선택해주세요.')
+      return
+    }
+    handleFundWallet()
   }
 
   if (!authUser) return null
@@ -262,21 +294,12 @@ export default function Home() {
             
             {/* 충전 버튼 */}
             <button
-              onClick={handleFundWallet}
+              onClick={openAmountModal}
               disabled={funding}
               className="w-full bg-white/70 backdrop-blur-sm border border-blue-200/50 text-blue-600 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-[0.99] hover:bg-white/90 hover:border-blue-300/60 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {funding ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  <span>처리 중...</span>
-                </>
-              ) : (
-                <>
-                  <Plus size={18} strokeWidth={2.5} />
-                  <span>포인트 충전</span>
-                </>
-              )}
+              <Plus size={18} strokeWidth={2.5} />
+              <span>포인트 충전</span>
             </button>
           </div>
 
@@ -325,6 +348,60 @@ export default function Home() {
       </main>
 
       <TabNavigation />
+
+      {/* 충전 금액 선택 모달 */}
+      {showAmountModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-slide-up">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900">충전 금액 선택</h2>
+              <p className="text-sm text-gray-500 mt-1">원하시는 금액을 선택해주세요</p>
+            </div>
+            
+            <div className="p-6 space-y-3">
+              {[1000, 5000, 10000, 30000, 50000, 100000].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() => handleAmountSelect(amount)}
+                  className={`w-full p-4 rounded-2xl font-semibold text-lg transition-all active:scale-[0.98] ${
+                    selectedAmount === amount
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {amount.toLocaleString()}원
+                </button>
+              ))}
+            </div>
+
+            <div className="p-6 pt-0 space-y-3">
+              <button
+                onClick={confirmAndPay}
+                disabled={!selectedAmount || funding}
+                className="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold text-base transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {funding ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>처리 중...</span>
+                  </>
+                ) : (
+                  <span>
+                    {selectedAmount ? `${selectedAmount.toLocaleString()}원 충전하기` : '금액을 선택해주세요'}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={closeAmountModal}
+                disabled={funding}
+                className="w-full bg-gray-100 text-gray-700 py-4 rounded-2xl font-semibold text-base transition-all active:scale-[0.99] disabled:opacity-50"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
