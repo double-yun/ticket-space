@@ -1,9 +1,7 @@
-
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Ticket, Sparkles } from 'lucide-react'
-import PayButton from './PayButton'
+import { Ticket, Sparkles, ChevronRight } from 'lucide-react'
 
 interface TicketData {
   id: string
@@ -20,17 +18,21 @@ interface TicketData {
 interface EventCardProps {
   ticket: TicketData
   type: 'direct' | 'lottery'
-  onSuccess: () => void
 }
 
-export default function EventCard({ ticket, type, onSuccess }: EventCardProps) {
+export default function EventCard({ ticket, type }: EventCardProps) {
   const router = useRouter()
   const isSoldOut = type === 'direct' && ticket.currentSupply >= ticket.maxSupply
 
-  const handleLotteryClick = () => {
-    if (ticket.roundId) {
-      router.push(`/lottery/${ticket.roundId}`)
+  const handleCardClick = () => {
+    const basePath = `/events/${ticket.id}`
+    const params = new URLSearchParams({ type })
+
+    if (type === 'lottery' && ticket.roundId) {
+      params.set('roundId', ticket.roundId)
     }
+
+    router.push(`${basePath}?${params.toString()}`)
   }
 
   const Badge = () => {
@@ -55,7 +57,11 @@ export default function EventCard({ ticket, type, onSuccess }: EventCardProps) {
   const iconColorClass = type === 'direct' ? 'text-blue-600' : 'text-emerald-600';
 
   return (
-    <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 transition-transform duration-200">
+    <button
+      type="button"
+      onClick={handleCardClick}
+      className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 transition-transform duration-200 text-left w-full hover:shadow-md active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+    >
       <Badge />
       <div className="flex items-start gap-5">
         <div className={`w-20 h-20 ${iconStyles} rounded-2xl flex items-center justify-center flex-shrink-0`}>
@@ -83,32 +89,24 @@ export default function EventCard({ ticket, type, onSuccess }: EventCardProps) {
           <p className={`text-2xl font-bold ${type === 'direct' ? 'text-blue-600' : 'text-emerald-600'}`}>
             {ticket.price.toLocaleString()}P
           </p>
+          {isSoldOut && (
+            <span className="mt-1 inline-block text-xs font-semibold text-gray-500 bg-gray-100/80 px-2 py-1 rounded-full">
+              판매 완료
+            </span>
+          )}
         </div>
-        
-        {type === 'direct' ? (
-          <PayButton
-            eventId={ticket.id}
-            disabled={isSoldOut}
-            onSuccess={onSuccess}
-            className="w-auto px-6 py-3 bg-blue-500/80 backdrop-blur-sm border border-blue-300/30 text-white font-bold rounded-2xl shadow-sm transition-all duration-200 disabled:bg-gray-300 disabled:shadow-none active:scale-[0.98]"
-            buttonText={isSoldOut ? '판매 완료' : '구매하기'}
-          />
-        ) : (
-          <button
-            className="w-auto px-6 py-3 bg-emerald-500/80 backdrop-blur-sm border border-emerald-300/30 text-white font-bold rounded-2xl shadow-sm transition-all duration-200 disabled:bg-gray-300 disabled:shadow-none active:scale-[0.98]"
-            onClick={handleLotteryClick}
-          >
-            신청하기
-          </button>
-        )}
+        <div className="flex items-center gap-1 text-sm font-semibold text-gray-500">
+          <span>자세히</span>
+          <ChevronRight size={18} className="text-gray-400" />
+        </div>
       </div>
-       {type === 'lottery' && ticket.applicationDeadline && (
+      {type === 'lottery' && ticket.applicationDeadline && (
         <div className="mt-3 text-center text-xs text-gray-500 border-t border-gray-100 pt-3">
           응모 마감: {new Date(ticket.applicationDeadline).toLocaleString('ko-KR', {
             month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
           })}
         </div>
       )}
-    </div>
+    </button>
   )
 }

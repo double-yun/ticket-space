@@ -157,16 +157,16 @@ export default function LotteryApplicationsPage() {
   }, [applications])
 
   return (
-    <div className="bg-gradient-to-b from-emerald-50/30 via-white to-blue-50/30 h-screen">
+    <div className="bg-gradient-to-b from-emerald-50/30 via-white to-blue-50/30 h-screen flex flex-col">
       <TopBar title="추첨 내역" />
 
-      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
+      <main ref={containerRef} className="flex-1 overflow-y-auto">
         {isRefreshing && (
           <div className="text-center py-2">
             <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="px-4 pt-6 space-y-8">
+        <div className="px-4 py-6 space-y-8">
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50">
             <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-500/10 backdrop-blur-xl border border-blue-200/30 rounded-lg flex items-center justify-center">

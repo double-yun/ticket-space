@@ -102,16 +102,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-gradient-to-b from-indigo-50/30 via-white to-blue-50/30 h-screen">
+    <div className="bg-gradient-to-b from-indigo-50/30 via-white to-blue-50/30 h-screen flex flex-col">
       <TopBar title="프로필" />
 
-      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
+      <main ref={containerRef} className="flex-1 overflow-y-auto">
         {isRefreshing && (
           <div className="text-center py-2">
             <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="px-4 pt-6 space-y-6">
+        <div className="px-4 py-6 space-y-6">
           <div className="bg-gradient-to-br from-indigo-500/5 to-blue-500/5 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-indigo-100/50">
             <div className="flex items-center space-x-4 mb-6">
               <div className="w-20 h-20 bg-indigo-500/10 backdrop-blur-xl border border-indigo-200/30 rounded-full flex items-center justify-center">

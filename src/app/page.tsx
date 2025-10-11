@@ -199,16 +199,16 @@ export default function Home() {
   if (!authUser) return null
 
   return (
-    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-screen">
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-screen flex flex-col">
       <TopBar title="홈" />
 
-      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
+      <main ref={containerRef} className="flex-1 overflow-y-auto">
         {isRefreshing && (
           <div className="fixed top-28 left-0 right-0 flex justify-center py-2 z-10">
             <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="px-4 pt-6 space-y-8 pb-8">
+        <div className="px-4 py-6 space-y-8">
           {/* 지갑 정보 */}
           <div className="bg-gradient-to-br from-blue-500/5 to-purple-500/5 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-blue-100/50">
             <div className="flex items-start justify-between mb-4">
@@ -249,7 +249,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-4 text-gray-900">바로 구매 가능한 이벤트</h2>
             <div className="space-y-4">
               {directTickets.map((ticket) => (
-                <EventCard key={ticket.id} ticket={ticket} type="direct" onSuccess={fetchAllData} />
+                <EventCard key={ticket.id} ticket={ticket} type="direct" />
               ))}
               {!loading && directTickets.length === 0 && (
                 <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">
@@ -270,7 +270,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-4 text-gray-900">추첨 이벤트</h2>
             <div className="space-y-4">
               {lotteryTickets.map((ticket) => (
-                <EventCard key={`${ticket.id}-${ticket.roundId}`} ticket={ticket} type="lottery" onSuccess={fetchAllData} />
+                <EventCard key={`${ticket.id}-${ticket.roundId}`} ticket={ticket} type="lottery" />
               ))}
               {!loading && lotteryTickets.length === 0 && (
                 <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">

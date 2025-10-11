@@ -189,16 +189,16 @@ export default function MyTicketsPage() {
   }
 
   return (
-    <div className="bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30 h-screen">
+    <div className="bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30 h-screen flex flex-col">
       <TopBar title="내 티켓" />
 
-      <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
+      <main ref={containerRef} className="flex-1 overflow-y-auto">
         {isRefreshing && (
           <div className="text-center py-2">
             <LoadingSpinner size={24} />
           </div>
         )}
-        <div className="px-4 pt-6">
+        <div className="px-4 py-6">
           {purchases.length === 0 ? (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">
               <div className="flex justify-center mb-4">

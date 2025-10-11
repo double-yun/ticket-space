@@ -105,7 +105,7 @@ export class PurchaseTicketError extends Error {
 }
 
 type PurchaseOptions = {
-  eventId: number
+  eventId: string | number
   userId: string
   applicationId?: string
   description?: string
@@ -117,8 +117,14 @@ export async function purchaseTicketWithPoints({
   applicationId,
   description,
 }: PurchaseOptions): Promise<PurchaseTicketResult> {
+  const numericEventId = typeof eventId === 'string' ? parseInt(eventId, 10) : eventId
+
+  if (isNaN(numericEventId)) {
+    throw new PurchaseTicketError('INVALID_EVENT_ID', '잘못된 이벤트 ID입니다.')
+  }
+
   const event = await prisma.event.findUnique({
-    where: { id: eventId },
+    where: { id: numericEventId },
   })
 
   if (!event) {
@@ -191,7 +197,7 @@ export async function purchaseTicketWithPoints({
   })
 
   // 2. 블록체인 트랜잭션을 백그라운드에서 실행 (await 하지 않음)
-  mintSBTInBackground(ticket.id, user.walletAddress, eventId, event.price, pointHistory.id).catch((error) => {
+  mintSBTInBackground(ticket.id, user.walletAddress, numericEventId, event.price, pointHistory.id).catch((error) => {
     console.error(`Background SBT minting failed for ticket ${ticket.id}:`, error)
   })
 
