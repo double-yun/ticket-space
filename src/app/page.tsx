@@ -199,7 +199,7 @@ export default function Home() {
   if (!authUser) return null
 
   return (
-    <div className="bg-gray-50 h-screen">
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-screen">
       <TopBar title="홈" />
 
       <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
@@ -210,35 +210,35 @@ export default function Home() {
         )}
         <div className="px-4 pt-6 space-y-8 pb-8">
           {/* 지갑 정보 */}
-          <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl p-6 shadow-xl shadow-blue-500/20">
-            <div className="flex items-start justify-between text-white mb-4">
+          <div className="bg-gradient-to-br from-blue-500/5 to-purple-500/5 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-blue-100/50">
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold mb-1">내 지갑</h3>
-                <p className="text-sm text-blue-100 font-mono tracking-wider">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">내 지갑</h3>
+                <p className="text-sm text-gray-500 font-mono tracking-wider">
                   {authUser.walletAddress?.slice(0, 6)}...{authUser.walletAddress?.slice(-4)}
                 </p>
               </div>
               <button
-                className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-white/30 transition-all active:scale-95"
+                className="bg-blue-500/80 backdrop-blur-sm border border-blue-300/30 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] shadow-sm"
                 onClick={handleFundWallet}
                 disabled={funding}
               >
                 {funding ? '처리 중...' : '충전'}
               </button>
             </div>
-            <div className="flex items-end justify-between">
-              <div className="text-left">
-                <p className="text-sm text-blue-200 mb-1">보유 티켓</p>
-                <p className="text-3xl font-bold text-white">
+            <div className="flex items-end justify-between gap-4">
+              <div className="flex-1 bg-blue-500/5 backdrop-blur-xl border border-blue-200/30 rounded-2xl p-4">
+                <p className="text-sm text-gray-600 mb-1">보유 티켓</p>
+                <p className="text-3xl font-bold text-gray-900">
                   {ticketCount}
-                  <span className="text-2xl font-normal ml-1">개</span>
+                  <span className="text-xl font-normal ml-1 text-gray-600">개</span>
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-blue-200 mb-1">보유 포인트</p>
-                <p className="text-3xl font-bold text-white">
+              <div className="flex-1 bg-purple-500/5 backdrop-blur-xl border border-purple-200/30 rounded-2xl p-4">
+                <p className="text-sm text-gray-600 mb-1">보유 포인트</p>
+                <p className="text-3xl font-bold text-gray-900">
                   {(balance?.pointBalance ?? 0).toLocaleString()}
-                  <span className="text-2xl font-normal ml-1">P</span>
+                  <span className="text-xl font-normal ml-1 text-gray-600">P</span>
                 </p>
               </div>
             </div>
@@ -252,9 +252,11 @@ export default function Home() {
                 <EventCard key={ticket.id} ticket={ticket} type="direct" onSuccess={fetchAllData} />
               ))}
               {!loading && directTickets.length === 0 && (
-                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">
                   <div className="flex justify-center mb-4">
-                    <Ticket size={64} className="text-gray-300" strokeWidth={1.5} />
+                    <div className="w-20 h-20 bg-gray-500/5 backdrop-blur-xl border border-gray-200/30 rounded-2xl flex items-center justify-center">
+                      <Ticket size={40} className="text-gray-400" strokeWidth={2} />
+                    </div>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-800">진행중인 이벤트가 없습니다</h3>
                   <p className="text-sm text-gray-500 mt-2">곧 새로운 이벤트로 찾아올게요!</p>
@@ -271,9 +273,11 @@ export default function Home() {
                 <EventCard key={`${ticket.id}-${ticket.roundId}`} ticket={ticket} type="lottery" onSuccess={fetchAllData} />
               ))}
               {!loading && lotteryTickets.length === 0 && (
-                <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">
                   <div className="flex justify-center mb-4">
-                    <Gift size={64} className="text-gray-300" strokeWidth={1.5} />
+                    <div className="w-20 h-20 bg-emerald-500/5 backdrop-blur-xl border border-emerald-200/30 rounded-2xl flex items-center justify-center">
+                      <Gift size={40} className="text-emerald-400" strokeWidth={2} />
+                    </div>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-800">진행중인 추첨이 없습니다</h3>
                   <p className="text-sm text-gray-500 mt-2">곧 새로운 추첨 이벤트로 찾아올게요!</p>

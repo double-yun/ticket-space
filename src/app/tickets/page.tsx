@@ -189,7 +189,7 @@ export default function MyTicketsPage() {
   }
 
   return (
-    <div className="bg-gray-50 h-screen">
+    <div className="bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30 h-screen">
       <TopBar title="내 티켓" />
 
       <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
@@ -200,15 +200,17 @@ export default function MyTicketsPage() {
         )}
         <div className="px-4 pt-6">
           {purchases.length === 0 ? (
-            <div className="bg-white rounded-3xl p-8 shadow-lg text-center border border-gray-100">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm text-center border border-gray-100/50">
               <div className="flex justify-center mb-4">
-                <Ticket size={80} className="text-gray-300" strokeWidth={1.5} />
+                <div className="w-24 h-24 bg-blue-500/5 backdrop-blur-xl border border-blue-200/30 rounded-2xl flex items-center justify-center">
+                  <Ticket size={48} className="text-blue-400" strokeWidth={2} />
+                </div>
               </div>
               <h2 className="text-xl font-bold text-gray-800 mb-2">보유한 티켓이 없습니다</h2>
               <p className="text-gray-600 mb-6">홈에서 새로운 이벤트를 확인하고 티켓을 구매해보세요!</p>
               <button
                 onClick={() => router.push('/')}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-bold transition-all duration-200"
+                className="w-full bg-blue-500/80 backdrop-blur-sm border border-blue-300/30 text-white py-3.5 rounded-2xl font-bold shadow-sm transition-all duration-200 active:scale-[0.98]"
               >
                 이벤트 보러가기
               </button>
@@ -228,10 +230,10 @@ export default function MyTicketsPage() {
         {/* QR 코드 팝업 */}
         {qrPopupOpen && selectedTicket && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-2xl p-8 text-center">
+            <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-lg p-8 text-center">
               <div className="mb-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Ticket size={40} className="text-white" strokeWidth={2} />
+                <div className="w-20 h-20 bg-blue-500/10 backdrop-blur-xl border border-blue-200/30 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                  <Ticket size={40} className="text-blue-600" strokeWidth={2} />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedTicket.ticket.name}</h2>
                 <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
@@ -261,7 +263,7 @@ export default function MyTicketsPage() {
 
               <button
                 onClick={handleCloseQR}
-                className="w-full bg-gray-800 hover:bg-gray-900 text-white rounded-2xl py-3.5 font-semibold transition-all duration-200"
+                className="w-full bg-gray-800/80 backdrop-blur-sm border border-gray-600/30 text-white rounded-2xl py-3.5 font-semibold shadow-sm transition-all duration-200 active:scale-[0.98]"
               >
                 닫기
               </button>
@@ -276,14 +278,26 @@ export default function MyTicketsPage() {
 }
 
 function TicketCard({ purchase, onShowQR }: { purchase: Purchase; onShowQR: (p: Purchase) => void }) {
+  const isVIP = purchase.ticket.name.includes('VIP')
+  const iconBgClass = purchase.used
+    ? 'bg-gray-500/10 backdrop-blur-xl border border-gray-200/30'
+    : isVIP
+      ? 'bg-amber-500/10 backdrop-blur-xl border border-amber-200/30'
+      : 'bg-blue-500/10 backdrop-blur-xl border border-blue-200/30'
+  const iconColorClass = purchase.used
+    ? 'text-gray-500'
+    : isVIP
+      ? 'text-amber-600'
+      : 'text-blue-600'
+
   return (
-    <div className={`bg-white rounded-3xl p-5 shadow-lg border border-gray-100 transition-all duration-300 ${purchase.used ? 'opacity-60' : 'hover:shadow-xl'}`}>
+    <div className={`bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 transition-all duration-200 ${purchase.used ? 'opacity-60' : ''}`}>
       <div className="flex items-start gap-5">
-        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${purchase.used ? 'bg-gray-200' : 'bg-gradient-to-br from-blue-400 to-purple-500'}`}>
-          {purchase.ticket.name.includes('VIP') ? (
-            <Star size={40} className={purchase.used ? 'text-gray-500' : 'text-white'} strokeWidth={2} fill="currentColor" />
+        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 ${iconBgClass}`}>
+          {isVIP ? (
+            <Star size={40} className={iconColorClass} strokeWidth={2} fill="currentColor" />
           ) : (
-            <Ticket size={40} className={purchase.used ? 'text-gray-500' : 'text-white'} strokeWidth={2} />
+            <Ticket size={40} className={iconColorClass} strokeWidth={2} />
           )}
         </div>
         <div className="flex-1">
@@ -303,7 +317,7 @@ function TicketCard({ purchase, onShowQR }: { purchase: Purchase; onShowQR: (p: 
       {!purchase.used && (
         <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
           <button
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-2xl transition-all duration-200 flex items-center justify-center gap-2"
+            className="flex-1 bg-blue-500/80 backdrop-blur-sm border border-blue-300/30 text-white font-bold py-3 rounded-2xl shadow-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
             onClick={() => onShowQR(purchase)}
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zM9 4a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1V4zM9 10a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1v-2zM15 4a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1V4zM15 10a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1v-2z"></path></svg>

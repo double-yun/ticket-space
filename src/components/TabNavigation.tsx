@@ -15,7 +15,7 @@ export default function TabNavigation() {
   ]
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-100/50 z-50 shadow-sm">
       <div className="flex safe-area-inset-bottom">
         {tabs.map(({ path, icon: Icon, label }) => {
           const isActive = pathname === path
@@ -27,27 +27,23 @@ export default function TabNavigation() {
               className={`
                 flex-1 flex flex-col items-center py-2.5 px-2 relative
                 transition-all duration-200 ease-out
-                active:scale-95 active:bg-gray-50
-                ${isActive ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}
+                active:scale-[0.98]
+                ${isActive ? 'text-blue-600' : 'text-gray-400'}
               `}
             >
-              {/* Active indicator */}
+              {/* Active indicator - glassmorphism style */}
               {isActive && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-blue-600 rounded-full" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-blue-500/80 backdrop-blur-sm rounded-full shadow-sm" />
               )}
 
-              {/* Icon with background effect */}
+              {/* Icon */}
               <div className={`
                 relative transition-all duration-200
                 ${isActive ? 'scale-100' : 'scale-90'}
               `}>
-                {isActive && (
-                  <div className="absolute inset-0 bg-blue-50 rounded-xl blur-sm scale-110" />
-                )}
                 <Icon
                   size={24}
                   strokeWidth={isActive ? 2.5 : 2}
-                  className="relative z-10"
                 />
               </div>
 

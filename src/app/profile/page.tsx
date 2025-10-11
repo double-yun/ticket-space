@@ -102,7 +102,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-gray-50 h-screen">
+    <div className="bg-gradient-to-b from-indigo-50/30 via-white to-blue-50/30 h-screen">
       <TopBar title="프로필" />
 
       <main ref={containerRef} className="h-full overflow-y-auto pt-[60px] pb-[180px]">
@@ -112,47 +112,49 @@ export default function ProfilePage() {
           </div>
         )}
         <div className="px-4 pt-6 space-y-6">
-          <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl p-6 shadow-xl shadow-blue-500/20">
+          <div className="bg-gradient-to-br from-indigo-500/5 to-blue-500/5 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-indigo-100/50">
             <div className="flex items-center space-x-4 mb-6">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-4 ring-white/30">
-                <User className="h-10 w-10 text-white" strokeWidth={1.5} />
+              <div className="w-20 h-20 bg-indigo-500/10 backdrop-blur-xl border border-indigo-200/30 rounded-full flex items-center justify-center">
+                <User className="h-10 w-10 text-indigo-600" strokeWidth={1.5} />
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-bold text-white mb-1">{user?.name ?? '사용자'}</h2>
-                <p className="text-blue-100 text-sm font-mono">{user?.email ?? 'user@example.com'}</p>
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">{user?.name ?? '사용자'}</h2>
+                <p className="text-gray-500 text-sm font-mono">{user?.email ?? 'user@example.com'}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center">
-                <p className="text-2xl font-bold text-white mb-1">{stats.heldTickets}</p>
-                <p className="text-xs text-blue-100">보유 티켓</p>
+              <div className="bg-blue-500/5 backdrop-blur-xl border border-blue-200/30 rounded-2xl p-3 text-center">
+                <p className="text-2xl font-bold text-gray-900 mb-1">{stats.heldTickets}</p>
+                <p className="text-xs text-gray-600">보유 티켓</p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center">
-                <p className="text-2xl font-bold text-white mb-1">{stats.usedTickets}</p>
-                <p className="text-xs text-blue-100">사용한 티켓</p>
+              <div className="bg-emerald-500/5 backdrop-blur-xl border border-emerald-200/30 rounded-2xl p-3 text-center">
+                <p className="text-2xl font-bold text-gray-900 mb-1">{stats.usedTickets}</p>
+                <p className="text-xs text-gray-600">사용한 티켓</p>
               </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 text-center">
-                <p className="text-2xl font-bold text-white mb-1">{stats.totalPurchaseAmount.toLocaleString()}</p>
-                <p className="text-xs text-blue-100">총 구매액</p>
+              <div className="bg-purple-500/5 backdrop-blur-xl border border-purple-200/30 rounded-2xl p-3 text-center">
+                <p className="text-2xl font-bold text-gray-900 mb-1">{stats.totalPurchaseAmount.toLocaleString()}</p>
+                <p className="text-xs text-gray-600">총 구매액</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl overflow-hidden shadow-sm border border-gray-100/50">
             {menuItems.map((item, index) => {
               const IconComponent = item.icon
               return (
                 <button
                   key={index}
                   onClick={item.action}
-                  className={`w-full flex items-center justify-between p-4 border-b border-gray-100 last:border-0 active:bg-gray-50 transition-colors duration-150 ${
+                  className={`w-full flex items-center justify-between p-4 border-b border-gray-100/50 last:border-0 active:scale-[0.98] transition-all duration-150 ${
                     item.danger ? 'text-red-600' : 'text-gray-800'
                   }`}
                 >
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                      item.danger ? 'bg-red-50' : 'bg-gray-100'
+                      item.danger
+                        ? 'bg-red-500/10 backdrop-blur-xl border border-red-200/30'
+                        : 'bg-gray-500/5 backdrop-blur-xl border border-gray-200/30'
                     }`}>
                       <IconComponent className="h-6 w-6" strokeWidth={2} />
                     </div>
@@ -168,7 +170,7 @@ export default function ProfilePage() {
             })}
           </div>
 
-          <div className="bg-white rounded-3xl p-5 shadow-lg border border-gray-100">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50">
             <h3 className="text-base font-bold text-gray-900 mb-4">앱 정보</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between items-center py-1">

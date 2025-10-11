@@ -36,31 +36,33 @@ export default function EventCard({ ticket, type, onSuccess }: EventCardProps) {
   const Badge = () => {
     if (type === 'lottery') {
       return (
-        <span className="absolute top-3 right-3 bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-1 rounded-full">
+        <span className="absolute top-3 right-3 bg-emerald-500/10 backdrop-blur-sm border border-emerald-200/50 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-full">
           추첨 이벤트
         </span>
       )
     }
     return (
-      <span className="absolute top-3 right-3 bg-sky-100 text-sky-800 text-xs font-semibold px-2.5 py-1 rounded-full">
+      <span className="absolute top-3 right-3 bg-blue-500/10 backdrop-blur-sm border border-blue-200/50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full">
         바로 구매
       </span>
     )
   }
 
-  const iconBgClass = type === 'direct'
-    ? 'from-blue-400 to-purple-500'
-    : 'from-emerald-400 to-cyan-500';
+  const iconStyles = type === 'direct'
+    ? 'bg-blue-500/10 backdrop-blur-xl border border-blue-200/30'
+    : 'bg-emerald-500/10 backdrop-blur-xl border border-emerald-200/30';
+
+  const iconColorClass = type === 'direct' ? 'text-blue-600' : 'text-emerald-600';
 
   return (
-    <div className="relative bg-white rounded-3xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
+    <div className="relative bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 transition-transform duration-200">
       <Badge />
       <div className="flex items-start gap-5">
-        <div className={`w-20 h-20 bg-gradient-to-br ${iconBgClass} rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md`}>
+        <div className={`w-20 h-20 ${iconStyles} rounded-2xl flex items-center justify-center flex-shrink-0`}>
           {type === 'direct' ? (
-            <Ticket size={40} className="text-white" strokeWidth={2} />
+            <Ticket size={40} className={iconColorClass} strokeWidth={2} />
           ) : (
-            <Sparkles size={40} className="text-white" strokeWidth={2} />
+            <Sparkles size={40} className={iconColorClass} strokeWidth={2} />
           )}
         </div>
         <div className="flex-1 pt-1">
@@ -88,12 +90,12 @@ export default function EventCard({ ticket, type, onSuccess }: EventCardProps) {
             eventId={ticket.id}
             disabled={isSoldOut}
             onSuccess={onSuccess}
-            className="w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all duration-200 disabled:bg-gray-300 active:scale-95"
+            className="w-auto px-6 py-3 bg-blue-500/80 backdrop-blur-sm border border-blue-300/30 text-white font-bold rounded-2xl shadow-sm transition-all duration-200 disabled:bg-gray-300 disabled:shadow-none active:scale-[0.98]"
             buttonText={isSoldOut ? '판매 완료' : '구매하기'}
           />
         ) : (
           <button
-            className="w-auto px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl transition-all duration-200 disabled:bg-gray-300 active:scale-95"
+            className="w-auto px-6 py-3 bg-emerald-500/80 backdrop-blur-sm border border-emerald-300/30 text-white font-bold rounded-2xl shadow-sm transition-all duration-200 disabled:bg-gray-300 disabled:shadow-none active:scale-[0.98]"
             onClick={handleLotteryClick}
           >
             신청하기
