@@ -32,6 +32,10 @@ model User {
   keyCreatedAt  DateTime?
   deviceInfo    String?
 
+  // 복구 코드 필드
+  recoveryCodeHash      String?   @unique
+  recoveryCodeCreatedAt DateTime?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -39,6 +43,8 @@ model User {
   tickets              Ticket[]
   pointHistories       PointHistory[]
   authChallenges       AuthChallenge[]
+  publicKeyHistories   PublicKeyHistory[]
+  recoveryAttempts     RecoveryAttempt[]
 
   @@map("users")
 }
@@ -133,16 +139,17 @@ enum PaymentStatus {
 }
 
 model Ticket {
-  id            String   @id @default(cuid())
-  applicationId String?  @unique
-  eventId       Int
-  userId        String
-  tokenId       BigInt?
-  txHash        String?  @unique
-  used          Boolean  @default(false)
-  refunded      Boolean  @default(false)
-  issuedAt      DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  applicationId      String?  @unique
+  eventId            Int
+  userId             String
+  tokenId            BigInt?
+  txHash             String?  @unique
+  used               Boolean  @default(false)
+  refunded           Boolean  @default(false)
+  encryptedPublicKey String?  // 구매 당시 공개키 (AES-256-GCM 암호화)
+  issuedAt           DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   application LotteryApplication? @relation(fields: [applicationId], references: [id])
   event       Event               @relation(fields: [eventId], references: [id])
@@ -186,4 +193,34 @@ model AuthChallenge {
   @@index([challenge])
   @@index([expiresAt])
   @@map("auth_challenges")
+}
+
+model PublicKeyHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  publicKey    String
+  keyAlgorithm String   @default("ECDSA_P256")
+  reason       String   // "INITIAL", "RECOVERY", "ROTATION"
+  deviceInfo   String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("public_key_history")
+}
+
+model RecoveryAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([ipAddress, createdAt])
+  @@map("recovery_attempts")
 }
