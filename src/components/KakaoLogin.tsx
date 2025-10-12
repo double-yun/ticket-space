@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button } from '@mui/material'
 import { Capacitor } from '@capacitor/core'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -249,27 +248,13 @@ export default function KakaoLogin() {
   }
 
   return (
-    <Button
-      variant="contained"
+    <button
+      type="button"
       onClick={handleKakaoLogin}
       disabled={isLoading}
-      sx={{
-        backgroundColor: '#FEE500',
-        color: '#000000',
-        '&:hover': {
-          backgroundColor: '#FCDD00',
-        },
-        fontSize: '16px',
-        fontWeight: 'bold',
-        padding: '12px 24px',
-        borderRadius: '8px',
-        width: '100%',
-        maxWidth: '300px',
-        margin: '0 auto',
-        display: 'block',
-      }}
+      className="mx-auto block w-full max-w-[300px] rounded-2xl bg-[#FEE500] px-6 py-3 text-base font-bold text-black shadow-sm transition-all hover:bg-[#FCDD00] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
     >
       {isLoading ? '로그인 중...' : '카카오톡으로 로그인'}
-    </Button>
+    </button>
   )
 }
