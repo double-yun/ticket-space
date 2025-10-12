@@ -7,7 +7,7 @@ import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { Ticket, Star } from 'lucide-react'
+import { Ticket, Star, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Purchase {
@@ -230,47 +230,58 @@ export default function MyTicketsPage() {
 
         {/* QR 코드 팝업 */}
         {qrPopupOpen && selectedTicket && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-lg p-8 text-center">
-              <div className="mb-6">
-                <div className="w-20 h-20 bg-blue-500/10 backdrop-blur-xl border border-blue-200/30 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                  <Ticket size={40} className="text-blue-600" strokeWidth={2} />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedTicket.ticket.name}</h2>
-                <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-2xl mb-5 relative aspect-square flex items-center justify-center">
-                {qrCodeDataURL ? (
-                  <img src={qrCodeDataURL} alt="티켓 QR 코드" className="w-full h-full rounded-xl shadow-sm" />
-                ) : (
-                  <LoadingSpinner size={40} />
-                )}
-              </div>
-
-              <div className="mb-5">
-                <div className="relative w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-1000 ease-linear"
-                    style={{ width: `${(timeLeft / 15) * 100}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  <span className="font-bold text-blue-600">{timeLeft}</span>초 후 QR코드가 갱신됩니다.
-                </p>
-              </div>
-
-              <p className="text-xs text-gray-500 mb-6">🔒 복제 방지를 위해 QR코드가 주기적으로 자동 갱신됩니다.</p>
-
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in p-4">
+            <div className="relative bg-gradient-to-b from-white/98 to-white/90 backdrop-blur-xl border border-white/50 rounded-3xl w-full max-w-md shadow-2xl animate-fade-in max-h-[90vh] flex flex-col">
               <button
+                type="button"
                 onClick={handleCloseQR}
-                className="w-full bg-gray-800/80 backdrop-blur-sm border border-gray-600/30 text-white rounded-2xl py-3.5 font-semibold shadow-sm transition-all duration-200 active:scale-[0.98]"
+                aria-label="티켓 QR 모달 닫기"
+                className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/85 border border-gray-200/70 text-gray-600 flex items-center justify-center shadow-sm transition-all hover:bg-white hover:text-gray-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
               >
-                닫기
+                <X size={18} strokeWidth={2.5} />
               </button>
+              <div className="p-4 pt-6 pb-4 border-b border-gray-200/50 flex-shrink-0">
+                <div className="flex items-start gap-4">
+                  <div className="w-16 h-16 bg-blue-500/10 backdrop-blur-xl border border-blue-200/30 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <Ticket size={32} className="text-blue-600" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">{selectedTicket.ticket.name}</h2>
+                    <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 flex flex-col">
+                <div className="p-4 rounded-2xl mb-5 relative w-full aspect-square max-h-[min(40vh,220px)] flex items-center justify-center">
+                  {qrCodeDataURL ? (
+                    <img src={qrCodeDataURL} alt="티켓 QR 코드" className="max-w-full max-h-full rounded-xl shadow-sm object-contain" />
+                  ) : (
+                    <LoadingSpinner size={40} />
+                  )}
+                </div>
+
+                <div className="mb-4">
+                  <div className="relative h-14 rounded-3xl border border-white/30 bg-white/12 backdrop-blur-xl overflow-hidden">
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500/70 via-purple-500/60 to-transparent transition-[width] duration-1000 ease-linear"
+                      style={{ width: `${Math.max(0, Math.min(timeLeft, 15)) / 15 * 100}%` }}
+                    />
+                    <div className="relative h-full flex items-center justify-between px-5">
+                      <span className="flex items-baseline gap-1 text-white">
+                        <span className="text-2xl font-bold leading-none drop-shadow-sm">{timeLeft}</span>
+                        <span className="text-[11px] font-semibold text-white/80">sec</span>
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500 text-center">QR코드는 보안을 위해 15초마다 새로고침됩니다.</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
+
       </main>
 
       <TabNavigation />

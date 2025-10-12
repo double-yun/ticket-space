@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, TextField, Typography } from '@mui/material'
 import { setupRecaptcha, sendSMSVerification, verifySMSCode } from '@/lib/firebase'
 import { RecaptchaVerifier, type ConfirmationResult } from 'firebase/auth'
 import type { FirebaseError } from 'firebase/app'
@@ -11,6 +10,7 @@ import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
 import { useAuth } from '@/contexts/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import { generateKeyPair, getDeviceInfo, checkBiometricAvailability } from '@/lib/crypto/key-manager'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 const normalizePhoneNumber = (phoneNumber: string) => {
   if (!phoneNumber) return ''
@@ -48,7 +48,6 @@ function KakaoPhoneVerificationContent() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Query params에서 사용자 정보 가져오기
         const phone = searchParams.get('phone') || ''
         const name = searchParams.get('name') || ''
         const email = searchParams.get('email') || ''
@@ -63,7 +62,6 @@ function KakaoPhoneVerificationContent() {
         setPhoneNumber(phone)
         setUserInfo({ name, email, birthDate, gender })
 
-        // 쿠키에서 pending data 가져오기
         const response = await fetch('/api/auth/kakao/pending')
         if (!response.ok) {
           router.replace('/login')
@@ -143,7 +141,8 @@ function KakaoPhoneVerificationContent() {
       } else {
         setError('인증번호 전송에 실패했습니다. 다시 시도해주세요.')
       }
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }
@@ -174,9 +173,7 @@ function KakaoPhoneVerificationContent() {
       let publicKey = ''
       let deviceInfo = ''
 
-      // 네이티브 플랫폼에서만 키페어 생성
       if (Capacitor.isNativePlatform()) {
-        // 생체 인증 또는 기기 잠금 가능 여부 확인
         const biometric = await checkBiometricAvailability()
 
         if (!biometric.available) {
@@ -185,7 +182,6 @@ function KakaoPhoneVerificationContent() {
           return
         }
 
-        // 키페어 생성 (생체 인증 또는 화면 잠금 필요)
         try {
           publicKey = await generateKeyPair(pendingData.kakaoData.id.toString())
           deviceInfo = await getDeviceInfo()
@@ -196,7 +192,6 @@ function KakaoPhoneVerificationContent() {
           return
         }
       }
-      // 웹에서는 키페어 없이 진행
 
       const registrationPayload: KakaoRegistrationPayload = {
         kakaoId: pendingData.kakaoData.id.toString(),
@@ -208,7 +203,6 @@ function KakaoPhoneVerificationContent() {
         accessToken: pendingData.accessToken,
         refreshToken: pendingData.refreshToken,
         phoneVerified: true,
-        // 비대칭 키 인증 필드
         publicKey,
         keyAlgorithm: 'ECDSA_P256',
         deviceInfo,
@@ -229,7 +223,6 @@ function KakaoPhoneVerificationContent() {
 
       const data = await response.json()
 
-      // JWT 토큰 저장
       if (data.token) {
         setAuthToken(data.token)
       }
@@ -249,7 +242,8 @@ function KakaoPhoneVerificationContent() {
       } else {
         setError('인증 처리 중 오류가 발생했습니다.')
       }
-    } finally {
+    }
+    finally {
       setLoading(false)
     }
   }
@@ -267,9 +261,9 @@ function KakaoPhoneVerificationContent() {
 
   if (initialLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-        <Typography>로딩 중...</Typography>
-      </Box>
+      <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
     )
   }
 
@@ -278,94 +272,100 @@ function KakaoPhoneVerificationContent() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-      <Card sx={{ maxWidth: 420, width: '100%' }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h5" component="h1" align="center" fontWeight="bold" gutterBottom>
-            휴대폰 인증
-          </Typography>
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-            {codeRequested
-              ? `${displayPhoneNumber}로 전송된 인증번호를 입력해주세요`
-              : '회원가입을 완료하기 위해 휴대폰 인증이 필요합니다'}
-          </Typography>
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-gray-200/50">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">휴대폰 인증</h1>
+            <p className="text-gray-500 mt-2">
+              {codeRequested
+                ? `${displayPhoneNumber}로 전송된 인증번호를 입력해주세요`
+                : '회원가입을 완료하기 위해 휴대폰 인증이 필요합니다'}
+            </p>
+          </div>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mb-6" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
           )}
 
           {!codeRequested ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                fullWidth
-                label="휴대폰 번호"
-                value={phoneNumber}
-                disabled
-              />
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                  휴대폰 번호
+                </label>
+                <input
+                  type="tel"
+                  id="phoneNumber"
+                  value={displayPhoneNumber}
+                  disabled
+                  className="mt-1 block w-full px-4 py-3 bg-gray-100/80 border border-gray-300/50 rounded-xl shadow-sm placeholder-gray-400 cursor-not-allowed"
+                />
+              </div>
 
-              <Box id="recaptcha-container" sx={{ display: 'flex', justifyContent: 'center' }} />
+              <div id="recaptcha-container" className="flex justify-center" />
 
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button
-                  variant="outlined"
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <button
+                  type="button"
                   onClick={handleGoBack}
                   disabled={loading}
-                  fullWidth
+                  className="w-full bg-gray-200/80 text-gray-800 py-3 px-4 rounded-xl font-semibold transition-all hover:bg-gray-300/80 active:scale-[0.99] disabled:opacity-50"
                 >
                   이전 단계
-                </Button>
-                <Button
-                  variant="contained"
+                </button>
+                <button
+                  type="button"
                   onClick={handleSendCode}
                   disabled={loading}
-                  fullWidth
-                  sx={{ backgroundColor: '#FEE500', color: '#000', '&:hover': { backgroundColor: '#FCDD00' } }}
+                  className="w-full bg-yellow-400 text-black py-3 px-4 rounded-xl font-bold transition-all hover:bg-yellow-500 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {loading ? <CircularProgress size={20} /> : '인증번호 받기'}
-                </Button>
-              </Box>
-            </Box>
+                  {loading ? <LoadingSpinner size={20} /> : '인증번호 받기'}
+                </button>
+              </div>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                fullWidth
-                label="인증번호"
-                value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="123456"
-                slotProps={{
-                  htmlInput: {
-                    maxLength: 6
-                  }
-                }}
-              />
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-700">
+                  인증번호
+                </label>
+                <input
+                  type="text"
+                  id="verificationCode"
+                  value={verificationCode}
+                  onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
+                  maxLength={6}
+                  className="mt-1 block w-full px-4 py-3 bg-white/50 border border-gray-300/50 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-[0.5em]"
+                />
+              </div>
 
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Button
-                  variant="outlined"
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                <button
+                  type="button"
                   onClick={handleRetry}
                   disabled={loading}
-                  fullWidth
+                  className="w-full bg-gray-200/80 text-gray-800 py-3 px-4 rounded-xl font-semibold transition-all hover:bg-gray-300/80 active:scale-[0.99] disabled:opacity-50"
                 >
                   다시 받기
-                </Button>
-                <Button
-                  variant="contained"
+                </button>
+                <button
+                  type="button"
                   onClick={handleVerifyCode}
                   disabled={loading || verificationCode.length < 4}
-                  fullWidth
-                  sx={{ backgroundColor: '#FEE500', color: '#000', '&:hover': { backgroundColor: '#FCDD00' } }}
+                  className="w-full bg-yellow-400 text-black py-3 px-4 rounded-xl font-bold transition-all hover:bg-yellow-500 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {loading ? <CircularProgress size={20} /> : '인증 완료'}
-                </Button>
-              </Box>
-            </Box>
+                  {loading ? <LoadingSpinner size={20} /> : '인증 완료'}
+                </button>
+              </div>
+            </div>
           )}
-        </CardContent>
-      </Card>
-    </Box>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -373,9 +373,9 @@ export default function KakaoPhoneVerificationPage() {
   return (
     <Suspense
       fallback={
-        <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-          <Typography>로딩 중...</Typography>
-        </Box>
+        <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen flex items-center justify-center">
+          <LoadingSpinner />
+        </div>
       }
     >
       <KakaoPhoneVerificationContent />

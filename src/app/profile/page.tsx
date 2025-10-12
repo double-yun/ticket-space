@@ -164,10 +164,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex-shrink-0">
                     {copied ? (
-                      <div className="flex items-center gap-1 text-emerald-600">
-                        <Check size={18} />
-                        <span className="text-xs font-semibold">복사됨</span>
-                      </div>
+					  <Check size={18} className="text-emerald-600" />
                     ) : (
                       <Copy size={18} className="text-gray-400" />
                     )}
