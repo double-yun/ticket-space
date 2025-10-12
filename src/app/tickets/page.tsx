@@ -183,14 +183,14 @@ export default function MyTicketsPage() {
 
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-screen flex justify-center items-center">
+      <div className="bg-gray-50 min-h-[var(--app-height)] flex justify-center items-center">
         <LoadingSpinner size={48} />
       </div>
     )
   }
 
   return (
-    <div className="bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30 h-screen flex flex-col">
+    <div className="bg-gradient-to-b from-purple-50/30 via-white to-pink-50/30 h-[var(--app-height)] flex flex-col">
       <TopBar title="내 티켓" />
 
       <main ref={containerRef} className="flex-1 overflow-y-auto">

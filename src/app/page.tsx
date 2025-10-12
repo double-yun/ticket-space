@@ -14,15 +14,7 @@ import EventCard from '@/components/EventCard';
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { Gift, Ticket, Copy, Check, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
-
-interface AuthUser {
-  id: string
-  name?: string | null
-  email?: string | null
-  image?: string | null
-  walletAddress?: string | null
-  kakaoId?: string | null
-}
+import { copyToClipboard } from '@/lib/copy-to-clipboard';
 
 interface TicketData {
   id: string
@@ -52,7 +44,6 @@ interface BalanceData {
 export default function Home() {
   const router = useRouter()
   const { user, token, isLoading: authLoading } = useAuth()
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [directTickets, setDirectTickets] = useState<TicketData[]>([])
   const [lotteryTickets, setLotteryTickets] = useState<LotteryTicketData[]>([])
@@ -76,16 +67,14 @@ export default function Home() {
     if (authLoading) return
     if (!user) {
       router.push('/login')
-    } else {
-      setAuthUser(user as AuthUser)
     }
   }, [user, router, authLoading])
 
   useEffect(() => {
-    if (authUser) {
+    if (user) {
       fetchAllData()
     }
-  }, [authUser, fetchAllData])
+  }, [user, fetchAllData])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
@@ -141,17 +130,19 @@ export default function Home() {
   }
 
   const handleCopyAddress = async () => {
-    if (!authUser?.walletAddress) return
+    if (!user?.walletAddress) return
 
     try {
-      await navigator.clipboard.writeText(authUser.walletAddress)
+      await copyToClipboard(user.walletAddress)
       setCopied(true)
+      toast.success('주소가 복사되었습니다.');
       
       setTimeout(() => {
         setCopied(false)
       }, 2000)
     } catch (error) {
       console.error('Failed to copy address:', error)
+      toast.error('주소 복사에 실패했습니다.')
     }
   }
 
@@ -195,8 +186,8 @@ export default function Home() {
         paymentUrl.searchParams.set('orderName', '포인트 충전')
         paymentUrl.searchParams.set('totalAmount', selectedAmount.toString())
         paymentUrl.searchParams.set('from_app', 'true')
-        if (authUser?.id) {
-          paymentUrl.searchParams.set('userId', authUser.id)
+        if (user?.id) {
+          paymentUrl.searchParams.set('userId', user.id)
         }
         await Browser.open({ url: paymentUrl.toString() })
       } else {
@@ -208,7 +199,7 @@ export default function Home() {
           totalAmount: selectedAmount,
           currency: 'KRW',
           payMethod: 'CARD',
-          redirectUrl: `${window.location.origin}/points/charge/callback?userId=${authUser?.id}`,
+          redirectUrl: `${window.location.origin}/points/charge/callback?userId=${user?.id}`,
         })
         if (resp?.code) {
           toast.error(resp.message || '결제가 취소되었습니다.')
@@ -244,10 +235,10 @@ export default function Home() {
     handleFundWallet()
   }
 
-  if (!authUser) return null
+  if (authLoading || !user) return null
 
   return (
-    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-screen flex flex-col">
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-[var(--app-height)] flex flex-col">
       <TopBar title="홈" />
 
       <main ref={containerRef} className="flex-1 overflow-y-auto">
@@ -266,7 +257,7 @@ export default function Home() {
                 className="flex items-center gap-2 bg-white/60 backdrop-blur-sm border border-blue-100/50 rounded-xl px-3 py-2 active:scale-[0.98] transition-all"
               >
                 <p className="text-xs font-mono text-gray-600">
-                  {authUser.walletAddress?.slice(0, 6)}...{authUser.walletAddress?.slice(-4)}
+                  {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}
                 </p>
                 {copied ? (
                   <Check size={14} className="text-emerald-600" />

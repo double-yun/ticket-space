@@ -12,7 +12,7 @@ interface TopBarProps {
 export default function TopBar({ title, leftButton, rightButton }: TopBarProps) {
   return (
     <div 
-      className="bg-white/80 backdrop-blur-lg z-40 border-b border-gray-200/80"
+      className="bg-white/80 backdrop-blur-lg z-40 border-b border-gray-200/80 pt-[env(safe-area-inset-top)]"
     >
       <div className="relative flex items-center h-14 px-6">
         {leftButton && (

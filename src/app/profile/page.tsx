@@ -9,6 +9,7 @@ import TabNavigation from '@/components/TabNavigation'
 import { Settings, Bell, HelpCircle, LogOut, User, ScanLine, Copy, Check } from 'lucide-react'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import toast from 'react-hot-toast';
+import { copyToClipboard } from '@/lib/copy-to-clipboard';
 
 interface Purchase {
   id: string
@@ -68,8 +69,9 @@ export default function ProfilePage() {
     if (!user?.walletAddress) return
 
     try {
-      await navigator.clipboard.writeText(user.walletAddress)
+      await copyToClipboard(user.walletAddress)
       setCopied(true)
+      toast.success('주소가 복사되었습니다.');
       
       // 2초 후 복사 상태 초기화
       setTimeout(() => {
@@ -119,14 +121,14 @@ export default function ProfilePage() {
 
   if (authLoading || !user) {
     return (
-      <div className="bg-gray-50 min-h-screen flex justify-center items-center">
+      <div className="bg-gray-50 min-h-[var(--app-height)] flex justify-center items-center">
         <LoadingSpinner size={48} />
       </div>
     )
   }
 
   return (
-    <div className="bg-gradient-to-b from-indigo-50/30 via-white to-blue-50/30 h-screen flex flex-col">
+    <div className="bg-gradient-to-b from-indigo-50/30 via-white to-blue-50/30 h-[var(--app-height)] flex flex-col">
       <TopBar title="프로필" />
 
       <main ref={containerRef} className="flex-1 overflow-y-auto">

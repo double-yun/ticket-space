@@ -6,6 +6,10 @@ PODS:
     - Capacitor
   - CapacitorBrowser (7.0.2):
     - Capacitor
+  - CapacitorCamera (7.0.2):
+    - Capacitor
+  - CapacitorClipboard (7.0.2):
+    - Capacitor
   - CapacitorCordova (7.4.3)
   - CapacitorKakaoLoginPlugin (3.0.0):
     - Capacitor
@@ -44,6 +48,8 @@ DEPENDENCIES:
   - "Capacitor (from `../../node_modules/.pnpm/@capacitor+ios@7.4.3_@capacitor+core@7.4.3/node_modules/@capacitor/ios`)"
   - "CapacitorApp (from `../../node_modules/.pnpm/@capacitor+app@7.1.0_@capacitor+core@7.4.3/node_modules/@capacitor/app`)"
   - "CapacitorBrowser (from `../../node_modules/.pnpm/@capacitor+browser@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/browser`)"
+  - "CapacitorCamera (from `../../node_modules/.pnpm/@capacitor+camera@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/camera`)"
+  - "CapacitorClipboard (from `../../node_modules/.pnpm/@capacitor+clipboard@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/clipboard`)"
   - "CapacitorCordova (from `../../node_modules/.pnpm/@capacitor+ios@7.4.3_@capacitor+core@7.4.3/node_modules/@capacitor/ios`)"
   - "CapacitorKakaoLoginPlugin (from `../../node_modules/.pnpm/capacitor-kakao-login-plugin@3.0.0_@capacitor+core@7.4.3/node_modules/capacitor-kakao-login-plugin`)"
   - CordovaPlugins (from `../capacitor-cordova-ios-plugins`)
@@ -69,6 +75,10 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/.pnpm/@capacitor+app@7.1.0_@capacitor+core@7.4.3/node_modules/@capacitor/app"
   CapacitorBrowser:
     :path: "../../node_modules/.pnpm/@capacitor+browser@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/browser"
+  CapacitorCamera:
+    :path: "../../node_modules/.pnpm/@capacitor+camera@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/camera"
+  CapacitorClipboard:
+    :path: "../../node_modules/.pnpm/@capacitor+clipboard@7.0.2_@capacitor+core@7.4.3/node_modules/@capacitor/clipboard"
   CapacitorCordova:
     :path: "../../node_modules/.pnpm/@capacitor+ios@7.4.3_@capacitor+core@7.4.3/node_modules/@capacitor/ios"
   CapacitorKakaoLoginPlugin:
@@ -78,12 +88,14 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Alamofire: 7193b3b92c74a07f85569e1a6c4f4237291e7496
-  Capacitor: b4741ca7affb32c1b70debd03df92cbf522d8a80
-  CapacitorApp: 846d4b4a1dbb19dd1e9029c08ba6f028aa7be862
-  CapacitorBrowser: 45c681e7abc3b4384e54eb52bafeef1347d98fa8
+  Capacitor: 28d6c01026a9a3f7156529498ec1f389a2a28dbc
+  CapacitorApp: 26587c2ce485d88ddb39adb21cac64f8e481afe3
+  CapacitorBrowser: 22541e48442de44dc629c214388290d6eecc6ae9
+  CapacitorCamera: f9e54db0a18bb218a8dc360907d63aaefe9209ff
+  CapacitorClipboard: 7e227702976d4435a5a40df54f65e154d0dfc1f3
   CapacitorCordova: 435121e81a2df4d0034f0fb11fcefab5104cfdb5
-  CapacitorKakaoLoginPlugin: c387bf3fc478013226b6690c6a34947d97abcc54
-  CordovaPlugins: f3dbea75897c59666640a5b7bd2f25f43b521f60
+  CapacitorKakaoLoginPlugin: 037a574f18ef7dfe4ee984b68b7a175ba12f3c10
+  CordovaPlugins: 7f93f2453343ddfcedc9e71fbae8ec74978b7b9d
   KakaoSDKAuth: 3daf72ec463876e0fe6d0d37c7d6b0b2729169f1
   KakaoSDKCommon: 516f68bc6b223ed502c34a362d6ecc9145e0dcc0
   KakaoSDKShare: 8980e83a3a80bd805ab859c102dd41ed6801424e
@@ -92,6 +104,6 @@ SPEC CHECKSUMS:
   KakaoSDKTemplate: 0fcfbbb7cc05986fe6690b85e19dd8de0fc634e6
   KakaoSDKUser: 5b0826033381d314f550dd90fbf70d3612044ad6
 
-PODFILE CHECKSUM: f8fcd16068f0e1349bd54620bfe1f188748024dc
+PODFILE CHECKSUM: ab83b5e0db14077285ad100fb1390f328676f6fe
 
 COCOAPODS: 1.16.2

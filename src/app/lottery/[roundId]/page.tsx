@@ -47,9 +47,9 @@ export default function LotteryRoundRedirectPage() {
   }, [router, roundId])
 
   return (
-    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen">
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-[var(--app-height)]">
       <TopBar title="추첨 신청" />
-      <div className="pt-[60px] flex items-center justify-center h-screen">
+      <div className="pt-[60px] flex items-center justify-center h-[var(--app-height)]">
         <div className="flex flex-col items-center gap-3 text-sm text-gray-600">
           <LoadingSpinner size={28} />
           <p>새로운 이벤트 상세 페이지로 이동 중입니다...</p>

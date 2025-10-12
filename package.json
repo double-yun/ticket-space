@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-	"vercel-build": "prisma migrate deploy && next build",
+    "vercel-build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
@@ -24,7 +24,9 @@
     "@capacitor/android": "^7.4.3",
     "@capacitor/app": "^7.1.0",
     "@capacitor/browser": "^7.0.2",
+    "@capacitor/camera": "^7.0.2",
     "@capacitor/cli": "^7.4.3",
+    "@capacitor/clipboard": "^7.0.2",
     "@capacitor/core": "^7.4.3",
     "@capacitor/ios": "^7.4.3",
     "@emotion/react": "^11.14.0",
