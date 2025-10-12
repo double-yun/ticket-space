@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
 import TopBar from '@/components/TopBar'
 import TabNavigation from '@/components/TabNavigation'
-import { Settings, Bell, HelpCircle, LogOut, User, ScanLine, Copy, Check } from 'lucide-react'
+import { Settings, Bell, HelpCircle, LogOut, User, ScanLine, Copy, Check, Shield } from 'lucide-react'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import toast from 'react-hot-toast';
 import { copyToClipboard } from '@/lib/copy-to-clipboard';
@@ -95,6 +95,12 @@ export default function ProfilePage() {
       icon: ScanLine,
       label: '티켓 검증',
       action: () => router.push('/admin/scan'),
+    },
+    {
+      icon: Shield,
+      label: '복구 코드 관리',
+      action: () => router.push('/recovery-code'),
+      highlight: true,
     },
     {
       icon: Settings,
@@ -200,13 +206,15 @@ export default function ProfilePage() {
                   key={index}
                   onClick={item.action}
                   className={`w-full flex items-center justify-between p-4 border-b border-gray-100/50 last:border-0 active:scale-[0.98] transition-all duration-150 ${
-                    item.danger ? 'text-red-600' : 'text-gray-800'
+                    item.danger ? 'text-red-600' : item.highlight ? 'text-emerald-700' : 'text-gray-800'
                   }`}
                 >
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
                       item.danger
                         ? 'bg-red-500/10 backdrop-blur-xl border border-red-200/30'
+                        : item.highlight
+                        ? 'bg-emerald-500/10 backdrop-blur-xl border border-emerald-200/30'
                         : 'bg-gray-500/5 backdrop-blur-xl border border-gray-200/30'
                     }`}>
                       <IconComponent className="h-6 w-6" strokeWidth={2} />
