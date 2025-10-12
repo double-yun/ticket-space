@@ -287,8 +287,8 @@ function LoginPageContent() {
 
   if (showAccountCreation && kakaoUserInfo) {
     return (
-      <div className="bg-gradient-to-b from-blue-50 to-white min-h-screen">
-        <div className="min-h-screen flex flex-col justify-center items-center p-4">
+      <div className="bg-gradient-to-b from-blue-50 to-white min-h-[var(--app-height)]">
+        <div className="min-h-[var(--app-height)] flex flex-col justify-center items-center p-4">
           <AccountCreationForm
             kakaoUserInfo={kakaoUserInfo}
             onAccountCreated={handleAccountCreated}
@@ -305,8 +305,8 @@ function LoginPageContent() {
 
   if (showPhoneVerification) {
     return (
-      <div className="bg-gradient-to-b from-blue-50 to-white min-h-screen">
-        <div className="min-h-screen flex flex-col justify-center items-center p-4">
+      <div className="bg-gradient-to-b from-blue-50 to-white min-h-[var(--app-height)]">
+        <div className="min-h-[var(--app-height)] flex flex-col justify-center items-center p-4">
           <PhoneVerification
             onVerificationSuccess={handlePhoneVerificationSuccess}
             onCancel={() => {
@@ -322,12 +322,12 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-white min-h-screen relative overflow-y-auto">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-white h-[var(--app-height)] relative overflow-y-auto overflow-x-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-      <div className="min-h-screen flex flex-col items-center p-6 pt-20 pb-8 relative z-10">
+      <div className="min-h-[var(--app-height)] flex flex-col items-center p-6 pt-20 pb-8 relative z-10">
         {/* 로고 영역 */}
         <div className="text-center mb-10 flex-shrink-0 animate-fade-in">
           <div className="w-28 h-28 bg-blue-500/10 backdrop-blur-xl border border-blue-200/30 rounded-3xl flex items-center justify-center mx-auto mb-6 active:scale-95 transition-transform duration-200">
@@ -438,7 +438,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white">
+        <div className="min-h-[var(--app-height)] flex items-center justify-center bg-gradient-to-b from-blue-50 to-white">
           <div className="text-center">
             <LoadingSpinner size={48} />
             <p className="text-gray-600">로그인 준비 중...</p>

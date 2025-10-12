@@ -157,7 +157,7 @@ export default function LotteryApplicationsPage() {
   }, [applications])
 
   return (
-    <div className="bg-gradient-to-b from-emerald-50/30 via-white to-blue-50/30 h-screen flex flex-col">
+    <div className="bg-gradient-to-b from-emerald-50/30 via-white to-blue-50/30 h-[var(--app-height)] flex flex-col">
       <TopBar title="추첨 내역" />
 
       <main ref={containerRef} className="flex-1 overflow-y-auto">

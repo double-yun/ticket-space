@@ -252,7 +252,7 @@ useEffect(() => {
     return (
       <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen">
         <TopBar title="이벤트 상세" />
-        <div className="pt-[60px] flex items-center justify-center h-screen">
+        <div className="pt-[60px] flex items-center justify-center h-[var(--app-height)]">
           <LoadingSpinner size={28} />
         </div>
       </div>
@@ -263,7 +263,7 @@ useEffect(() => {
     return (
       <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen">
         <TopBar title="이벤트 상세" />
-        <div className="pt-[60px] flex items-center justify-center h-screen">
+        <div className="pt-[60px] flex items-center justify-center h-[var(--app-height)]">
           <p className="text-sm text-red-500">{error ?? '이벤트를 찾을 수 없습니다.'}</p>
         </div>
       </div>
@@ -296,7 +296,7 @@ useEffect(() => {
     !effectiveRound || applying || hasApplied || isPastDeadline || lotteryClosed
 
   return (
-    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-screen flex flex-col">
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-[var(--app-height)] flex flex-col">
       <TopBar 
         title="이벤트 상세" 
         leftButton={

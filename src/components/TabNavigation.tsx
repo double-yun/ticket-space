@@ -15,8 +15,8 @@ export default function TabNavigation() {
   ]
 
   return (
-    <div className="bg-white/80 backdrop-blur-lg border-t border-gray-100/50 z-50 shadow-sm">
-      <div className="flex safe-area-inset-bottom">
+    <div className="bg-white/80 backdrop-blur-lg border-t border-gray-100/50 z-50 shadow-sm pb-[env(safe-area-inset-bottom)]">
+      <div className="flex">
         {tabs.map(({ path, icon: Icon, label }) => {
           const isActive = pathname === path
 

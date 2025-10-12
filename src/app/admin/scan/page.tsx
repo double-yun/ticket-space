@@ -8,6 +8,8 @@ import TopBar from '@/components/TopBar'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { Capacitor } from '@capacitor/core'
+import { Camera } from '@capacitor/camera'
 
 // QR 스캐너를 동적으로 로드 (SSR 방지)
 const QrScanner = dynamic(() => import('@/components/QrScanner'), {
@@ -93,9 +95,31 @@ export default function ScanPage() {
     toast.error('카메라 접근에 실패했습니다. 카메라 권한을 확인해주세요.')
   }
 
-  const startScanning = () => {
-    setIsScanning(true)
-    setVerificationResult(null)
+  const requestCameraPermission = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      return true; // 웹에서는 브라우저가 권한을 처리
+    }
+    try {
+      const permissions = await Camera.requestPermissions();
+      if (permissions.camera === 'granted') {
+        return true;
+      } else {
+        toast.error('카메라 권한이 거부되었습니다. 앱 설정에서 권한을 허용해주세요.');
+        return false;
+      }
+    } catch (error) {
+      console.error("카메라 권한 요청 에러:", error);
+      toast.error('카메라 권한을 요청하는 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  const startScanning = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (hasPermission) {
+      setIsScanning(true)
+      setVerificationResult(null)
+    }
   }
 
   if (loading) {
@@ -107,7 +131,7 @@ export default function ScanPage() {
   }
 
   return (
-    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-screen flex flex-col">
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-[var(--app-height)] flex flex-col">
       <TopBar 
         title="티켓 검증" 
         leftButton={
