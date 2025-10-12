@@ -4,6 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { getContractAddress, getPublicClient, getWalletClient } from '@/lib/blockchain'
 import ticketAbiJson from '@/lib/blockchain/ticket-abi.json'
 import type { Ticket } from '@prisma/client'
+import { encrypt, getEncryptionKey } from '@/lib/crypto/encryption'
 
 const ticketAbi = ticketAbiJson
 
@@ -13,10 +14,26 @@ async function mintSBTInBackground(
   walletAddress: string,
   eventId: number,
   eventPrice: number,
-  pointHistoryId: string
+  pointHistoryId: string,
+  userId: string
 ) {
   try {
     console.log(`[Background] Minting SBT for ticket ${ticketId}, user: ${walletAddress}, eventId: ${eventId}`)
+
+    // 사용자의 공개키 조회
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { publicKey: true },
+    })
+
+    if (!user || !user.publicKey) {
+      throw new Error('사용자의 공개키를 찾을 수 없습니다.')
+    }
+
+    // 공개키 암호화
+    const encryptionKey = getEncryptionKey()
+    const encryptedPublicKey = encrypt(user.publicKey, encryptionKey)
+    console.log(`[Background] Public key encrypted for ticket ${ticketId}`)
 
     const contractAddress = (await getContractAddress()) as `0x${string}`
     const publicClient = getPublicClient()
@@ -29,12 +46,15 @@ async function mintSBTInBackground(
     const serverAccount = privateKeyToAccount(privateKey)
     const walletClient = getWalletClient(serverAccount)
 
+    // encryptedPublicKey를 bytes로 변환 (Buffer -> hex string)
+    const encryptedPubKeyHex = `0x${Buffer.from(encryptedPublicKey, 'base64').toString('hex')}` as `0x${string}`
+
     const { request: contractRequest } = await publicClient.simulateContract({
       account: serverAccount,
       address: contractAddress,
       abi: ticketAbi,
       functionName: 'mint',
-      args: [walletAddress as `0x${string}`, BigInt(eventId)],
+      args: [walletAddress as `0x${string}`, BigInt(eventId), encryptedPubKeyHex],
     })
 
     const hash = await walletClient.writeContract(contractRequest)
@@ -63,12 +83,13 @@ async function mintSBTInBackground(
       throw new Error('SBT가 발급되었으나 TokenId를 찾을 수 없습니다.')
     }
 
-    // DB에 txHash와 tokenId 업데이트
+    // DB에 txHash, tokenId, encryptedPublicKey 업데이트
     await prisma.ticket.update({
       where: { id: ticketId },
       data: {
         txHash: mintReceipt.transactionHash,
         tokenId,
+        encryptedPublicKey, // DB에도 암호화된 공개키 저장
       },
     })
 
@@ -197,7 +218,7 @@ export async function purchaseTicketWithPoints({
   })
 
   // 2. 블록체인 트랜잭션을 백그라운드에서 실행 (await 하지 않음)
-  mintSBTInBackground(ticket.id, user.walletAddress, numericEventId, event.price, pointHistory.id).catch((error) => {
+  mintSBTInBackground(ticket.id, user.walletAddress, numericEventId, event.price, pointHistory.id, userId).catch((error) => {
     console.error(`Background SBT minting failed for ticket ${ticket.id}:`, error)
   })
 

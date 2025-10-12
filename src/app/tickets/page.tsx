@@ -90,6 +90,7 @@ export default function MyTicketsPage() {
         transactionHash: purchase.transactionHash,
         purchaseDate: purchase.purchaseDate,
         used: purchase.used,
+        userId: user?.id, // 현재 사용하려는 사용자 ID 추가
         timestamp: Date.now(), // 매번 새로운 타임스탬프로 QR 코드 변경
       }
 
