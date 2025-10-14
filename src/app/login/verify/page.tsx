@@ -9,6 +9,7 @@ import type { KakaoRegistrationPayload } from '@/types/kakao'
 import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
 import { useAuth } from '@/contexts/AuthContext'
 import { Capacitor } from '@capacitor/core'
+import { Clipboard } from '@capacitor/clipboard'
 import { generateKeyPair, getDeviceInfo, checkBiometricAvailability } from '@/lib/crypto/key-manager'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
@@ -44,6 +45,8 @@ function KakaoPhoneVerificationContent() {
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null)
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null)
   const [codeRequested, setCodeRequested] = useState(false)
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
+  const [showRecoveryCode, setShowRecoveryCode] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -223,11 +226,23 @@ function KakaoPhoneVerificationContent() {
 
       const data = await response.json()
 
+      console.log('[DEBUG] Registration response data:', data)
+      console.log('[DEBUG] Recovery code received:', data.recoveryCode)
+
       if (data.token) {
         setAuthToken(data.token)
       }
 
-      router.replace('/')
+      // 복구 코드가 있으면 표시
+      if (data.recoveryCode) {
+        console.log('[DEBUG] Setting recovery code and showing UI')
+        setRecoveryCode(data.recoveryCode)
+        setShowRecoveryCode(true)
+      } else {
+        // 복구 코드가 없으면 바로 완료
+        console.log('[DEBUG] No recovery code, proceeding to home')
+        router.replace('/')
+      }
     } catch (error: unknown) {
       console.error('전화번호 인증 실패:', error)
       if (isFirebaseError(error) && error.code === 'auth/invalid-verification-code') {
@@ -259,6 +274,32 @@ function KakaoPhoneVerificationContent() {
     setError('')
   }
 
+  // 복구 코드 복사 함수
+  const copyRecoveryCode = async () => {
+    if (recoveryCode) {
+      try {
+        if (Capacitor.isNativePlatform()) {
+          // 네이티브 플랫폼에서는 Capacitor Clipboard API 사용
+          await Clipboard.write({
+            string: recoveryCode
+          })
+        } else {
+          // 웹에서는 navigator.clipboard 사용
+          await navigator.clipboard.writeText(recoveryCode)
+        }
+        alert('복구 코드가 클립보드에 복사되었습니다.')
+      } catch (err) {
+        console.error('복사 실패:', err)
+        alert('복구 코드 복사에 실패했습니다.')
+      }
+    }
+  }
+
+  // 복구 코드 확인 후 완료
+  const handleRecoveryCodeConfirm = () => {
+    router.replace('/')
+  }
+
   if (initialLoading) {
     return (
       <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen flex items-center justify-center">
@@ -269,6 +310,79 @@ function KakaoPhoneVerificationContent() {
 
   if (!pendingData) {
     return null
+  }
+
+  // 복구 코드 표시 화면
+  if (showRecoveryCode && recoveryCode) {
+    return (
+      <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-gray-200/50">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🔑</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                복구 코드 저장
+              </h2>
+              <p className="text-gray-600 text-sm">
+                <strong className="text-red-600">반드시 안전한 곳에 보관하세요!</strong>
+              </p>
+            </div>
+
+            {/* 암표 거래 방지 보안 경고 */}
+            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-4">
+              <div className="flex items-start gap-2 mb-2">
+                <span className="text-red-600 text-lg flex-shrink-0">🛡️</span>
+                <div>
+                  <p className="text-sm font-bold text-red-900 mb-2">암표 거래 방지 보안 정책</p>
+                  <p className="text-xs text-red-800 leading-relaxed mb-2">
+                    본 서비스는 <strong>암표 거래 방지</strong>를 위해 강력한 보안 조치를 적용하고 있습니다.
+                  </p>
+                  <p className="text-xs text-red-800 leading-relaxed">
+                    앱 삭제, 기기 분실/변경 시 계정 복구가 필요하며, <strong className="text-red-900">계정 복구 시 이전에 예매한 티켓은 모두 사용할 수 없습니다.</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-4">
+              <p className="text-xs text-yellow-800 font-semibold mb-2">복구 코드 (12단어)</p>
+              <div className="bg-white p-3 rounded-lg font-mono text-sm text-gray-800 break-all">
+                {recoveryCode}
+              </div>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-amber-800">
+                ⚠️ <strong>중요:</strong> 이 코드는 다시 확인할 수 없습니다. 지금 바로 안전한 곳에 저장하세요.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={copyRecoveryCode}
+                className="w-full bg-blue-500 text-white py-3 px-4 rounded-xl hover:bg-blue-600 transition-colors"
+              >
+                📋 복구 코드 복사
+              </button>
+              <button
+                onClick={handleRecoveryCodeConfirm}
+                className="w-full bg-gray-500 text-white py-3 px-4 rounded-xl hover:bg-gray-600 transition-colors"
+              >
+                ✅ 복구 코드를 안전하게 보관했습니다
+              </button>
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500">
+                복구 코드를 분실하면 기기 변경 시 계정을 복구할 수 없습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
