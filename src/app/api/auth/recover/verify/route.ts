@@ -3,14 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { verifyRecoveryCode, isValidRecoveryCodeFormat } from '@/lib/crypto/recovery'
 
 /**
- * POST /api/auth/recover
- * 계정 복구 API
+ * POST /api/auth/recover/verify
+ * 계정 복구 코드 검증 API
  *
  * 요청 본문:
  * - phoneNumber 또는 email: 사용자 식별자
  * - recoveryCode: 12단어 복구 코드
- * - newPublicKey: 새로 생성한 공개키
- * - deviceInfo: 새 기기 정보
  *
  * 응답:
  * - success: true
@@ -19,12 +17,12 @@ import { verifyRecoveryCode, isValidRecoveryCodeFormat } from '@/lib/crypto/reco
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { phoneNumber, email, recoveryCode, newPublicKey, deviceInfo } = body
+    const { phoneNumber, email, recoveryCode } = body
 
     // 입력 검증
-    if (!recoveryCode || !newPublicKey) {
+    if (!recoveryCode) {
       return NextResponse.json(
-        { error: '복구 코드와 새 공개키가 필요합니다.' },
+        { error: '복구 코드가 필요합니다.' },
         { status: 400 }
       )
     }
@@ -59,7 +57,6 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
-      // 실패 로그 (사용자 없음 - userId 없으므로 별도 처리)
       return NextResponse.json(
         { error: '계정을 찾을 수 없습니다.' },
         { status: 404 }
@@ -103,9 +100,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 복구 성공: 트랜잭션으로 처리
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. 이전 공개키를 히스토리에 저장
+    // 복구 코드 검증 성공 - 이전 공개키를 히스토리에 저장
+    await prisma.$transaction(async (tx) => {
       if (user.publicKey) {
         await tx.publicKeyHistory.create({
           data: {
@@ -118,18 +114,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // 2. 새 공개키로 업데이트
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          publicKey: newPublicKey,
-          keyAlgorithm: 'ECDSA_P256',
-          keyCreatedAt: new Date(),
-          deviceInfo: deviceInfo || 'Unknown device',
-        },
-      })
-
-      // 3. 복구 성공 로그
+      // 복구 성공 로그
       await tx.recoveryAttempt.create({
         data: {
           userId: user.id,
@@ -138,19 +123,18 @@ export async function POST(request: NextRequest) {
           userAgent,
         },
       })
-
-      return updatedUser
     })
 
     return NextResponse.json({
       success: true,
-      userId: result.id,
-      message: '계정이 성공적으로 복구되었습니다.',
+      userId: user.id,
+      kakaoId: user.kakaoId,
+      message: '복구 코드 검증에 성공했습니다.',
     })
   } catch (error) {
-    console.error('계정 복구 실패:', error)
+    console.error('복구 코드 검증 실패:', error)
     return NextResponse.json(
-      { error: '계정 복구 중 오류가 발생했습니다.' },
+      { error: '복구 코드 검증 중 오류가 발생했습니다.' },
       { status: 500 }
     )
   }

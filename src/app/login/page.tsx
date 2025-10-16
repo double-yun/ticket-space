@@ -108,10 +108,13 @@ function LoginPageContent() {
         const { kakaoId, nickname, email, phoneNumber } = data
 
         // 1. 이 기기에 개인키가 있는지 확인
+        console.log('[KAKAO LOGIN] Step 1: Checking private key for kakaoId:', kakaoId)
         const keyExists = await hasPrivateKey(kakaoId)
+        console.log('[KAKAO LOGIN] Private key exists:', keyExists)
 
         if (keyExists) {
           // 개인키 있음 → 생체 인증 로그인
+          console.log('[KAKAO LOGIN] Private key found, attempting biometric login')
           try {
             const loginResult = await biometricLogin(kakaoId)
             setAuthToken(loginResult.token)
@@ -126,6 +129,7 @@ function LoginPageContent() {
         }
 
         // 2. 개인키 없음 → 서버에서 계정 존재 여부 확인
+        console.log('[KAKAO LOGIN] Step 2: No private key, checking server for existing account')
         const userCheckResponse = await fetch('/api/auth/kakao/check', {
           method: 'POST',
           headers: {
@@ -136,12 +140,16 @@ function LoginPageContent() {
 
         if (userCheckResponse.ok) {
           const userCheckData = await userCheckResponse.json()
+          console.log('[KAKAO LOGIN] Server check result:', userCheckData)
 
           if (userCheckData.userExists) {
             // 계정은 있지만 이 기기에 개인키 없음 → 다른 기기에서 생성됨
+            console.log('[KAKAO LOGIN] Account exists on server but no key on device - BLOCKING LOGIN')
             toast.error('이 계정은 다른 기기에서 생성되었습니다.\n계정을 생성한 기기에서만 로그인할 수 있습니다.')
             return
           }
+
+          console.log('[KAKAO LOGIN] Account does not exist - proceeding to phone verification')
         }
 
         // 3. 새 사용자인 경우 - 전화번호 인증 단계로
@@ -423,11 +431,17 @@ function LoginPageContent() {
           </div>
         </div>
 
-        {/* 안내 문구 */}
-        <div className="text-center mt-8 px-4">
+        {/* 안내 문구 및 계정 복구 */}
+        <div className="text-center mt-8 px-4 space-y-4">
           <p className="text-xs text-gray-500">
             최초 로그인 시 개인 지갑이 자동으로 생성됩니다
           </p>
+          <button
+            onClick={() => router.push('/account-recovery')}
+            className="text-sm text-blue-600 font-semibold hover:text-blue-700 transition-colors"
+          >
+            기기를 분실하셨나요? 계정 복구하기
+          </button>
         </div>
       </div>
     </div>

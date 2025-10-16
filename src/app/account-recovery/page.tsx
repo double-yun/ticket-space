@@ -23,8 +23,8 @@ export default function AccountRecoveryPage() {
   const handleIdentifierSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!phoneNumber && !email) {
-      toast.error('전화번호 또는 이메일을 입력해주세요.')
+    if (!phoneNumber || !email) {
+      toast.error('전화번호와 이메일을 모두 입력해주세요.')
       return
     }
 
@@ -49,12 +49,11 @@ export default function AccountRecoveryPage() {
     try {
       setLoading(true)
 
-      // 네이티브 플랫폼에서는 새 키 페어 생성 필요
-      let newPublicKey = null
+      // 네이티브 플랫폼인 경우 생체 인증 가능 여부 확인
       let deviceInfo = 'Web Browser'
 
       if (Capacitor.isNativePlatform()) {
-        const { generateKeyPair, getDeviceInfo, checkBiometricAvailability } = await import(
+        const { getDeviceInfo, checkBiometricAvailability } = await import(
           '@/lib/crypto/key-manager'
         )
 
@@ -65,14 +64,11 @@ export default function AccountRecoveryPage() {
           return
         }
 
-        // 임시 식별자로 키 생성 (나중에 실제 userId로 교체될 예정)
-        const tempIdentifier = `recovery_${Date.now()}`
-        newPublicKey = await generateKeyPair(tempIdentifier)
         deviceInfo = await getDeviceInfo()
       }
 
-      // 계정 복구 API 호출
-      const response = await fetch('/api/auth/recover', {
+      // 1단계: 복구 코드 검증
+      const verifyResponse = await fetch('/api/auth/recover/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,30 +77,53 @@ export default function AccountRecoveryPage() {
           phoneNumber: phoneNumber || undefined,
           email: email || undefined,
           recoveryCode: recoveryCode.trim(),
-          newPublicKey,
-          deviceInfo,
         }),
       })
 
-      const data = await response.json()
+      const verifyData = await verifyResponse.json()
 
-      if (data.success) {
-        // 네이티브 환경에서 키 페어를 userId로 재생성
-        if (Capacitor.isNativePlatform() && data.userId) {
-          const { generateKeyPair } = await import('@/lib/crypto/key-manager')
-          await generateKeyPair(data.userId)
-        }
-
-        setStep('success')
-        toast.success('계정이 성공적으로 복구되었습니다!')
-
-        // 3초 후 로그인 페이지로 이동
-        setTimeout(() => {
-          router.push('/login')
-        }, 3000)
-      } else {
-        toast.error(data.error || '계정 복구에 실패했습니다.')
+      if (!verifyData.success) {
+        toast.error(verifyData.error || '복구 코드 검증에 실패했습니다.')
+        setLoading(false)
+        return
       }
+
+      // 2단계: 복구 성공 후 키페어 생성하고 공개키 업데이트
+      if (Capacitor.isNativePlatform() && verifyData.kakaoId) {
+        const { generateKeyPair } = await import('@/lib/crypto/key-manager')
+
+        // kakaoId로 키페어 생성 (로그인할 때도 kakaoId로 찾기 때문)
+        console.log('[RECOVERY] Generating new keypair with kakaoId:', verifyData.kakaoId)
+        const newPublicKey = await generateKeyPair(verifyData.kakaoId)
+
+        // 공개키를 서버에 업데이트
+        const updateResponse = await fetch('/api/auth/recover/update-key', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: verifyData.userId,
+            newPublicKey,
+            deviceInfo,
+          }),
+        })
+
+        const updateData = await updateResponse.json()
+        if (!updateData.success) {
+          toast.error('공개키 업데이트에 실패했습니다.')
+          setLoading(false)
+          return
+        }
+      }
+
+      setStep('success')
+      toast.success('계정이 성공적으로 복구되었습니다!')
+
+      // 3초 후 로그인 페이지로 이동
+      setTimeout(() => {
+        router.push('/login')
+      }, 3000)
     } catch (error) {
       console.error('계정 복구 실패:', error)
       toast.error('계정 복구 중 오류가 발생했습니다.')
@@ -158,7 +177,7 @@ export default function AccountRecoveryPage() {
               <form onSubmit={handleIdentifierSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    전화번호
+                    전화번호 *
                   </label>
                   <input
                     type="tel"
@@ -166,14 +185,13 @@ export default function AccountRecoveryPage() {
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="010-1234-5678"
                     className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                    required
                   />
                 </div>
 
-                <div className="text-center text-sm text-gray-500 font-semibold">또는</div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    이메일
+                    이메일 *
                   </label>
                   <input
                     type="email"
@@ -181,6 +199,7 @@ export default function AccountRecoveryPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="example@email.com"
                     className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
+                    required
                   />
                 </div>
 
@@ -219,7 +238,7 @@ export default function AccountRecoveryPage() {
                     onChange={(e) => setRecoveryCode(e.target.value)}
                     placeholder="apple banana cherry... (12개 단어)"
                     rows={4}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-mono text-sm resize-none"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all font-mono text-base resize-none"
                   />
                   <p className="text-xs text-gray-500 mt-2">
                     단어 수: {recoveryCode.trim() ? recoveryCode.trim().split(/\s+/).length : 0} / 12
