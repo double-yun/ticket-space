@@ -64,36 +64,6 @@ export default function MyTicketsPage() {
     fetchPurchases()
   }, [authLoading, user, token, router, fetchPurchases])
 
-  const generateQRCode = async (purchase: Purchase) => {
-    try {
-      const QRCode = (await import('qrcode')).default
-
-      const ticketData = {
-        tokenId: purchase.tokenId,
-        ticketName: purchase.ticket.name,
-        transactionHash: purchase.transactionHash,
-        purchaseDate: purchase.purchaseDate,
-        used: purchase.used,
-        userId: user?.id, // 현재 사용하려는 사용자 ID 추가
-        timestamp: Date.now(), // 매번 새로운 타임스탬프로 QR 코드 변경
-      }
-
-      const qrDataURL = await QRCode.toDataURL(JSON.stringify(ticketData), {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF',
-        },
-      })
-
-      setQrCodeDataURL(qrDataURL)
-    } catch (error) {
-      console.error('QR 코드 생성 실패:', error)
-      toast.error('QR 코드 생성에 실패했습니다.')
-    }
-  }
-
   const handleShowQR = async (purchase: Purchase) => {
     setSelectedTicket(purchase)
     setQrModalOpen(true)

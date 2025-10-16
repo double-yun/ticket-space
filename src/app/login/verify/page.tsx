@@ -10,7 +10,7 @@ import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
 import { useAuth } from '@/contexts/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import { Clipboard } from '@capacitor/clipboard'
-import { generateKeyPair, getDeviceInfo, checkBiometricAvailability } from '@/lib/crypto/key-manager'
+import { generateKeyPair, getDeviceInfo, checkBiometricAvailability, isPasskeySupported } from '@/lib/crypto/key-manager'
 import LoadingSpinner from '@/components/LoadingSpinner'
 
 const normalizePhoneNumber = (phoneNumber: string) => {
@@ -176,24 +176,28 @@ function KakaoPhoneVerificationContent() {
       let publicKey = ''
       let deviceInfo = ''
 
-      if (Capacitor.isNativePlatform()) {
-        const biometric = await checkBiometricAvailability()
+      if (!isPasskeySupported()) {
+        setError('PassKey를 지원하지 않는 환경입니다. 모바일 앱 또는 최신 브라우저에서 다시 시도해주세요.')
+        setLoading(false)
+        return
+      }
 
-        if (!biometric.available) {
-          setError('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
-          setLoading(false)
-          return
-        }
+      const biometric = await checkBiometricAvailability()
 
-        try {
-          publicKey = await generateKeyPair(pendingData.kakaoData.id.toString())
-          deviceInfo = await getDeviceInfo()
-        } catch (keyError) {
-          console.error('Key generation error:', keyError)
-          setError(`보안 키 생성에 실패했습니다: ${keyError instanceof Error ? keyError.message : '인증을 다시 시도해주세요.'}`)
-          setLoading(false)
-          return
-        }
+      if (!biometric.available) {
+        setError('PassKey를 사용하려면 기기 보안 설정(생체 인증 또는 화면 잠금)이 필요합니다.')
+        setLoading(false)
+        return
+      }
+
+      try {
+        publicKey = await generateKeyPair(pendingData.kakaoData.id.toString())
+        deviceInfo = await getDeviceInfo()
+      } catch (keyError) {
+        console.error('Key generation error:', keyError)
+        setError(`보안 키 생성에 실패했습니다: ${keyError instanceof Error ? keyError.message : '인증을 다시 시도해주세요.'}`)
+        setLoading(false)
+        return
       }
 
       const registrationPayload: KakaoRegistrationPayload = {

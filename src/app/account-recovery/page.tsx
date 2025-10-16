@@ -7,6 +7,7 @@ import TopBar from '@/components/TopBar'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { Shield, ArrowLeft, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { checkBiometricAvailability, generateKeyPair, getDeviceInfo, isPasskeySupported } from '@/lib/crypto/key-manager'
 
 export default function AccountRecoveryPage() {
   const router = useRouter()
@@ -49,23 +50,21 @@ export default function AccountRecoveryPage() {
     try {
       setLoading(true)
 
-      // 네이티브 플랫폼인 경우 생체 인증 가능 여부 확인
-      let deviceInfo = 'Web Browser'
-
-      if (Capacitor.isNativePlatform()) {
-        const { getDeviceInfo, checkBiometricAvailability } = await import(
-          '@/lib/crypto/key-manager'
-        )
-
-        const biometric = await checkBiometricAvailability()
-        if (!biometric.available) {
-          toast.error('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
-          setLoading(false)
-          return
-        }
-
-        deviceInfo = await getDeviceInfo()
+      // PassKey 지원 여부 확인
+      if (!isPasskeySupported()) {
+        toast.error('PassKey를 지원하지 않는 환경입니다. 모바일 앱 또는 최신 브라우저에서 다시 시도해주세요.')
+        setLoading(false)
+        return
       }
+
+      const biometric = await checkBiometricAvailability()
+      if (!biometric.available) {
+        toast.error('PassKey를 사용하려면 기기 보안 설정(생체 인증 또는 화면 잠금)이 필요합니다.')
+        setLoading(false)
+        return
+      }
+
+      const deviceInfo = await getDeviceInfo().catch(() => 'Web Browser')
 
       // 1단계: 복구 코드 검증
       const verifyResponse = await fetch('/api/auth/recover/verify', {
@@ -89,10 +88,7 @@ export default function AccountRecoveryPage() {
       }
 
       // 2단계: 복구 성공 후 키페어 생성하고 공개키 업데이트
-      if (Capacitor.isNativePlatform() && verifyData.kakaoId) {
-        const { generateKeyPair } = await import('@/lib/crypto/key-manager')
-
-        // kakaoId로 키페어 생성 (로그인할 때도 kakaoId로 찾기 때문)
+      if (verifyData.kakaoId) {
         console.log('[RECOVERY] Generating new keypair with kakaoId:', verifyData.kakaoId)
         const newPublicKey = await generateKeyPair(verifyData.kakaoId)
 

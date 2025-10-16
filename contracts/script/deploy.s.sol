@@ -7,7 +7,7 @@ import "../src/Ticket.sol";
 contract Deploy is Script {
     function run() external {
         vm.startBroadcast();
-        TicketSBT ticket = new TicketSBT("EventTicket", "TKT", "https://api.example.com/metadata/");
+        TicketSBT ticket = new TicketSBT("EventTicket", "TKT", "https://ticket-space.vercel.app/metadata/ticket");
         console2.log("TicketSBT contract deployed at:", address(ticket));
         vm.stopBroadcast();
     }

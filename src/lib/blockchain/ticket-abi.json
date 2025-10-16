@@ -72,6 +72,25 @@
   },
   {
     "type": "function",
+    "name": "encryptedPublicKeys",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getApproved",
     "inputs": [
       {
@@ -85,6 +104,25 @@
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEncryptedPublicKey",
+    "inputs": [
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "stateMutability": "view"
@@ -145,6 +183,11 @@
         "name": "eventId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "encryptedPubKey",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
     "outputs": [
