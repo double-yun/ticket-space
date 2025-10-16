@@ -12,7 +12,7 @@ import { App } from '@capacitor/app'
 import { useAuth } from '@/contexts/AuthContext'
 import EventCard from '@/components/EventCard';
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { Gift, Ticket, Copy, Check, Plus } from 'lucide-react'
+import { Gift, Ticket, Copy, Check, Plus, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { copyToClipboard } from '@/lib/copy-to-clipboard';
 
@@ -342,26 +342,35 @@ export default function Home() {
 
       {/* 충전 금액 선택 모달 */}
       {showAmountModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-slide-up">
-            <div className="p-6 border-b border-gray-100">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative bg-gradient-to-b from-white/98 to-white/90 backdrop-blur-xl border border-white/50 rounded-3xl w-full max-w-md shadow-2xl animate-fade-in max-h-[90vh] flex flex-col">
+            <button
+              type="button"
+              onClick={closeAmountModal}
+              disabled={funding}
+              aria-label="충전 금액 선택 닫기"
+              className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/85 border border-gray-200/70 text-gray-600 flex items-center justify-center shadow-sm transition-all hover:bg-white hover:text-gray-900 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <X size={18} strokeWidth={2.5} />
+            </button>
+            <div className="p-4 pt-6 pb-4 border-b border-gray-200/50">
               <h2 className="text-xl font-bold text-gray-900">충전 금액 선택</h2>
               <p className="text-sm text-gray-500 mt-1">원하시는 금액을 선택해주세요</p>
-              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-700 font-medium">결제 테스트 모드</p>
-                <p className="text-xs text-blue-600">실제 결제가 이루어지지 않으며, 결제 과정을 체험할 수 있습니다</p>
+              <div className="mt-4 p-3 bg-blue-500/10 border border-blue-200/50 rounded-xl">
+                <p className="text-xs text-blue-700 font-bold">결제 테스트 모드</p>
+                <p className="text-xs text-blue-600 mt-1">실제 결제가 이루어지지 않으며, 결제 과정을 체험할 수 있습니다</p>
               </div>
             </div>
             
-            <div className="p-6 space-y-3">
+            <div className="p-4 space-y-3 overflow-y-auto">
               {[1000, 5000, 10000, 30000, 50000, 100000].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => handleAmountSelect(amount)}
-                  className={`w-full p-4 rounded-2xl font-semibold text-lg transition-all active:scale-[0.98] ${
+                  className={`w-full p-3 rounded-2xl font-semibold text-lg transition-all active:scale-[0.98] ${
                     selectedAmount === amount
-                      ? 'bg-blue-500 text-white shadow-md'
-                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      ? 'bg-blue-500 text-white shadow-lg'
+                      : 'bg-white/80 text-gray-800 hover:bg-white/90 border border-white/50'
                   }`}
                 >
                   {amount.toLocaleString()}원
@@ -369,11 +378,11 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="p-6 pt-0 space-y-3">
+            <div className="p-4 pt-2 border-t border-gray-200/50">
               <button
                 onClick={confirmAndPay}
                 disabled={!selectedAmount || funding}
-                className="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold text-base transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-blue-500 text-white py-4 rounded-2xl font-bold text-base transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
               >
                 {funding ? (
                   <>
@@ -385,13 +394,6 @@ export default function Home() {
                     {selectedAmount ? `${selectedAmount.toLocaleString()}원 충전하기` : '금액을 선택해주세요'}
                   </span>
                 )}
-              </button>
-              <button
-                onClick={closeAmountModal}
-                disabled={funding}
-                className="w-full bg-gray-100 text-gray-700 py-4 rounded-2xl font-semibold text-base transition-all active:scale-[0.99] disabled:opacity-50"
-              >
-                취소
               </button>
             </div>
           </div>

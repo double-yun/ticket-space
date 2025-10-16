@@ -1,41 +1,25 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import TabNavigation from '@/components/TabNavigation'
 import TopBar from '@/components/TopBar'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import { Ticket, Star } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Ticket, Star, QrCode } from 'lucide-react'
+import TicketQrModal from '@/components/TicketQrModal'
+import type { TicketPurchase } from '@/types/purchase'
 
-interface Purchase {
-  id: string
-  transactionHash: string
-  tokenId: string
-  purchaseDate: string
-  used: boolean
-  usedAt?: string
-  pointAmount: number
-  ticket: {
-    id: string
-    name: string
-    description: string
-    price: string
-    imageUrl?: string
-  }
-}
+type Purchase = TicketPurchase
 
 export default function MyTicketsPage() {
   const router = useRouter()
   const { user, token, isLoading: authLoading } = useAuth()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
-  const [qrPopupOpen, setQrPopupOpen] = useState(false)
+  const [qrModalOpen, setQrModalOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<Purchase | null>(null)
-  const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
-  const [timeLeft, setTimeLeft] = useState(15)
 
   const { containerRef, isRefreshing } = usePullToRefresh(async () => {
     await fetchPurchases()
@@ -112,74 +96,16 @@ export default function MyTicketsPage() {
 
   const handleShowQR = async (purchase: Purchase) => {
     setSelectedTicket(purchase)
-    setTimeLeft(15)
-    await generateQRCode(purchase)
-    setQrPopupOpen(true)
-    startPollingTicketStatus(purchase.id)
+    setQrModalOpen(true)
   }
-
-  // 티켓 상태 폴링 (스캔 완료 감지)
-  const startPollingTicketStatus = (purchaseId: string) => {
-    const pollInterval = setInterval(async () => {
-      try {
-        if (!token) {
-          return
-        }
-
-        const response = await fetch('/api/purchases', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        const data = await response.json()
-
-        if (data.success) {
-          const updatedPurchase = data.purchases.find((p: Purchase) => p.id === purchaseId)
-
-          if (updatedPurchase && updatedPurchase.used) {
-            // 티켓이 사용됨으로 변경되면 팝업 닫고 목록 새로고침
-            handleCloseQR()
-            fetchPurchases()
-            clearInterval(pollInterval)
-          }
-        }
-      } catch (error) {
-        console.error('티켓 상태 확인 실패:', error)
-      }
-    }, 2000) // 2초마다 확인
-
-    // QR 팝업이 닫힐 때를 위한 타이머 ID 저장
-    ;(window as any).ticketStatusPollInterval = pollInterval
-  }
-
-  // QR 코드 자동 재생성 (15초마다)
-  useEffect(() => {
-    if (!qrPopupOpen || !selectedTicket) return
-
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          generateQRCode(selectedTicket)
-          return 15
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [qrPopupOpen, selectedTicket])
 
   const handleCloseQR = () => {
-    setQrPopupOpen(false)
+    setQrModalOpen(false)
     setSelectedTicket(null)
-    setQrCodeDataURL('')
-    setTimeLeft(15)
-
-    // 폴링 중단
-    if ((window as any).ticketStatusPollInterval) {
-      clearInterval((window as any).ticketStatusPollInterval)
-      ;(window as any).ticketStatusPollInterval = null
-    }
+  }
+  
+  const handleOpenDetail = (purchaseId: string) => {
+    router.push(`/tickets/${purchaseId}`)
   }
 
   if (loading) {
@@ -222,56 +148,26 @@ export default function MyTicketsPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">보유 티켓 ({purchases.length}개)</h2>
               <div className="space-y-4">
                 {purchases.map((purchase) => (
-                  <TicketCard key={purchase.id} purchase={purchase} onShowQR={handleShowQR} />
+                  <TicketCard
+                    key={purchase.id}
+                    purchase={purchase}
+                    onShowQR={handleShowQR}
+                    onOpenDetail={handleOpenDetail}
+                  />
                 ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* QR 코드 팝업 */}
-        {qrPopupOpen && selectedTicket && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-3xl mx-4 w-full max-w-sm shadow-lg p-8 text-center">
-              <div className="mb-6">
-                <div className="w-20 h-20 bg-blue-500/10 backdrop-blur-xl border border-blue-200/30 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                  <Ticket size={40} className="text-blue-600" strokeWidth={2} />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedTicket.ticket.name}</h2>
-                <p className="text-sm text-gray-500">토큰 ID: #{selectedTicket.tokenId}</p>
-              </div>
+        <TicketQrModal
+          open={qrModalOpen}
+          purchase={selectedTicket}
+          onClose={handleCloseQR}
+          token={token}
+          onRefresh={fetchPurchases}
+        />
 
-              <div className="bg-gray-50 p-4 rounded-2xl mb-5 relative aspect-square flex items-center justify-center">
-                {qrCodeDataURL ? (
-                  <img src={qrCodeDataURL} alt="티켓 QR 코드" className="w-full h-full rounded-xl shadow-sm" />
-                ) : (
-                  <LoadingSpinner size={40} />
-                )}
-              </div>
-
-              <div className="mb-5">
-                <div className="relative w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-1000 ease-linear"
-                    style={{ width: `${(timeLeft / 15) * 100}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  <span className="font-bold text-blue-600">{timeLeft}</span>초 후 QR코드가 갱신됩니다.
-                </p>
-              </div>
-
-              <p className="text-xs text-gray-500 mb-6">🔒 복제 방지를 위해 QR코드가 주기적으로 자동 갱신됩니다.</p>
-
-              <button
-                onClick={handleCloseQR}
-                className="w-full bg-gray-800/80 backdrop-blur-sm border border-gray-600/30 text-white rounded-2xl py-3.5 font-semibold shadow-sm transition-all duration-200 active:scale-[0.98]"
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        )}
       </main>
 
       <TabNavigation />
@@ -279,7 +175,15 @@ export default function MyTicketsPage() {
   )
 }
 
-function TicketCard({ purchase, onShowQR }: { purchase: Purchase; onShowQR: (p: Purchase) => void }) {
+function TicketCard({
+  purchase,
+  onShowQR,
+  onOpenDetail,
+}: {
+  purchase: Purchase
+  onShowQR: (p: Purchase) => void
+  onOpenDetail: (id: string) => void
+}) {
   const isVIP = purchase.ticket.name.includes('VIP')
   const iconBgClass = purchase.used
     ? 'bg-gray-500/10 backdrop-blur-xl border border-gray-200/30'
@@ -292,8 +196,27 @@ function TicketCard({ purchase, onShowQR }: { purchase: Purchase; onShowQR: (p: 
       ? 'text-amber-600'
       : 'text-blue-600'
 
+  const handleCardClick = () => {
+    onOpenDetail(purchase.id)
+  }
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleCardClick()
+    }
+  }
+
   return (
-    <div className={`bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 transition-all duration-200 ${purchase.used ? 'opacity-60' : ''}`}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      className={`bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 transition-all duration-200 ${
+        purchase.used ? 'opacity-60' : 'hover:shadow-md hover:border-gray-100'
+      } cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200`}
+    >
       <div className="flex items-start gap-5">
         <div className={`w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 ${iconBgClass}`}>
           {isVIP ? (
@@ -319,21 +242,15 @@ function TicketCard({ purchase, onShowQR }: { purchase: Purchase; onShowQR: (p: 
       {!purchase.used && (
         <div className="mt-4 pt-4 border-t border-gray-100 flex gap-3">
           <button
-            className="flex-1 bg-blue-500/80 backdrop-blur-sm border border-blue-300/30 text-white font-bold py-3 rounded-2xl shadow-sm transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
-            onClick={() => onShowQR(purchase)}
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zM9 4a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1V4zM9 10a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1v-2zM15 4a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1V4zM15 10a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 01-1 1h-2a1 1 0 01-1-1v-2z"></path></svg>
-            QR 코드 보기
-          </button>
-          <button
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-2xl transition-all duration-200 flex items-center justify-center gap-2"
-            onClick={() => {
-              navigator.clipboard.writeText(purchase.transactionHash)
-              toast.success('트랜잭션 해시가 복사되었습니다.')
+            type="button"
+            className="flex-1 rounded-2xl border border-white/50 bg-gradient-to-r from-blue-500/75 via-indigo-500/70 to-purple-500/70 text-white font-semibold py-3 shadow-[0_10px_24px_rgba(59,130,246,0.18)] backdrop-blur-xl transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] hover:shadow-[0_14px_32px_rgba(99,102,241,0.18)]"
+            onClick={(event) => {
+              event.stopPropagation()
+              onShowQR(purchase)
             }}
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z"></path><path d="M3 5a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"></path></svg>
-            거래내역 복사
+            <QrCode size={18} strokeWidth={2.4} className="drop-shadow-sm" />
+            QR 코드 보기
           </button>
         </div>
       )}

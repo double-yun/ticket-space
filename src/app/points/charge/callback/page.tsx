@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { CheckCircle2, XOctagon } from 'lucide-react';
 
 interface PaymentInfo {
   status?: string;
@@ -140,47 +141,39 @@ function PaymentRedirectContent() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-green-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-              <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">결제 완료!</h2>
-            {paymentInfo?.status === 'VIRTUAL_ACCOUNT_ISSUED' ? (
-              <p className="text-gray-600 mb-4">가상계좌가 발급되었습니다.</p>
-            ) : (
-              <p className="text-gray-600 mb-4">결제가 성공적으로 완료되었습니다.</p>
-            )}
-            {paymentInfo?.amount && (
-              <p className="text-lg font-semibold text-gray-800 mb-6">
-                결제 금액: {paymentInfo.amount.toLocaleString()}원
-              </p>
-            )}
-            {isCapacitorApp && (
-              <>
-                <p className="text-sm text-gray-500 mb-2">
-                  결제가 완료되었습니다!
-                </p>
-                <p className="text-sm font-semibold text-blue-600 mb-2">
-                  상단의 &apos;완료&apos; 또는 &apos;X&apos; 버튼을 눌러 앱으로 돌아가세요
-                </p>
-                {countdown > 0 && (
-                  <p className="text-xs text-gray-500 mb-4">
-                    {countdown}초 후 자동으로 앱으로 돌아갑니다.
-                  </p>
-                )}
-              </>
-            )}
-            <button
-              onClick={handleGoHome}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors"
-            >
-              홈으로 돌아가기
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-100/40 via-white to-blue-100/40 flex items-center justify-center p-6">
+        <div className="relative w-full max-w-xl rounded-3xl border border-white/60 bg-white/40 backdrop-blur-2xl shadow-[0_30px_60px_rgba(22,78,99,0.15)] px-8 py-10 text-center">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/10 text-emerald-600">
+            <CheckCircle2 size={52} strokeWidth={2.2} />
           </div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">결제가 완료되었습니다!</h2>
+          {paymentInfo?.status === 'VIRTUAL_ACCOUNT_ISSUED' ? (
+            <p className="text-sm text-slate-600 mb-5">
+              가상계좌가 발급되었습니다. 안내에 따라 입금해 주세요.
+            </p>
+          ) : (
+            <p className="text-sm text-slate-600 mb-5">포인트 충전이 정상적으로 처리되었습니다.</p>
+          )}
+          {paymentInfo?.amount && (
+            <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-2xl border border-emerald-200/60 bg-emerald-50/60 px-4 py-2 text-sm font-semibold text-emerald-700">
+              <span>충전 금액</span>
+              <span className="text-base font-bold text-emerald-600">
+                {paymentInfo.amount.toLocaleString()}원
+              </span>
+            </div>
+          )}
+          {isCapacitorApp && (
+            <div className="mb-6 space-y-1 text-center text-xs text-slate-500">
+              <p>앱 상단의 닫기 버튼을 눌러 주시면 바로 돌아갈 수 있어요.</p>
+              {countdown > 0 && <p>{countdown}초 후 자동으로 앱으로 돌아갑니다.</p>}
+            </div>
+          )}
+          <button
+            onClick={handleGoHome}
+            className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-blue-500 px-4 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
+          >
+            홈으로 돌아가기
+          </button>
         </div>
       </div>
     );
@@ -188,25 +181,21 @@ function PaymentRedirectContent() {
 
   if (status === 'failed' || status === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-red-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-              <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {status === 'failed' ? '결제 실패' : '오류 발생'}
-            </h2>
-            <p className="text-gray-600 mb-6">{errorMessage}</p>
-            <button
-              onClick={handleGoHome}
-              className="w-full bg-red-600 text-white py-3 px-4 rounded-md hover:bg-red-700 transition-colors"
-            >
-              홈으로 돌아가기
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-red-100/40 via-white to-amber-100/40 flex items-center justify-center p-6">
+        <div className="relative w-full max-w-xl rounded-3xl border border-white/60 bg-white/40 backdrop-blur-2xl shadow-[0_30px_60px_rgba(120,53,15,0.15)] px-8 py-10 text-center">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-red-400/40 bg-red-500/10 text-red-600">
+            <XOctagon size={52} strokeWidth={2.2} />
           </div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-3">
+            {status === 'failed' ? '결제를 완료하지 못했어요' : '결제 검증 중 오류가 발생했어요'}
+          </h2>
+          <p className="text-sm text-slate-600 mb-7">{errorMessage || '잠시 후 다시 시도해 주세요.'}</p>
+          <button
+            onClick={handleGoHome}
+            className="w-full rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 px-4 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-xl active:scale-[0.98]"
+          >
+            홈으로 돌아가기
+          </button>
         </div>
       </div>
     );

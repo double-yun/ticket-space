@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Box, Button, Card, CardContent, TextField, Typography } from '@mui/material'
 import type { PendingKakaoData } from '@/lib/auth/kakao-pending'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 type UserInfoForm = {
   name: string
@@ -90,9 +90,9 @@ export default function KakaoAdditionalInfoPage() {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-        <Typography>로딩 중...</Typography>
-      </Box>
+      <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
     )
   }
 
@@ -103,84 +103,106 @@ export default function KakaoAdditionalInfoPage() {
   const isFormValid = userInfo.name.trim() && userInfo.phoneNumber.trim()
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-      <Card sx={{ maxWidth: 420, width: '100%' }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h5" component="h1" align="center" fontWeight="bold" gutterBottom>
-            회원가입
-          </Typography>
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-            서비스 이용을 위해 필수 정보를 입력해주세요
-          </Typography>
+    <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg border border-gray-200/50">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">회원가입</h1>
+            <p className="text-gray-500 mt-2">서비스 이용을 위해 필수 정보를 입력해주세요</p>
+          </div>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mb-6" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
           )}
 
-          <Box component="form" sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              label="이름"
-              value={userInfo.name}
-              onChange={(event) => setUserInfo({ ...userInfo, name: event.target.value })}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label="이메일"
-              type="email"
-              value={userInfo.email}
-              onChange={(event) => setUserInfo({ ...userInfo, email: event.target.value })}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="휴대폰 번호"
-              placeholder="010-1234-5678"
-              value={userInfo.phoneNumber}
-              onChange={(event) => setUserInfo({ ...userInfo, phoneNumber: event.target.value })}
-              margin="normal"
-              required
-              helperText="필수 입력 항목입니다"
-            />
-            <TextField
-              fullWidth
-              label="생년월일"
-              type="date"
-              value={userInfo.birthDate}
-              onChange={(event) => setUserInfo({ ...userInfo, birthDate: event.target.value })}
-              margin="normal"
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label="성별"
-              placeholder="선택 사항"
-              value={userInfo.gender}
-              onChange={(event) => setUserInfo({ ...userInfo, gender: event.target.value })}
-              margin="normal"
-            />
+          <form className="space-y-6">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                이름 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={userInfo.name}
+                onChange={(event) => setUserInfo({ ...userInfo, name: event.target.value })}
+                className="mt-1 block w-full px-4 py-3 bg-white/50 border border-gray-300/50 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                이메일
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={userInfo.email}
+                onChange={(event) => setUserInfo({ ...userInfo, email: event.target.value })}
+                className="mt-1 block w-full px-4 py-3 bg-white/50 border border-gray-300/50 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                휴대폰 번호 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                placeholder="010-1234-5678"
+                value={userInfo.phoneNumber}
+                onChange={(event) => setUserInfo({ ...userInfo, phoneNumber: event.target.value })}
+                className="mt-1 block w-full px-4 py-3 bg-white/50 border border-gray-300/50 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">
+                생년월일
+              </label>
+              <input
+                type="date"
+                id="birthDate"
+                value={userInfo.birthDate}
+                onChange={(event) => setUserInfo({ ...userInfo, birthDate: event.target.value })}
+                className="mt-1 block w-full px-4 py-3 bg-white/50 border border-gray-300/50 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+                성별
+              </label>
+              <input
+                type="text"
+                id="gender"
+                placeholder="선택 사항"
+                value={userInfo.gender}
+                onChange={(event) => setUserInfo({ ...userInfo, gender: event.target.value })}
+                className="mt-1 block w-full px-4 py-3 bg-white/50 border border-gray-300/50 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
 
-            <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-              <Button variant="outlined" onClick={handleCancel} fullWidth>
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="w-full bg-gray-200/80 text-gray-800 py-3 px-4 rounded-xl font-semibold transition-all hover:bg-gray-300/80 active:scale-[0.99]"
+              >
                 취소
-              </Button>
-              <Button
-                variant="contained"
+              </button>
+              <button
+                type="button"
                 onClick={handleSubmit}
-                fullWidth
                 disabled={!isFormValid}
-                sx={{ backgroundColor: '#FEE500', color: '#000', '&:hover': { backgroundColor: '#FCDD00' } }}
+                className="w-full bg-yellow-400 text-black py-3 px-4 rounded-xl font-bold transition-all hover:bg-yellow-500 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 다음 단계로
-              </Button>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   )
 }

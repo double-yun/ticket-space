@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { generateWallet } from '@/lib/wallet'
 import { signToken } from '@/lib/auth/jwt'
 import { clearPendingKakaoData } from '@/lib/auth/kakao-pending'
+import { generateRecoveryCode, hashRecoveryCode } from '@/lib/crypto/recovery'
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,6 +77,10 @@ export async function POST(request: NextRequest) {
     // 새 사용자 생성 - 지갑과 함께
     const { walletAddress, privyUserId, privyWalletId } = await generateWallet(`kakao:${kakaoId}`)
 
+    // 복구 코드 자동 생성
+    const recoveryCode = generateRecoveryCode()
+    const recoveryCodeHash = hashRecoveryCode(recoveryCode)
+
     const user = await prisma.user.create({
       data: {
         kakaoId: kakaoId.toString(),
@@ -88,6 +93,8 @@ export async function POST(request: NextRequest) {
         privyUserId,
         ...(privyWalletId ? { privyWalletId } : {}),
         phoneVerified: true,
+        // 복구 코드 저장
+        recoveryCodeHash,
         // 비대칭 키 인증 필드 (모바일에서만)
         ...(publicKey ? {
           publicKey,
@@ -113,6 +120,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       token,
+      recoveryCode, // 복구 코드를 프론트로 전달
       user: {
         id: user.id,
         name: user.name,
