@@ -6,7 +6,7 @@ import TopBar from '@/components/TopBar'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { useAuth } from '@/contexts/AuthContext'
 import TicketQrModal from '@/components/TicketQrModal'
-import { CalendarDays, Clock, Copy, ShieldCheck, Ticket as TicketIcon, QrCode, ChevronLeft, Check } from 'lucide-react'
+import { Copy, Ticket as TicketIcon, QrCode, ChevronLeft, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { TicketPurchase } from '@/types/purchase'
 
@@ -60,7 +60,6 @@ export default function TicketDetailPage() {
   const [ticket, setTicket] = useState<TicketDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
   const [qrOpen, setQrOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -156,53 +155,6 @@ export default function TicketDetailPage() {
     }
     return `/events/${ticket.event.id}?${searchParams.toString()}`
   }, [ticket])
-
-  const generateQRCode = async (purchase: TicketPurchase) => {
-    try {
-      const QRCode = (await import('qrcode')).default
-
-      const ticketData = {
-        tokenId: purchase.tokenId,
-        ticketName: purchase.ticket.name,
-        transactionHash: purchase.transactionHash,
-        purchaseDate: purchase.purchaseDate,
-        used: purchase.used,
-        timestamp: Date.now(), // 매번 새로운 타임스탬프로 QR 코드 변경
-      }
-
-      const qrDataURL = await QRCode.toDataURL(JSON.stringify(ticketData), {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF',
-        },
-      })
-
-      setQrCodeDataURL(qrDataURL)
-    } catch (error) {
-      console.error('QR 코드 생성 실패:', error)
-      toast.error('QR 코드 생성에 실패했습니다.')
-    }
-  }
-
-  useEffect(() => {
-    if (ticket && !ticket.used && qrModalPurchase) {
-      generateQRCode(qrModalPurchase)
-    }
-  }, [ticket, qrModalPurchase])
-
-  useEffect(() => {
-    if (!ticket || ticket.used) return
-
-    const interval = setInterval(() => {
-      if (qrModalPurchase) {
-        generateQRCode(qrModalPurchase)
-      }
-    }, 15000)
-
-    return () => clearInterval(interval)
-  }, [ticket, qrModalPurchase])
 
   if (loading) {
     return (

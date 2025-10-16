@@ -64,7 +64,7 @@ export default function MyTicketsPage() {
     fetchPurchases()
   }, [authLoading, user, token, router, fetchPurchases])
 
-  const handleShowQR = (purchase: Purchase) => {
+  const handleShowQR = async (purchase: Purchase) => {
     setSelectedTicket(purchase)
     setQrModalOpen(true)
   }

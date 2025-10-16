@@ -25,6 +25,7 @@ contract TicketSBT is ERC721, Ownable, IERC5192 {
 
     mapping(uint256 => bool) private _locked; // always true after mint
     mapping(uint256 => uint256) public tokenIdToEventId;
+    mapping(uint256 => bytes) public encryptedPublicKeys; // 구매 당시 공개키 (암호화됨)
 
     constructor(string memory name_, string memory symbol_, string memory baseURI_) ERC721(name_, symbol_) Ownable(msg.sender) {
         _base = baseURI_;
@@ -52,17 +53,25 @@ contract TicketSBT is ERC721, Ownable, IERC5192 {
     }
 
     // ----- Mint / Burn -----
-    function mint(address to, uint256 eventId) external onlyOwner returns (uint256 tokenId) {
+    function mint(address to, uint256 eventId, bytes memory encryptedPubKey) external onlyOwner returns (uint256 tokenId) {
         tokenId = ++_id;
         _safeMint(to, tokenId);
         _locked[tokenId] = true;
         tokenIdToEventId[tokenId] = eventId;
+        encryptedPublicKeys[tokenId] = encryptedPubKey;
         emit Locked(tokenId);
     }
 
     function burn(uint256 tokenId) external onlyOwner {
         _burn(tokenId);
         delete _locked[tokenId];
+        delete encryptedPublicKeys[tokenId];
+    }
+
+    // ----- Public Key Query -----
+    function getEncryptedPublicKey(uint256 tokenId) external view returns (bytes memory) {
+        _requireOwned(tokenId);
+        return encryptedPublicKeys[tokenId];
     }
 
     // ----- EIP-5192 -----

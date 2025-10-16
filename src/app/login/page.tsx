@@ -198,92 +198,56 @@ function LoginPageContent() {
 
     setDemoLoading(variant)
     try {
-      // 네이티브 플랫폼에서만 키 페어 인증 사용
-      if (Capacitor.isNativePlatform()) {
-        // **[NEW]** 개인키 존재 확인
-        const keyExists = await hasPrivateKey(variant)
+      const {
+        checkBiometricAvailability,
+        generateKeyPair,
+        getDeviceInfo,
+        getPublicKey,
+        isPasskeySupported,
+      } = await import('@/lib/crypto/key-manager')
 
-        if (keyExists) {
-          // 개인키 있음 → 생체 인증 로그인
-          try {
-            const loginResult = await biometricLogin(variant)
-            setAuthToken(loginResult.token)
-            router.push('/')
-            return
-          } catch (error) {
-            console.error('Biometric login failed:', error)
-            const errorMessage = error instanceof Error ? error.message : '생체 인증 로그인에 실패했습니다'
-            toast.error(errorMessage)
-            return
-          }
-        }
-
-        // 개인키 없음 → 신규 사용자, 키페어 생성 필요
-        // 서버에 공개키와 함께 계정 생성 요청
-        const { generateKeyPair, getDeviceInfo, checkBiometricAvailability } = await import('@/lib/crypto/key-manager')
-
-        console.log('[DEBUG] Demo login: Checking biometric availability...')
-        const biometric = await checkBiometricAvailability()
-        console.log('[DEBUG] Demo login: Biometric availability:', JSON.stringify(biometric))
-        console.log('[DEBUG] Demo login: available =', biometric.available)
-        console.log('[DEBUG] Demo login: biometryType =', biometric.biometryType)
-
-        if (!biometric.available) {
-          toast.error('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
-          return
-        }
-
-        console.log('[DEBUG] Demo login: Generating key pair for variant:', variant)
-        const publicKey = await generateKeyPair(variant)
-        console.log('[DEBUG] Demo login: Public key generated:', publicKey ? `${publicKey.substring(0, 20)}...` : 'null')
-
-        const deviceInfo = await getDeviceInfo()
-        console.log('[DEBUG] Demo login: Device info:', deviceInfo)
-
-        // 공개키와 함께 데모 로그인 요청
-        const response = await fetch('/api/auth/demo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            variant,
-            name: label,
-            publicKey,
-            keyAlgorithm: 'ECDSA_P256',
-            deviceInfo,
-          }),
-        })
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}))
-          throw new Error(data.error || '로그인에 실패했습니다.')
-        }
-
-        const data = await response.json()
-        if (data.token) {
-          setAuthToken(data.token)
-        }
-
-        router.push('/')
-      } else {
-        // 웹 플랫폼에서는 기존 방식 (키페어 없이)
-        const response = await fetch('/api/auth/demo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variant, name: label }),
-        })
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}))
-          throw new Error(data.error || '로그인에 실패했습니다.')
-        }
-
-        const data = await response.json()
-        if (data.token) {
-          setAuthToken(data.token)
-        }
-
-        router.push('/')
+      if (!isPasskeySupported()) {
+        toast.error('현재 환경에서는 PassKey를 지원하지 않습니다. 보안 브라우저 또는 모바일 앱에서 이용해주세요.')
+        return
       }
+
+      const biometric = await checkBiometricAvailability()
+      if (!biometric.available) {
+        toast.error('PassKey를 사용하려면 기기 보안 설정(생체 인증 또는 화면 잠금)이 필요합니다.')
+        return
+      }
+
+      let publicKey = await getPublicKey(variant)
+
+      if (!publicKey) {
+        publicKey = await generateKeyPair(variant)
+      }
+
+      const deviceInfo = await getDeviceInfo()
+
+      const response = await fetch('/api/auth/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variant,
+          name: label,
+          publicKey,
+          keyAlgorithm: 'ECDSA_P256',
+          deviceInfo,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || '로그인에 실패했습니다.')
+      }
+
+      const data = await response.json()
+      if (data.token) {
+        setAuthToken(data.token)
+      }
+
+      router.push('/')
     } catch (error) {
       console.error('[DEBUG] Demo login error:', error)
       const message = error instanceof Error ? error.message : '로그인 중 문제가 발생했습니다.'

@@ -1,7 +1,6 @@
 'use client'
 
 import SecureKey from '@/plugins/SecureKeyPlugin'
-import { Capacitor } from '@capacitor/core'
 
 /**
  * 챌린지 서명 (로그인 시)
@@ -15,10 +14,6 @@ export async function signChallenge(
   challenge: string,
   promptMessage: string = '로그인하려면 인증하세요'
 ): Promise<string> {
-  if (!Capacitor.isNativePlatform()) {
-    throw new Error('Biometric authentication is only available on mobile devices')
-  }
-
   try {
     const result = await SecureKey.signData({
       userId,

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { KakaoUserInfo } from '@/types/kakao'
 import { useAuth } from '@/contexts/AuthContext'
-import { generateKeyPair, getDeviceInfo, checkBiometricAvailability } from '@/lib/crypto/key-manager'
+import { generateKeyPair, getDeviceInfo, checkBiometricAvailability, isPasskeySupported } from '@/lib/crypto/key-manager'
 import { Capacitor } from '@capacitor/core'
 import { Clipboard } from '@capacitor/clipboard'
 
@@ -43,44 +43,35 @@ export default function AccountCreationForm({ kakaoUserInfo, onAccountCreated, o
       let deviceInfo = ''
 
       console.log('[DEBUG] Starting account creation process')
-      console.log('[DEBUG] Is native platform:', Capacitor.isNativePlatform())
-      console.log('[DEBUG] Platform:', Capacitor.getPlatform())
 
-      // 네이티브 플랫폼에서만 키페어 생성
-      if (Capacitor.isNativePlatform()) {
-        console.log('[DEBUG] Native platform detected, checking biometric...')
+      if (!isPasskeySupported()) {
+        setError('PassKey를 지원하지 않는 환경입니다. 모바일 앱 또는 최신 브라우저에서 다시 시도해주세요.')
+        setLoading(false)
+        return
+      }
 
-        // 생체 인증 또는 기기 잠금 가능 여부 확인
-        console.log('[DEBUG] Checking biometric availability...')
-        const biometric = await checkBiometricAvailability()
-        console.log('[DEBUG] Biometric availability:', biometric)
+      console.log('[DEBUG] Checking biometric availability...')
+      const biometric = await checkBiometricAvailability()
+      console.log('[DEBUG] Biometric availability:', biometric)
 
-        if (!biometric.available) {
-          setError('기기에 생체 인증 또는 화면 잠금(PIN/비밀번호)을 설정해주세요.')
-          setLoading(false)
-          return
-        }
+      if (!biometric.available) {
+        setError('PassKey를 사용하려면 기기 보안 설정(생체 인증 또는 화면 잠금)이 필요합니다.')
+        setLoading(false)
+        return
+      }
 
-        // 1. 키페어 생성 (생체 인증 또는 화면 잠금 필요)
-        try {
-          console.log('[DEBUG] Generating key pair for userId:', kakaoUserInfo.kakaoId)
-          publicKey = await generateKeyPair(kakaoUserInfo.kakaoId)
-          console.log('[DEBUG] Public key generated:', publicKey ? `${publicKey.substring(0, 20)}...` : 'null')
-          console.log('[DEBUG] Full public key length:', publicKey ? publicKey.length : 0)
+      try {
+        console.log('[DEBUG] Generating key pair for userId:', kakaoUserInfo.kakaoId)
+        publicKey = await generateKeyPair(kakaoUserInfo.kakaoId)
+        console.log('[DEBUG] Public key generated:', publicKey ? `${publicKey.substring(0, 20)}...` : 'null')
+        console.log('[DEBUG] Full public key length:', publicKey ? publicKey.length : 0)
 
-          console.log('[DEBUG] Getting device info...')
-          deviceInfo = await getDeviceInfo()
-          console.log('[DEBUG] Device info:', deviceInfo)
-        } catch (keyError) {
-          console.error('Key generation error:', keyError)
-          setError(`보안 키 생성에 실패했습니다: ${keyError instanceof Error ? keyError.message : '인증을 다시 시도해주세요.'}`)
-          setLoading(false)
-          return
-        }
-      } else {
-        // 웹에서는 인증 불가 안내
-        console.log('[DEBUG] Web platform detected')
-        setError('인증은 모바일 앱에서만 사용 가능합니다.')
+        console.log('[DEBUG] Getting device info...')
+        deviceInfo = await getDeviceInfo()
+        console.log('[DEBUG] Device info:', deviceInfo)
+      } catch (keyError) {
+        console.error('Key generation error:', keyError)
+        setError(`보안 키 생성에 실패했습니다: ${keyError instanceof Error ? keyError.message : '인증을 다시 시도해주세요.'}`)
         setLoading(false)
         return
       }
