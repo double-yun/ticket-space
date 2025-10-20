@@ -310,13 +310,9 @@ class SecureKeyPlugin : Plugin() {
                     }
                 })
 
-            // Android 10 이하에서는 CryptoObject 전달 필수
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                val cryptoObject = BiometricPrompt.CryptoObject(signature)
-                biometricPrompt.authenticate(promptInfo, cryptoObject)
-            } else {
-                biometricPrompt.authenticate(promptInfo)
-            }
+            // 모든 Android 버전에서 CryptoObject 전달 (키가 생체 인증을 요구하므로)
+            val cryptoObject = BiometricPrompt.CryptoObject(signature)
+            biometricPrompt.authenticate(promptInfo, cryptoObject)
         } catch (e: Exception) {
             call.reject("Failed to initialize signature: ${e.message}", e)
         }

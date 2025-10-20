@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import usePullToRefresh from '@/hooks/usePullToRefresh'
 import TopBar from '@/components/TopBar'
 import TabNavigation from '@/components/TabNavigation'
-import { Settings, Bell, HelpCircle, LogOut, User, ScanLine, Copy, Check, Shield } from 'lucide-react'
+import { Settings, Bell, HelpCircle, LogOut, User, ScanLine, Copy, Check } from 'lucide-react'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import toast from 'react-hot-toast';
 import { copyToClipboard } from '@/lib/copy-to-clipboard';
@@ -95,12 +95,6 @@ export default function ProfilePage() {
       icon: ScanLine,
       label: '티켓 검증',
       action: () => router.push('/admin/scan'),
-    },
-    {
-      icon: Shield,
-      label: '복구 코드 관리',
-      action: () => router.push('/recovery-code'),
-      highlight: true,
     },
     {
       icon: Settings,
