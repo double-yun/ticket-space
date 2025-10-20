@@ -25,6 +25,15 @@ interface TicketDetail {
     price: number
     deadline: string
     saleStart: string | null
+    seatCapacity: number | null
+    eventStartAt: string | null
+    eventEndAt: string | null
+    doorsOpenAt: string | null
+    venueName: string | null
+    venueAddress: string | null
+    seatLayoutSummary: string | null
+    lotteryApplicationDeadline: string | null
+    lotteryResultAnnouncementAt: string | null
     status: string
   }
   application: {
@@ -54,6 +63,11 @@ export default function TicketDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user, token, isLoading: authLoading } = useAuth()
+
+  const normalizeDate = (value: string | null) => {
+    const formatted = formatDateTime(value)
+    return formatted === '정보 없음' ? null : formatted
+  }
 
   const ticketId = params.ticketId as string
 
@@ -178,6 +192,26 @@ export default function TicketDetailPage() {
     )
   }
 
+  const eventStartAt = normalizeDate(ticket.event.eventStartAt)
+  const eventEndAt = normalizeDate(ticket.event.eventEndAt)
+  const eventSchedule = eventStartAt && eventEndAt
+    ? `${eventStartAt} ~ ${eventEndAt}`
+    : eventStartAt ?? (eventEndAt ? `종료 예정 ${eventEndAt}` : '미정')
+  const doorsOpenAt = normalizeDate(ticket.event.doorsOpenAt) ?? '미정'
+  const saleStartAt = normalizeDate(ticket.event.saleStart) ?? '미정'
+  const saleDeadlineAt = normalizeDate(ticket.event.deadline) ?? '미정'
+  const lotteryDeadlineAt = normalizeDate(ticket.event.lotteryApplicationDeadline)
+  const lotteryAnnouncementAt = normalizeDate(ticket.event.lotteryResultAnnouncementAt)
+  const venueName = ticket.event.venueName ?? '장소 미정'
+  const venueAddress = ticket.event.venueAddress ?? null
+  const seatCapacityLabel =
+    typeof ticket.event.seatCapacity === 'number'
+      ? `${ticket.event.seatCapacity.toLocaleString()}석`
+      : '정보 미정'
+  const seatLayoutSummary = ticket.event.seatLayoutSummary ?? '좌석 정보가 등록되지 않았습니다.'
+  const isLotteryTicket = Boolean(ticket.application)
+  const lotteryDeadlineDisplay = lotteryDeadlineAt ?? saleDeadlineAt
+
   return (
     <div className="bg-gradient-to-b from-blue-50/30 via-white to-purple-50/30 h-[var(--app-height)] flex flex-col">
       <TopBar 
@@ -242,6 +276,44 @@ export default function TicketDetailPage() {
                   <span className="inline-block text-xs font-semibold text-amber-600 bg-amber-100/80 px-3 py-1.5 rounded-full">
                     환불됨
                   </span>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white/85 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-gray-100/60 space-y-4">
+            <h2 className="text-lg font-bold text-gray-900">이벤트 정보</h2>
+            <div className="grid grid-cols-1 gap-4 text-sm">
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                <p className="text-xs text-gray-500 mb-1">공연 일시</p>
+                <p className="text-gray-800 font-medium">{eventSchedule}</p>
+              </div>
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                <p className="text-xs text-gray-500 mb-1">입장 가능 시간</p>
+                <p className="text-gray-800 font-medium">{doorsOpenAt}</p>
+              </div>
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                <p className="text-xs text-gray-500 mb-1">장소</p>
+                <p className="text-gray-800 font-medium">{venueName}</p>
+                {venueAddress && (
+                  <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">{venueAddress}</p>
+                )}
+              </div>
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                <p className="text-xs text-gray-500 mb-1">{isLotteryTicket ? '응모 일정' : '판매 일정'}</p>
+                <div className="space-y-1 text-gray-800 font-medium">
+                  <p>시작: {saleStartAt}</p>
+                  <p>{isLotteryTicket ? '응모 마감' : '판매 마감'}: {lotteryDeadlineDisplay}</p>
+                  {isLotteryTicket && lotteryAnnouncementAt && (
+                    <p className="text-xs text-gray-500 font-normal">추첨 결과 발표: {lotteryAnnouncementAt}</p>
+                  )}
+                </div>
+              </div>
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                <p className="text-xs text-gray-500 mb-1">좌석 정보</p>
+                <p className="text-gray-800 font-medium">{seatCapacityLabel}</p>
+                {seatLayoutSummary && (
+                  <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">{seatLayoutSummary}</p>
                 )}
               </div>
             </div>

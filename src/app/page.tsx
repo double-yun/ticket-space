@@ -24,6 +24,15 @@ interface TicketData {
   maxSupply: number
   currentSupply: number
   deadline: string
+  seatCapacity?: number | null
+  eventStartAt?: string | null
+  eventEndAt?: string | null
+  doorsOpenAt?: string | null
+  venueName?: string | null
+  venueAddress?: string | null
+  seatLayoutSummary?: string | null
+  lotteryApplicationDeadline?: string | null
+  lotteryResultAnnouncementAt?: string | null
 }
 
 interface LotteryTicketData extends TicketData {

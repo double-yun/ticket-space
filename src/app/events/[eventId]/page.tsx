@@ -17,9 +17,18 @@ interface EventDetail {
   description: string
   price: number
   ticketCount: number
+  seatCapacity: number | null
   currentSupply: number
   deadline: string
   saleStart: string | null
+  eventStartAt: string | null
+  eventEndAt: string | null
+  doorsOpenAt: string | null
+  venueName: string | null
+  venueAddress: string | null
+  seatLayoutSummary: string | null
+  lotteryApplicationDeadline: string | null
+  lotteryResultAnnouncementAt: string | null
   status: string
   type: EventType
   rounds: RoundSummary[]
@@ -272,7 +281,24 @@ useEffect(() => {
 
   const saleStart = formatDateTime(event.saleStart)
   const deadline = formatDateTime(event.deadline)
+  const eventStart = formatDateTime(event.eventStartAt)
+  const eventEnd = formatDateTime(event.eventEndAt)
+  const doorsOpen = formatDateTime(event.doorsOpenAt)
   const applicationDeadline = formatDateTime(effectiveRound?.applicationDeadline ?? null)
+  const eventApplicationDeadline = formatDateTime(event.lotteryApplicationDeadline)
+  const lotteryAnnouncement = formatDateTime(event.lotteryResultAnnouncementAt)
+  const venueName = event.venueName ?? '장소 미정'
+  const seatCapacityLabel =
+    typeof event.seatCapacity === 'number' ? `${event.seatCapacity.toLocaleString()}석` : '정보 미정'
+  const eventScheduleLabel = (() => {
+    if (eventStart && eventEnd) return `${eventStart} ~ ${eventEnd}`
+    if (eventStart) return eventStart
+    if (eventEnd) return `종료 예정 ${eventEnd}`
+    return '일정 미정'
+  })()
+  const doorsOpenLabel = doorsOpen ?? '정보 미정'
+  const saleStartLabel = saleStart ?? '미정'
+  const seatLayoutSummary = event.seatLayoutSummary ?? '좌석 정보가 등록되지 않았습니다.'
   const applicationDeadlineDate = effectiveRound
     ? new Date(effectiveRound.applicationDeadline)
     : null
@@ -375,23 +401,62 @@ useEffect(() => {
             <div className="grid grid-cols-1 gap-4 text-sm">
               <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
                 <p className="text-xs text-gray-500 mb-1">장소</p>
-                <p className="text-gray-800 font-medium">추후 공개 예정</p>
+                <p className="text-gray-800 font-medium">{venueName}</p>
+                {event.venueAddress && (
+                  <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">
+                    {event.venueAddress}
+                  </p>
+                )}
               </div>
+
               <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
-                <p className="text-xs text-gray-500 mb-1">일시</p>
-                <p className="text-gray-800 font-medium">{saleStart ?? deadline ?? '일정 미정'}</p>
+                <p className="text-xs text-gray-500 mb-1">공연 일시</p>
+                <p className="text-gray-800 font-medium">{eventScheduleLabel}</p>
               </div>
+
               <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
-                <p className="text-xs text-gray-500 mb-1">
-                  {isDirectEvent ? '판매 마감' : '응모 마감'}
-                </p>
-                <p className="text-gray-800 font-medium">
-                  {isDirectEvent ? deadline ?? '마감 일정 미정' : applicationDeadline ?? '마감 일정 미정'}
-                </p>
+                <p className="text-xs text-gray-500 mb-1">입장 가능 시간</p>
+                <p className="text-gray-800 font-medium">{doorsOpenLabel}</p>
               </div>
+
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                <p className="text-xs text-gray-500 mb-1">{isDirectEvent ? '판매 일정' : '응모 일정'}</p>
+                <div className="space-y-1 text-gray-800 font-medium">
+                  <p>시작: {saleStartLabel}</p>
+                  <p>
+                    {isDirectEvent ? '마감' : '응모 마감'}:{' '}
+                    {isDirectEvent
+                      ? deadline ?? '마감 일정 미정'
+                      : applicationDeadline ?? eventApplicationDeadline ?? '마감 일정 미정'}
+                  </p>
+                  {!isDirectEvent && eventApplicationDeadline && applicationDeadline !== eventApplicationDeadline && (
+                    <p className="text-xs text-gray-500 font-normal">
+                      라운드 기준 마감: {applicationDeadline ?? '미정'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {isLotteryEvent && lotteryAnnouncement && (
+                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                  <p className="text-xs text-gray-500 mb-1">추첨 결과 발표</p>
+                  <p className="text-gray-800 font-medium">{lotteryAnnouncement}</p>
+                </div>
+              )}
+
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
+                <p className="text-xs text-gray-500 mb-1">좌석 정보</p>
+                <p className="text-gray-800 font-medium">{seatCapacityLabel}</p>
+                {seatLayoutSummary && (
+                  <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">
+                    {seatLayoutSummary}
+                  </p>
+                )}
+              </div>
+
               <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">총 티켓 수량</p>
+                  <p className="text-xs text-gray-500 mb-1">판매 티켓 수량</p>
                   <p className="text-gray-800 font-medium">{event.ticketCount}장</p>
                 </div>
                 {isDirectEvent && (
@@ -407,6 +472,7 @@ useEffect(() => {
                   </div>
                 )}
               </div>
+
               {!isDirectEvent && effectiveRound && (
                 <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100/60">
                   <p className="text-xs text-gray-500 mb-1">라운드 정보</p>
