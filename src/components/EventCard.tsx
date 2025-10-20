@@ -13,6 +13,10 @@ interface TicketData {
   deadline?: string
   roundId?: string
   applicationDeadline?: string
+  eventStartAt?: string | null
+  doorsOpenAt?: string | null
+  venueName?: string | null
+  venueAddress?: string | null
 }
 
 interface EventCardProps {
@@ -20,9 +24,23 @@ interface EventCardProps {
   type: 'direct' | 'lottery'
 }
 
+function formatBadgeDate(value?: string | null) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export default function EventCard({ ticket, type }: EventCardProps) {
   const router = useRouter()
   const isSoldOut = type === 'direct' && ticket.currentSupply >= ticket.maxSupply
+  const eventStartLabel = formatBadgeDate(ticket.eventStartAt)
+  const venueLabel = ticket.venueName ?? null
 
   const handleCardClick = () => {
     const basePath = `/events/${ticket.id}`
@@ -78,6 +96,12 @@ export default function EventCard({ ticket, type }: EventCardProps) {
           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
             {ticket.description}
           </p>
+          {(eventStartLabel || venueLabel) && (
+            <div className="space-y-1 text-xs text-gray-500">
+              {eventStartLabel && <p>공연: {eventStartLabel}</p>}
+              {venueLabel && <p>장소: {venueLabel}</p>}
+            </div>
+          )}
         </div>
       </div>
 

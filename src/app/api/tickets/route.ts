@@ -37,6 +37,15 @@ export async function GET() {
         maxSupply: event.ticketCount,
         currentSupply: event._count.tickets,
         deadline: event.deadline,
+        seatCapacity: event.seatCapacity,
+        eventStartAt: event.eventStartAt,
+        eventEndAt: event.eventEndAt,
+        doorsOpenAt: event.doorsOpenAt,
+        venueName: event.venueName,
+        venueAddress: event.venueAddress,
+        seatLayoutSummary: event.seatLayoutSummary,
+        lotteryApplicationDeadline: event.lotteryApplicationDeadline,
+        lotteryResultAnnouncementAt: event.lotteryResultAnnouncementAt,
       }
 
       if (event.rounds.length > 0) {

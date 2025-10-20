@@ -54,9 +54,18 @@ model Event {
   title       String
   description String?
   ticketCount Int
+  seatCapacity Int?
   price       Int
   deadline    DateTime
   saleStart   DateTime?
+  eventStartAt  DateTime?
+  eventEndAt    DateTime?
+  doorsOpenAt   DateTime?
+  venueName     String?
+  venueAddress  String?
+  seatLayoutSummary String?
+  lotteryApplicationDeadline   DateTime?
+  lotteryResultAnnouncementAt  DateTime?
   status      EventStatus @default(DRAFT)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

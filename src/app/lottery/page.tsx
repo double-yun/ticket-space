@@ -28,15 +28,24 @@ interface LotteryApplication {
     status: string
     applicationDeadline: string
     drawnAt: string | null
-    event: {
-      id: number
-      title: string
-      description: string
-      price: number
-      deadline: string
-      saleStart: string | null
-    }
-  } | null
+      event: {
+        id: number
+        title: string
+        description: string
+        price: number
+        deadline: string
+        saleStart: string | null
+        seatCapacity: number | null
+        eventStartAt: string | null
+        eventEndAt: string | null
+        doorsOpenAt: string | null
+        venueName: string | null
+        venueAddress: string | null
+        seatLayoutSummary: string | null
+        lotteryApplicationDeadline: string | null
+        lotteryResultAnnouncementAt: string | null
+      }
+    } | null
   ticket: {
     id: string
     tokenId: string | null
@@ -241,6 +250,10 @@ function ApplicationCard({ application }: { application: LotteryApplication }) {
   const deadline = formatDate(application.round?.applicationDeadline ?? null)
   const drawTime = formatDate(application.round?.drawnAt ?? null)
   const createdAt = formatDate(application.createdAt)
+  const eventStart = formatDate(application.round?.event.eventStartAt ?? null)
+  const doorsOpen = formatDate(application.round?.event.doorsOpenAt ?? null)
+  const venueName = application.round?.event.venueName ?? '장소 미정'
+  const venueAddress = application.round?.event.venueAddress ?? null
 
   const getCardStyle = (status: ApplicationStatus) => {
     switch (status) {
@@ -281,6 +294,12 @@ function ApplicationCard({ application }: { application: LotteryApplication }) {
           {roundNumber !== undefined && (
             <p className="text-sm font-semibold text-gray-600 mb-3">라운드 #{roundNumber}</p>
           )}
+          <div className="space-y-1 text-xs text-gray-500">
+            <p className="font-medium text-gray-700">장소: {venueName}</p>
+            {venueAddress && <p className="whitespace-pre-line">{venueAddress}</p>}
+            {eventStart && <p>공연 시간: {eventStart}</p>}
+            {doorsOpen && <p>입장 시작: {doorsOpen}</p>}
+          </div>
         </div>
       </div>
 
