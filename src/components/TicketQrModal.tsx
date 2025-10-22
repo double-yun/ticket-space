@@ -36,10 +36,8 @@ export default function TicketQrModal({ open, purchase, onClose, token, onRefres
       const QRCode = (await import('qrcode')).default
       const ticketData = {
         tokenId: purchase.tokenId,
-        ticketName: purchase.ticket.name,
         transactionHash: purchase.transactionHash,
-        purchaseDate: purchase.purchaseDate,
-        used: purchase.used,
+        userId: purchase.userId,
         timestamp: Date.now(),
       }
 
