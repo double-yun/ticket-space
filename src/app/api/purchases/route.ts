@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         purchaseDate: ticket.issuedAt,
         used: ticket.used,
         usedAt: ticket.used ? ticket.updatedAt : null,
+        userId: ticket.userId,
         ticket: {
           id: ticket.eventId,
           name: ticket.event.title,

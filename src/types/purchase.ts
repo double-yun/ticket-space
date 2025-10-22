@@ -13,5 +13,6 @@ export interface TicketPurchase {
   purchaseDate: string
   used: boolean
   usedAt?: string | null
+  userId: string
   ticket: TicketEventInfo
 }
