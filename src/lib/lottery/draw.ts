@@ -24,7 +24,11 @@ function shuffleArray<T>(array: T[]): T[] {
  * @param roundId - 추첨할 라운드 ID
  * @returns 추첨 성공 여부 및 결과
  */
-export async function executeDraw(roundId: string) {
+type ExecuteDrawOptions = {
+  force?: boolean
+}
+
+export async function executeDraw(roundId: string, options?: ExecuteDrawOptions) {
   try {
     console.log(`[Draw] Starting draw for roundId: ${roundId}`)
 
@@ -55,7 +59,7 @@ export async function executeDraw(roundId: string) {
 
     // 마감 시간 확인
     const now = new Date()
-    if (now <= round.applicationDeadline) {
+    if (!options?.force && now <= round.applicationDeadline) {
       throw new Error('Application deadline has not passed yet')
     }
 

@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { roundId: string } }
+  context: { params: Promise<{ roundId: string }> }
 ) {
   try {
     // TODO: 관리자 권한 확인 추가
@@ -17,7 +17,8 @@ export async function POST(
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     // }
 
-    const { roundId } = params
+    const { roundId } = await context.params
+    const forceDraw = request.nextUrl.searchParams.get('force') === 'true'
 
     if (!roundId) {
       return NextResponse.json({ error: 'roundId가 필요합니다.' }, { status: 400 })
@@ -37,7 +38,7 @@ export async function POST(
 
     // 마감 시간 확인
     const now = new Date()
-    if (now <= round.applicationDeadline) {
+    if (!forceDraw && now <= round.applicationDeadline) {
       return NextResponse.json(
         { error: '아직 신청 마감 시간이 지나지 않았습니다.' },
         { status: 400 }
@@ -61,7 +62,7 @@ export async function POST(
     }
 
     // 추첨 실행
-    const drawResult = await executeDraw(roundId)
+    const drawResult = await executeDraw(roundId, { force: forceDraw })
 
     // 당첨자 마킹 (이벤트의 티켓 수량만큼)
     const winnerResult = await markWinners(roundId, round.event.ticketCount)

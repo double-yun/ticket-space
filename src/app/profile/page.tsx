@@ -20,11 +20,36 @@ interface Purchase {
   used: boolean
 }
 
+interface LotteryRoundOption {
+  id: string
+  status: 'OPEN' | 'CLOSED'
+  applicationDeadline: string
+  event: {
+    id: number
+    title: string
+    ticketCount: number
+  }
+  applicantCount: number
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const { user, token, logout, isLoading: authLoading } = useAuth()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [copied, setCopied] = useState(false)
+  const [directEventForm, setDirectEventForm] = useState({ title: '', ticketCount: '2', price: '10000' })
+  const [lotteryEventForm, setLotteryEventForm] = useState({
+    title: '',
+    ticketCount: '2',
+    price: '10000',
+    applicationDeadlineMinutes: '60',
+  })
+  const [isCreatingDirectEvent, setIsCreatingDirectEvent] = useState(false)
+  const [isCreatingLotteryEvent, setIsCreatingLotteryEvent] = useState(false)
+  const [lotteryRounds, setLotteryRounds] = useState<LotteryRoundOption[]>([])
+  const [selectedRoundId, setSelectedRoundId] = useState('')
+  const [isLoadingRounds, setIsLoadingRounds] = useState(false)
+  const [isDrawingRound, setIsDrawingRound] = useState(false)
 
   const fetchPurchases = useCallback(async () => {
     if (!token) return
@@ -43,6 +68,32 @@ export default function ProfilePage() {
     }
   }, [token])
 
+  const refreshLotteryRounds = useCallback(async () => {
+    setIsLoadingRounds(true)
+    try {
+      const response = await fetch('/api/test-tools/lottery/rounds')
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error ?? '라운드 목록을 불러오지 못했습니다.')
+      }
+
+      const rounds = data.rounds as LotteryRoundOption[]
+      setLotteryRounds(rounds)
+      setSelectedRoundId((prev) => {
+        if (prev && rounds.some((round) => round.id === prev)) {
+          return prev
+        }
+        return rounds[0]?.id ?? ''
+      })
+    } catch (error) {
+      console.error('Failed to load rounds:', error)
+      toast.error(error instanceof Error ? error.message : '라운드 목록을 불러오지 못했습니다.')
+    } finally {
+      setIsLoadingRounds(false)
+    }
+  }, [])
+
   const { containerRef, isRefreshing } = usePullToRefresh(fetchPurchases)
 
   useEffect(() => {
@@ -53,6 +104,12 @@ export default function ProfilePage() {
       fetchPurchases()
     }
   }, [authLoading, user, router, fetchPurchases])
+
+  useEffect(() => {
+    if (user) {
+      refreshLotteryRounds()
+    }
+  }, [user, refreshLotteryRounds])
 
   const handleLogout = async () => {
     try {
@@ -80,6 +137,138 @@ export default function ProfilePage() {
     } catch (error) {
       console.error('Failed to copy address:', error)
       toast.error('주소 복사에 실패했습니다.')
+    }
+  }
+
+  const handleCreateDirectEvent = async () => {
+    const ticketCount = Number(directEventForm.ticketCount)
+    const price = Number(directEventForm.price)
+
+    if (!directEventForm.title.trim()) {
+      toast.error('이벤트 제목을 입력해주세요.')
+      return
+    }
+
+    if (!Number.isFinite(ticketCount) || ticketCount < 1) {
+      toast.error('티켓 수는 1 이상이어야 합니다.')
+      return
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      toast.error('가격을 올바르게 입력해주세요.')
+      return
+    }
+
+    setIsCreatingDirectEvent(true)
+    try {
+      const response = await fetch('/api/test-tools/events/direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: directEventForm.title,
+          ticketCount,
+          price,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error ?? '이벤트 생성에 실패했습니다.')
+      }
+
+      toast.success(`"${data.event.title}" 이벤트가 생성되었습니다.`)
+      setDirectEventForm({ title: '', ticketCount: directEventForm.ticketCount, price: directEventForm.price })
+    } catch (error) {
+      console.error('Direct event creation failed:', error)
+      toast.error(error instanceof Error ? error.message : '이벤트 생성에 실패했습니다.')
+    } finally {
+      setIsCreatingDirectEvent(false)
+    }
+  }
+
+  const handleCreateLotteryEvent = async () => {
+    const ticketCount = Number(lotteryEventForm.ticketCount)
+    const price = Number(lotteryEventForm.price)
+    const applicationDeadlineMinutes = Number(lotteryEventForm.applicationDeadlineMinutes)
+
+    if (!lotteryEventForm.title.trim()) {
+      toast.error('추첨 이벤트 제목을 입력해주세요.')
+      return
+    }
+
+    if (!Number.isFinite(ticketCount) || ticketCount < 1) {
+      toast.error('티켓 수는 1 이상이어야 합니다.')
+      return
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      toast.error('가격을 올바르게 입력해주세요.')
+      return
+    }
+
+    if (!Number.isFinite(applicationDeadlineMinutes) || applicationDeadlineMinutes < 5) {
+      toast.error('신청 마감 시간은 5분 이상으로 입력해주세요.')
+      return
+    }
+
+    setIsCreatingLotteryEvent(true)
+    try {
+      const response = await fetch('/api/test-tools/events/lottery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: lotteryEventForm.title,
+          ticketCount,
+          price,
+          applicationDeadlineMinutes,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error ?? '추첨 이벤트 생성에 실패했습니다.')
+      }
+
+      toast.success(`"${data.event.title}" 추첨 이벤트가 생성되었습니다.`)
+      setLotteryEventForm({
+        title: '',
+        ticketCount: lotteryEventForm.ticketCount,
+        price: lotteryEventForm.price,
+        applicationDeadlineMinutes: lotteryEventForm.applicationDeadlineMinutes,
+      })
+      refreshLotteryRounds()
+    } catch (error) {
+      console.error('Lottery event creation failed:', error)
+      toast.error(error instanceof Error ? error.message : '추첨 이벤트 생성에 실패했습니다.')
+    } finally {
+      setIsCreatingLotteryEvent(false)
+    }
+  }
+
+  const handleDrawRound = async () => {
+    if (!selectedRoundId) {
+      toast.error('추첨할 라운드를 선택해주세요.')
+      return
+    }
+
+    setIsDrawingRound(true)
+    try {
+      const response = await fetch(`/api/lottery/rounds/${selectedRoundId}/draw?force=true`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error ?? '추첨 실행에 실패했습니다.')
+      }
+
+      toast.success(`추첨 완료! 당첨자 ${data.winners.count}명 / 결제 성공 ${data.payment.successCount}명`)
+      refreshLotteryRounds()
+    } catch (error) {
+      console.error('Lottery draw failed:', error)
+      toast.error(error instanceof Error ? error.message : '추첨 실행에 실패했습니다.')
+    } finally {
+      setIsDrawingRound(false)
     }
   }
 
@@ -220,6 +409,151 @@ export default function ProfilePage() {
                 </button>
               )
             })}
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50 space-y-6">
+            <h3 className="text-base font-bold text-gray-900">이벤트 & 추첨 도구</h3>
+
+            <section className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 mb-1">일반 이벤트 만들기</p>
+                <p className="text-xs text-gray-500">즉시 판매형 이벤트를 빠르게 생성합니다.</p>
+              </div>
+              <input
+                type="text"
+                placeholder="이벤트 제목"
+                value={directEventForm.title}
+                onChange={(e) => setDirectEventForm((prev) => ({ ...prev, title: e.target.value }))}
+                className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">티켓 수</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={directEventForm.ticketCount}
+                    onChange={(e) => setDirectEventForm((prev) => ({ ...prev, ticketCount: e.target.value }))}
+                    className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">가격 (P)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={directEventForm.price}
+                    onChange={(e) => setDirectEventForm((prev) => ({ ...prev, price: e.target.value }))}
+                    className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCreateDirectEvent}
+                disabled={isCreatingDirectEvent}
+                className="w-full rounded-2xl bg-indigo-500 text-white py-3 text-sm font-semibold active:scale-[0.98] transition disabled:opacity-60"
+              >
+                {isCreatingDirectEvent ? '생성 중...' : '일반 이벤트 만들기'}
+              </button>
+            </section>
+
+            <div className="h-px bg-gray-100" />
+
+            <section className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 mb-1">추첨 이벤트 만들기</p>
+                <p className="text-xs text-gray-500">라운드와 온체인 lottery를 함께 생성합니다.</p>
+              </div>
+              <input
+                type="text"
+                placeholder="추첨 이벤트 제목"
+                value={lotteryEventForm.title}
+                onChange={(e) => setLotteryEventForm((prev) => ({ ...prev, title: e.target.value }))}
+                className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">티켓 수</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={lotteryEventForm.ticketCount}
+                    onChange={(e) => setLotteryEventForm((prev) => ({ ...prev, ticketCount: e.target.value }))}
+                    className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">가격 (P)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={lotteryEventForm.price}
+                    onChange={(e) => setLotteryEventForm((prev) => ({ ...prev, price: e.target.value }))}
+                    className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">신청 마감 (분)</label>
+                <input
+                  type="number"
+                  min={5}
+                  value={lotteryEventForm.applicationDeadlineMinutes}
+                  onChange={(e) =>
+                    setLotteryEventForm((prev) => ({ ...prev, applicationDeadlineMinutes: e.target.value }))
+                  }
+                  className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleCreateLotteryEvent}
+                disabled={isCreatingLotteryEvent}
+                className="w-full rounded-2xl bg-blue-500 text-white py-3 text-sm font-semibold active:scale-[0.98] transition disabled:opacity-60"
+              >
+                {isCreatingLotteryEvent ? '생성 중...' : '추첨 이벤트 만들기'}
+              </button>
+            </section>
+
+            <div className="h-px bg-gray-100" />
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 mb-1">추첨 실행</p>
+                  <p className="text-xs text-gray-500">라운드를 선택하고 추첨을 실행합니다.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={refreshLotteryRounds}
+                  disabled={isLoadingRounds}
+                  className="px-3 py-1.5 text-xs font-semibold text-indigo-600 border border-indigo-200 rounded-full bg-indigo-50/70 disabled:opacity-60"
+                >
+                  {isLoadingRounds ? '로딩...' : '라운드 새로고침'}
+                </button>
+              </div>
+              <select
+                value={selectedRoundId}
+                onChange={(e) => setSelectedRoundId(e.target.value)}
+                className="w-full rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              >
+                {lotteryRounds.length === 0 && <option value="">추첨 가능한 라운드가 없습니다</option>}
+                {lotteryRounds.map((round) => (
+                  <option key={round.id} value={round.id}>
+                    {round.event.title} · {round.status} · 신청 {round.applicantCount}명
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleDrawRound}
+                disabled={isDrawingRound || !selectedRoundId}
+                className="w-full rounded-2xl bg-emerald-500 text-white py-3 text-sm font-semibold active:scale-[0.98] transition disabled:opacity-60"
+              >
+                {isDrawingRound ? '추첨 중...' : '추첨 실행'}
+              </button>
+            </section>
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-5 shadow-sm border border-gray-100/50">
