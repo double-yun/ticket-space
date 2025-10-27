@@ -275,8 +275,7 @@ export default function ProfilePage() {
   const stats = useMemo(() => {
     const heldTickets = purchases.filter(p => !p.used).length
     const usedTickets = purchases.filter(p => p.used).length
-    const totalPurchaseAmount = purchases.reduce((sum, p) => sum + p.pointAmount, 0)
-    return { heldTickets, usedTickets, totalPurchaseAmount }
+    return { heldTickets, usedTickets }
   }, [purchases])
 
   const menuItems = [
@@ -362,7 +361,7 @@ export default function ProfilePage() {
               </button>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-500/5 backdrop-blur-xl border border-blue-200/30 rounded-2xl p-3 text-center">
                 <p className="text-2xl font-bold text-gray-900 mb-1">{stats.heldTickets}</p>
                 <p className="text-xs text-gray-600">보유 티켓</p>
@@ -370,10 +369,6 @@ export default function ProfilePage() {
               <div className="bg-emerald-500/5 backdrop-blur-xl border border-emerald-200/30 rounded-2xl p-3 text-center">
                 <p className="text-2xl font-bold text-gray-900 mb-1">{stats.usedTickets}</p>
                 <p className="text-xs text-gray-600">사용한 티켓</p>
-              </div>
-              <div className="bg-purple-500/5 backdrop-blur-xl border border-purple-200/30 rounded-2xl p-3 text-center">
-                <p className="text-2xl font-bold text-gray-900 mb-1">{stats.totalPurchaseAmount.toLocaleString()}</p>
-                <p className="text-xs text-gray-600">총 구매액</p>
               </div>
             </div>
           </div>
