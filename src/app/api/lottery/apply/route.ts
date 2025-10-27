@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     const lotteryContractAddress = (await getLotteryContractAddress()) as `0x${string}`
+    console.log('[Lottery] using contract', lotteryContractAddress)
     const publicClient = getPublicClient()
     const serverAccount = privateKeyToAccount(privateKey)
     const walletClient = getWalletClient(serverAccount)
