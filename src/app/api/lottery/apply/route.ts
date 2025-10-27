@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 9. 블록체인 트랜잭션을 백그라운드에서 실행 (await 하지 않음)
-    submitApplicationToBlockchain(
+    await submitApplicationToBlockchain(
       application.id,
       user.walletAddress,
       round.eventId,
@@ -208,9 +208,7 @@ export async function POST(request: NextRequest) {
       serverAccount,
       publicClient,
       walletClient
-    ).catch((error) => {
-      console.error(`Background blockchain submission failed for application ${application.id}:`, error)
-    })
+    )
 
     return response
   } catch (error) {
